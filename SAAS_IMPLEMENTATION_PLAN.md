@@ -123,8 +123,35 @@ Platform (Super Admin / Global Operations)
 
 ---
 
+### Current Status & Progress Tracking
+
+- [x] **Phase 1: Multi-Tenant & Database-Per-Tenant Schema Foundation**
+  - Added `Tenant`, `TenantMembership`, `Company`, `Location`, `Department`, `TenantSubscription` models.
+  - Added `databaseUrl` to `Tenant` model for dedicated database-per-tenant support.
+  - Linked `Employee` to tenant, company, location, and department with composite indexes.
+  - Validated and compiled typed Prisma client (`npx prisma generate`).
+- [x] **Phase 2: Database-Per-Tenant Pool & Scoped Prisma Client**
+  - Created [`lib/tenant/database-pool.ts`](file:///c:/Users/lenovo/Desktop/mutisass_hrms/saas-repo/lib/tenant/database-pool.ts) to manage connection pools to separate databases.
+  - Created [`lib/tenant/provision-database.ts`](file:///c:/Users/lenovo/Desktop/mutisass_hrms/saas-repo/lib/tenant/provision-database.ts) for automated `CREATE DATABASE` and migration provisioning.
+  - Created [`lib/tenant/scoped-prisma.ts`](file:///c:/Users/lenovo/Desktop/mutisass_hrms/saas-repo/lib/tenant/scoped-prisma.ts) for query isolation.
+  - Updated Edge [`proxy.ts`](file:///c:/Users/lenovo/Desktop/mutisass_hrms/saas-repo/proxy.ts) and [`lib/tenant/context.ts`](file:///c:/Users/lenovo/Desktop/mutisass_hrms/saas-repo/lib/tenant/context.ts) for request header tenant resolution.
+  - Updated [`lib/auth/scope.ts`](file:///c:/Users/lenovo/Desktop/mutisass_hrms/saas-repo/lib/auth/scope.ts) with multi-tenant awareness.
+- [ ] **Phase 3: Tenant-Aware NextAuth Authentication & Session Extension**
+  - Include `tenantId`, `companyId`, and tenant-specific role inside JWT session.
+  - Create Top-Bar Tenant Switcher component.
+- [ ] **Phase 4: Dynamic Branding Provider & Tenant Organization Settings**
+  - Dynamic branding provider replacing static `lib/branding.ts`.
+  - Organization settings UI (Companies, Locations, Branding).
+- [ ] **Phase 5: Platform Super Admin Control Plane**
+  - `/platform-admin` routes with tenant provisioning wizard.
+- [ ] **Phase 6: Multi-Tenant Isolation Tests & CI/CD**
+  - Write Vitest tests verifying cross-tenant and cross-database isolation.
+
+---
+
 ## 5. Immediate Next Actions
 
-1. Review and approve this Architecture Audit & Implementation Plan.
-2. Create the Multi-Tenant Prisma schema draft in `saas-repo/prisma/schema.prisma`.
-3. Build the Tenant Context & Multi-Tenant Prisma Client Extension in `saas-repo/lib/tenant/`.
+1. Implement **Phase 3: NextAuth Tenant Session Token Extension** (`auth.ts` / `auth.config.ts`).
+2. Build the **Top-Bar Tenant Switcher UI** and Company Selector in `components/`.
+3. Build the **Dynamic Branding Provider** replacing static constants in `lib/branding.ts`.
+
