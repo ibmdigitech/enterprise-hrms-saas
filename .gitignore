@@ -1,0 +1,85 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+# `.env*` also matches `.env.example`, which MUST be committed as a
+# placeholder template. The negation below re-includes only that file; every
+# real `.env`, `.env.local`, `.env.production` etc. stays ignored.
+.env*
+!.env.example
+
+# Prisma query-engine temp copies. When the dev server is killed while holding
+# the engine DLL, Prisma leaves a 21MB `.tmpNNNNN` duplicate behind. These are
+# pure build artefacts and must never be committed.
+#
+# Matched at ANY depth: the legacy hr-system/ tree carries its own generated
+# client, and a root-anchored rule silently missed it.
+**/prisma/generated/client/*.tmp*
+**/prisma/generated/client/**/*.tmp*
+
+# The generated Prisma client itself. prisma/schema.prisma declares
+# `output = "./generated/client"`, and the launcher runs `npx prisma generate`
+# on every start, so every run rewrites the tree: the regenerated output and
+# CRLF/LF churn both show up as modifications. It is a build artefact, not
+# source - the same intent as commit 97ea9e2, "chore: untrack legacy
+# hr-system generated client", which fixed only the legacy half.
+#
+# Trailing slash so the whole directory is ignored, including files the
+# generator adds in future versions. Matched at ANY depth: the root app and
+# the legacy hr-system/ tree each emit their own client under the same path.
+**/prisma/generated/
+
+# Database dumps. backups/ contains a full extract of every employee's record
+# plus its .sha256 sidecars, so it must never be committable. The directory
+# also carries its own `.gitignore` containing `*` (written by
+# scripts/backup.ps1); both lines are kept, this one because it is what a reader
+# of the root file sees.
+backups/
+
+# Backup operation logs. logs/backup.log records dump file names, sizes and
+# checksums, one timestamped line per event. It is runtime output, not source.
+/logs/
+
+# Runtime logs
+firebase-debug.log
+*.log
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+/lib/generated/prisma
+
+.vercel

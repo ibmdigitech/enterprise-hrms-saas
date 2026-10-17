@@ -1,0 +1,2157 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/client"
+}
+
+generator client_default {
+  provider = "prisma-client-js"
+}
+
+
+datasource db {
+  provider = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                    String         @id @default(cuid())
+  name                  String?
+  email                 String         @unique
+  emailVerified         DateTime?
+  image                 String?
+  password              String? // Hashed, null for OAuth users
+  role                  String         @default("STAFF")
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  employee              Employee?
+  roleRequests          RoleRequest[]
+  approvedLeavesManager LeaveRequest[] @relation("ManagerApprovals")
+  approvedLeavesHR      LeaveRequest[] @relation("HRApprovals")
+  accounts              Account[]
+
+  // --- P1 workflow relations ---
+  passwordResetTokens   PasswordResetToken[]
+  securityFlag          UserSecurityFlag?
+
+  // --- Exit lifecycle relations (see the Exit* models at the end of this file)
+  // Every one of these is a *named* relation because a single User appears in
+  // four different roles on an exit case, and Prisma cannot infer four
+  // relations to the same model on one side.
+  exitCasesInitiated    ExitCase[]        @relation("ExitCaseInitiatedBy")
+  exitCasesDecided      ExitCase[]        @relation("ExitCaseDecidedBy")
+  exitInterviews        ExitInterview[]   @relation("ExitInterviewConductedBy")
+  rehireAssessments     RehireRecord[]    @relation("RehireAssessedBy")
+
+  // --- Performance relations ---
+  performanceCyclesCreated PerformanceCycle[] @relation("PerformanceCycleCreatedBy")
+  performanceReviewsApproved PerformanceReview[] @relation("ReviewApprovedBy")
+  performanceReviewsAcknowledged PerformanceReview[] @relation("ReviewAcknowledgedBy")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model RoleRequest {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  requestedRole String
+  status        String   @default("PENDING")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ─── P1 WORKFLOW SUPPORT ───────────────────────────────────────────────────────
+// All models below are ADDITIVE. No existing model was altered and no row is
+// removed. Each exists to make a workflow transactional, idempotent, auditable
+// or recoverable rather than best-effort.
+
+/// One-time credential issued instead of a shared default password (P1.1,
+/// SEC-027). The plaintext token is NEVER stored — only its SHA-256 hash.
+model PasswordResetToken {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash   String    @unique
+  purpose     String    @default("FIRST_LOGIN") // FIRST_LOGIN, PASSWORD_RESET, OFFBOARDING
+  expiresAt   DateTime
+  usedAt      DateTime?
+  usedByIp    String?
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// Forces a password change on next sign-in. P0 still gates the session, so a
+/// forced-change user can read nothing sensitive until the reset completes.
+model UserSecurityFlag {
+  userId               String    @id
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mustChangePassword   Boolean   @default(false)
+  mustChangeReason     String?
+  accountDisabled      Boolean   @default(false)
+  disabledReason       String?
+  disabledAt           DateTime?
+  passwordChangedAt    DateTime?
+  failedLoginAttempts  Int       @default(0)
+  lockedUntil          DateTime?
+  lastLoginAt          DateTime?
+  updatedAt            DateTime  @updatedAt
+}
+
+/// Employee offboarding (P1.2). Historical HR/payroll/audit rows are retained;
+/// offboarding disables access and changes status, it never deletes.
+/// Onboarding checklist (P1.1 / FLOW-005).
+///
+/// Separate from OffboardingChecklistItem because the two lifecycles are
+/// independent: an employee can be onboarded and never offboarded, and the
+/// items differ. A requirement row is never treated as satisfied — `status`
+/// stays PENDING until someone completes it, which is what the audit flagged
+/// (FLOW-005: "Do not mark documents as complete merely because a checklist
+/// item was created").
+model OnboardingChecklistItem {
+  id          String   @id @default(cuid())
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  /// PASS | VISA | PASSPORT | EMIRATES_ID | MEDICAL_INSURANCE | ILOE_INSURANCE | BANK | OFFER_LETTER | APPOINTMENT_LETTER | EQUIPMENT | POLICY_ACK
+  category    String
+  label       String
+  required    Boolean  @default(true)
+  /// PENDING | IN_PROGRESS | COMPLETED | WAIVED | BLOCKED
+  status      String   @default("PENDING")
+  /// Set only when a document was actually received and checked. A created
+  /// requirement never satisfies itself.
+  documentRef String?
+  verifiedBy  String?
+  verifiedAt  DateTime?
+  notes       String?
+  dueAt       DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([employeeId, status])
+  @@index([employeeId, category])
+  // One row per category per employee: makes `ensureChecklist` idempotent even
+  // under concurrent calls. Added by migration, not by `db push`, so no data is
+  // at risk.
+  @@unique([employeeId, category])
+}
+
+model OffboardingRequest {
+  id              String    @id @default(cuid())
+  employeeId      String
+  employee        Employee  @relation(fields: [employeeId], references: [id])
+  status          String    @default("REQUESTED") // REQUESTED, IN_REVIEW, NOTICE_PERIOD, CLEARANCE, SETTLEMENT_PENDING, COMPLETED, CANCELLED
+  lastWorkingDay  DateTime
+  noticePeriodEnd DateTime?
+  reason          String?
+  exitNotes       String?
+  initiatedBy     String
+  approvedBy      String?
+  completedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  checklist       OffboardingChecklistItem[]
+  settlement      FinalSettlement?
+
+  @@index([employeeId])
+  @@index([status])
+}
+
+/// Exit checklist. Separate from the checklist item existing state: a created
+/// requirement is never treated as a completed one.
+model OffboardingChecklistItem {
+  id                String             @id @default(cuid())
+  offboardingId     String
+  offboarding       OffboardingRequest  @relation(fields: [offboardingId], references: [id], onDelete: Cascade)
+  label             String
+  category          String             @default("GENERAL")
+  status            String             @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, WAIVED, BLOCKED
+  required          Boolean            @default(true)
+  completedBy       String?
+  completedAt       DateTime?
+  notes             String?
+  dueAt             DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([offboardingId, status])
+}
+
+/// Company property. Minimal structure — the minimum needed to record an
+/// assignment and a return, not a duplicate asset-management system.
+// ─── P1 JOINING & PROBATION ───────────────────────────────────────────────────
+
+/// The explicit joining step (brief §18). An employee appearing in the system
+/// is the outcome of this record, not an implicit side-effect.
+model JoiningRecord {
+  id              String    @id @default(cuid())
+  candidateId     String
+  candidate       Candidate @relation(fields: [candidateId], references: [id])
+  applicationId   String
+  application     Application @relation(fields: [applicationId], references: [id])
+  /// Set once the hire has actually joined. Nullable because a joining can be
+  /// scheduled before the person arrives.
+  employeeId      String?
+  employee        Employee? @relation(fields: [employeeId], references: [id])
+  offerId         String?
+  offer           OfferLetter? @relation(fields: [offerId], references: [id])
+  joiningDate     DateTime
+  /// SCHEDULED | JOINED | NO_SHOW | POSTPONED | CANCELLED
+  status          String    @default("SCHEDULED")
+  department      String?
+  designation     String?
+  employeeCode    String?
+  probationEndDate DateTime?
+  actualJoinedAt  DateTime?
+  joinedBy        String?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status])
+  @@index([candidateId])
+  @@index([joiningDate])
+}
+
+/// Probation tracking (brief §21). Created automatically at joining when the
+/// accepted offer carried a probation period.
+model ProbationReview {
+  id          String    @id @default(cuid())
+  employeeId  String
+  employee    Employee  @relation(fields: [employeeId], references: [id])
+  startDate   DateTime
+  endDate     DateTime
+  /// NOT_STARTED | IN_PROGRESS | CONFIRMED | EXTENDED | FAILED
+  status      String    @default("NOT_STARTED")
+  managerId   String?
+  reviewDate  DateTime?
+  performanceRating Float?
+  attendanceRating  Float?
+  conductRating     Float?
+  technicalRating   Float?
+  communicationRating Float?
+  teamworkRating    Float?
+  overallRecommendation String? // CONFIRM, EXTEND, TERMINATE
+  comments     String?
+  hrApprovedBy String?
+  hrApprovedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([employeeId, status])
+  @@index([endDate])
+}
+
+model Asset {
+  id             String    @id @default(cuid())
+  assetTag       String    @unique
+  name           String
+  category       String?
+  serialNumber   String?
+  description    String?
+  condition      String    @default("GOOD") // NEW, GOOD, FAIR, DAMAGED, LOST
+  status         String    @default("AVAILABLE") // AVAILABLE, ASSIGNED, RETURNS_DUE, RETIRED
+  purchaseDate   DateTime?
+  value          Float?
+  currency       String    @default("AED")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  assignments    AssetAssignment[]
+}
+
+/// An asset cannot be assigned to two people at once: enforced by a partial
+/// unique index created in the migration, not by application code alone.
+model AssetAssignment {
+  id         String    @id @default(cuid())
+  assetId    String
+  asset      Asset     @relation(fields: [assetId], references: [id])
+  employeeId String
+  employee   Employee  @relation(fields: [employeeId], references: [id])
+  assignedAt DateTime  @default(now())
+  assignedBy String
+  returnedAt DateTime?
+  returnedTo String?
+  condition  String?
+  notes      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([employeeId, returnedAt])
+  @@index([assetId, returnedAt])
+}
+
+/// Final settlement. Intentionally NOT a UAE end-of-service calculator: the
+/// business rules are not defined in this codebase, so the workflow is built
+/// and the arithmetic is left as explicit, reviewable inputs.
+model FinalSettlement {
+  id                  String            @id @default(cuid())
+  offboardingId       String            @unique
+  offboarding         OffboardingRequest @relation(fields: [offboardingId], references: [id])
+  status              String            @default("DRAFT") // DRAFT, CALCULATED, UNDER_REVIEW, APPROVED, PAID
+  pendingSalaryDays   Float             @default(0)
+  pendingSalaryAmount Float             @default(0)
+  leaveEncashmentDays Float             @default(0)
+  leaveEncashmentAmount Float           @default(0)
+  loanDeductions      Float             @default(0)
+  advanceDeductions   Float             @default(0)
+  otherDeductions     Float             @default(0)
+  otherAdditions      Float             @default(0)
+  gratuityAmount      Float             @default(0)
+  finalAmount         Float             @default(0)
+  calculationNotes    String?
+  approvedBy          String?
+  approvedAt          DateTime?
+  paidAt              DateTime?
+  paidReference       String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+}
+
+/// Configurable leave policy (P1.3). Nothing about entitlement is hardcoded.
+model LeaveAccrualPolicy {
+  id                String   @id @default(cuid())
+  leaveType         String
+  annualEntitlement Int      @default(0)
+  accrualFrequency  String   @default("ANNUAL") // MONTHLY, ANNUAL, MANUAL
+  accrualAmount     Int      @default(0)
+  carryForward      Boolean  @default(false)
+  maximumBalance    Int?
+  /// Manager approval alone finalises leave of this many days or fewer;
+  /// anything longer also requires HR review. Configurable, not hardcoded.
+  hrReviewThresholdDays Int  @default(5)
+  requiresHrReview  Boolean  @default(true)
+  effectiveFrom     DateTime @default(now())
+  effectiveTo       DateTime?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([leaveType, effectiveFrom])
+  @@index([leaveType, isActive])
+  accrualRuns  LeaveAccrualRun[]
+}
+
+/// One row per policy per period makes accrual idempotent: a unique constraint
+/// on (employeeId, policyId, period) means a second run for the same period
+/// cannot double-credit anyone, even under concurrency.
+model LeaveAccrualRun {
+  id             String            @id @default(cuid())
+  policyId       String
+  policy         LeaveAccrualPolicy @relation(fields: [policyId], references: [id])
+  employeeId     String
+  employee       Employee          @relation(fields: [employeeId], references: [id])
+  period         String // e.g. 2026-01 or 2026
+  daysCredited   Int               @default(0)
+  daysCarried    Int               @default(0)
+  balanceAfter   Int               @default(0)
+  status         String            @default("APPLIED") // APPLIED, SKIPPED
+  skipReason     String?
+  createdBy      String?
+  createdAt      DateTime          @default(now())
+
+  @@unique([employeeId, policyId, period])
+  @@index([period])
+}
+
+/// Registered biometric terminal (P1.7, FLOW-025). The API secret is stored as
+/// a SHA-256 hash only; the plaintext is shown once at creation and never again.
+model AttendanceDevice {
+  id               String    @id @default(cuid())
+  name             String
+  deviceIdentifier String    @unique
+  location         String?
+  status           String    @default("ACTIVE") // ACTIVE, DISABLED, REVOKED
+  apiKeyHash       String    @unique
+  keyPrefix        String // short public prefix, safe to display
+  lastSyncAt       DateTime?
+  lastSyncRecords  Int       @default(0)
+  createdBy        String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  revokedAt        DateTime?
+  syncLogs         AttendanceSyncLog[]
+}
+
+/// Per-import outcome, so operators can see accepted / rejected / duplicate
+/// counts without exposing any credential.
+model AttendanceSyncLog {
+  id                String           @id @default(cuid())
+  deviceId          String
+  device            AttendanceDevice @relation(fields: [deviceId], references: [id])
+  fileName          String?
+  totalRows         Int              @default(0)
+  imported          Int              @default(0)
+  duplicates        Int              @default(0)
+  rejected          Int              @default(0)
+  unknownEmployees  Int              @default(0)
+  durationMs        Int?
+  errorSummary      String?
+  createdAt         DateTime         @default(now())
+
+  @@index([deviceId, createdAt])
+}
+
+/// One row per document per reminder window. The unique constraint is what
+/// makes "do not send the same reminder twice" a database guarantee (P1.6).
+model DocumentExpiryReminder {
+  id           String    @id @default(cuid())
+  employeeId   String
+  employee     Employee  @relation(fields: [employeeId], references: [id])
+  documentType String    // VISA, PASSPORT, EMIRATES_ID, MEDICAL_INSURANCE, WORK_PERMIT, ILOE_INSURANCE
+  documentId   String?
+  thresholdDays Int
+  expiryDate   DateTime
+  recipientRole String   @default("EMPLOYEE") // EMPLOYEE, HR, MANAGER
+  sentAt       DateTime  @default(now())
+  deliveryId   String?
+
+  @@unique([employeeId, documentType, thresholdDays, expiryDate])
+  @@index([expiryDate])
+}
+
+/// Renewal workflow for an expiring document. Previous document history is
+/// never deleted.
+model DocumentRenewal {
+  id           String    @id @default(cuid())
+  employeeId   String
+  employee     Employee  @relation(fields: [employeeId], references: [id])
+  documentType String
+  currentExpiry DateTime
+  status       String    @default("REQUESTED") // REQUESTED, DOCUMENT_SUBMITTED, UNDER_REVIEW, RENEWED, REJECTED, CANCELLED
+  newExpiry    DateTime?
+  notes        String?
+  reviewedBy   String?
+  reviewedAt   DateTime?
+  createdBy    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([employeeId, status])
+}
+
+/// Payroll run header. Per-employee results stay in SalaryRecord; this tracks
+/// the period lifecycle and makes locking and duplicate prevention explicit.
+model PayrollRun {
+  id             String    @id @default(cuid())
+  month          Int
+  year           Int
+  status         String    @default("DRAFT") // DRAFT, CALCULATING, CALCULATED, UNDER_REVIEW, APPROVED, LOCKED, PAID, CANCELLED
+  employeeCount  Int       @default(0)
+  totalNet       Float     @default(0)
+  totalDeductions Float    @default(0)
+  lockedAt       DateTime?
+  lockedBy       String?
+  approvedBy     String?
+  approvedAt     DateTime?
+  paidAt         DateTime?
+  paidReference  String?
+  failureCount   Int       @default(0)
+  notes          String?
+  createdBy      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([year, month])
+  @@index([status])
+}
+
+/// Notification delivery attempts. Kept SEPARATE from Notification so a failed
+/// email can never roll back the business transaction that created the record
+/// (P1.8).
+model NotificationDelivery {
+  id             String       @id @default(cuid())
+  notificationId String?
+  channel        String       // IN_APP, EMAIL, SMS
+  recipient      String
+  templateKey    String?
+  status         String       @default("PENDING") // PENDING, SENT, FAILED, RETRYING, SKIPPED
+  attempts       Int          @default(0)
+  maxAttempts    Int          @default(3)
+  lastError      String?
+  externalId     String?
+  nextRetryAt    DateTime?
+  sentAt         DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([status, nextRetryAt])
+  @@index([recipient])
+}
+
+
+/// The existing AuditLog model requires an employeeId, which makes it
+/// unsuitable for events that are not about one employee (role changes,
+/// denied requests, seed attempts, sign-in failures).
+model SecurityAuditLog {
+  id            String   @id @default(cuid())
+  action        String
+  actorEmail    String?
+  actorRole     String?
+  target        String?
+  outcome       String   @default("SUCCESS") // SUCCESS, DENIED, ERROR
+  detail        Json?
+  requestPath   String?
+  requestMethod String?
+  ipAddress     String?
+  createdAt     DateTime @default(now())
+
+  @@index([action])
+  @@index([actorEmail])
+  @@index([createdAt])
+}
+
+// ─── EMPLOYEE MASTER TABLE (Central Entity) ───────────────────────────────────
+model Employee {
+  id                     String           @id @default(cuid())
+  /// P1 GAP-01: nullable so an employee can be created before their login is
+  /// provisioned or their visa is processed. A CHECK constraint
+  /// (Employee_active_requires_employment_data) requires the full set once
+  /// lifecycle is ACTIVE/CONFIRMED/PROBATION. Prisma cannot express CHECK
+  /// constraints, so that guarantee lives in SQL only — see
+  /// docs/audit/GAP01_MIGRATION_REVIEW.md
+  userId                 String?          @unique
+  user                   User?            @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  employeeCode           String?          @unique // Auto-generated: EMP-001
+  firstName              String
+  lastName               String
+  email                  String           @unique
+  rollNumber             String           @unique
+  photo                  String?
+  phone                  String?
+  gender                 String?
+  bloodGroup             String?
+  dateOfBirth            DateTime?
+  nationality            String?
+  maritalStatus          String?
+  designation            String?
+  department             String?
+  joiningDate            DateTime?
+  employmentType         String           @default("FULL_TIME")
+  workLocation           String?
+  probationDays          Int              @default(90)
+  currentStatus          String           @default("ACTIVE") // ACTIVE, ON_LEAVE, RESIGNED, TERMINATED
+  isActive               Boolean          @default(true)
+  address                String?
+  permanentAddress       String?
+  emergencyContact       String?
+  emergencyPhone         String?
+  governmentId           String?
+  bankName               String?
+  accountNumber          String?
+  iban                   String?
+  ifscCode               String?
+  basicSalary            Float?
+  housingAllowance       Float?
+  transportAllowance     Float?
+  otherAllowance         Float?
+  passportNumber         String?
+  passportExpiry         DateTime?
+  emiratesId             String?
+  emiratesIdExpiry       DateTime?
+  visaNumber             String?
+  visaExpiry             DateTime?
+  visaType               String?
+  medicalInsuranceExpiry DateTime?
+  iloeInsuranceExpiry    DateTime?
+  labourCardNumber       String?
+  labourCardExpiry       DateTime?
+  residencePermitNumber  String?
+  residencePermitExpiry  DateTime?
+
+  // --- Business travel / air ticket entitlement (UAE) ---
+  /// Date the current residence visa was issued or last renewed.
+  ///
+  /// WHY THIS COLUMN EXISTS: the row previously stored only `visaExpiry`, but
+  /// the air ticket entitlement is anchored to the visa RENEWAL date, not the
+  /// calendar year. Without the issue date the anchor cannot be derived, so it
+  /// is persisted here rather than being inferred once and thrown away. The
+  /// compliance feature keeps both dates together; see app/visa.
+  visaIssueDate          DateTime?
+
+  /// Number of return air tickets the employee may consume per entitlement
+  /// year. 0 (the default) means no entitlement.
+  ///
+  /// THIS IS NOT `SalaryStructure.travelAllowance`, which is a MONTHLY cash
+  /// amount paid with payroll. Repurposing that column would silently change a
+  /// salary component into a flight allowance, so the entitlement is counted in
+  /// whole tickets on its own integer column.
+  airTicketEntitlementPerYear Int @default(0)
+  /// ECONOMY | PREMIUM_ECONOMY | BUSINESS — the cabin the entitlement buys.
+  /// NULL means no class has been agreed; HR must choose one before an
+  /// entitlement is usable.
+  airTicketTravelClass   String?
+  /// Day the entitlement year resets. Linked to visa renewal: a visa issued on
+  /// the 15th resets the entitlement on the 15th, so the window runs 15 Sep to
+  /// 14 Sep rather than 1 Jan to 31 Dec.
+  ///
+  /// NULL means "not yet linked to a visa" and the window falls back to the
+  /// calendar year; `lib/workflow/business-travel.ts` reports that state rather
+  /// than hiding it.
+  airTicketAnchorDate    DateTime?
+
+  /// Monetary cap on company-funded travel, in AED, per entitlement window.
+  ///
+  /// THE TICKET COUNT IS NOT A MONEY CAP. `airTicketEntitlementPerYear` answers
+  /// "how many flights", which says nothing about what a fare may cost: two
+  /// economy tickets to the same city can differ fourfold between seasons. This
+  /// column is the amount the company has actually committed for the window, and
+  /// `grantTravelAmount` refuses a grant above what is left of it unless an
+  /// approver records an override.
+  ///
+  /// DECIMAL, NOT FLOAT, DESPITE THE PAYROLL COLUMNS. `SalaryStructure`'s
+  /// component columns are `Float`, and this deliberately does not copy them:
+  /// binary floating point cannot represent 0.1, so a budget summed across a
+  /// window drifts by fractions of a fils and the operator is told a cap that
+  /// does not match the ledger. Money is exact here and rounded only for display.
+  ///
+  /// It shares `airTicketAnchorDate`'s window on purpose. The ticket count and
+  /// the money reset together, so a window can never carry a fresh allowance
+  /// against a spent budget.
+  ///
+  /// NULL means no monetary cap has been agreed. That is NOT unlimited: HR has
+  /// simply not set one, and every grant is then over budget by definition, so
+  /// approving one is a recorded override.
+  annualTravelBudget      Decimal?
+
+  shiftId                String?
+  shift                  Shift?           @relation(fields: [shiftId], references: [id])
+  leaveRequests          LeaveRequest[]
+
+  // --- P1 workflow relations ---
+  offboardingRequests    OffboardingRequest[]
+  assetAssignments       AssetAssignment[]
+  accrualRuns            LeaveAccrualRun[]
+  expiryReminders        DocumentExpiryReminder[]
+  probationReviews      ProbationReview[]
+  joiningRecords        JoiningRecord[]
+  onboardingChecklist    OnboardingChecklistItem[]
+
+  // --- P1 lifecycle (brief §40) ---
+  /// Explicit employment stage. A single ACTIVE/RESIGNED flag cannot express
+  /// probation, notice period or exit, so the stage is a separate field:
+  /// PRE_JOINING | ACTIVE | PROBATION | CONFIRMED | ON_LEAVE |
+  /// NOTICE_PERIOD | RESIGNED | TERMINATED | EXITED
+  lifecycle        String        @default("PRE_JOINING")
+  /// Retention tombstone (RET-001). NULL for every live employee.
+  ///
+  /// WHY THIS COLUMN EXISTS — UAE employment law requires the employer to
+  /// retain an employee's records for five years after the employment
+  /// relationship ends, so `deleteEmployee` must never issue a `DELETE`. It
+  /// archives instead: one guarded write sets `deletedAt` AND `isActive = false`
+  /// together, so the row stops appearing in operational reads without its
+  /// payroll history, letters, leave records or audit trail being destroyed.
+  ///
+  /// NOT THE SAME AXIS AS `lifecycle` / `currentStatus`. Those two record what
+  /// HAPPENED to the employment relationship (ACTIVE, RESIGNED, TERMINATED) and
+  /// archive deliberately does not touch them: archiving is a data-custody
+  /// decision, an exit is an HR fact, and conflating them would make an
+  /// archived-but-active record indistinguishable from a terminated one.
+  /// `isActive` is what operational queries read, so archive sets it as well.
+  ///
+  /// `@@index([deletedAt])` because every listing now filters on it, and a
+  /// nullable-column index is what keeps `WHERE "deletedAt" IS NULL` from
+  /// degrading into a sequential scan as the table grows. Postgres indexes
+  /// NULLs, so the same index serves both "live rows only" and "archived rows
+  /// only" reads without a partial index.
+  deletedAt             DateTime?
+  /// Provenance. Retained so a recruitment hire stays traceable to the
+  /// requisition, application and offer it came from.
+  sourceRequisitionId String?
+  sourceCandidateId  String?
+  documentRenewals       DocumentRenewal[]
+  leaveBalances          LeaveBalance[]
+  attendance             Attendance[]
+  travelRequests         BusinessTravelRequest[]
+  airTicketEntitlements  AirTicketEntitlement[]
+  salaryStructure        SalaryStructure?
+  salaryRecords          SalaryRecord[]
+  letterRecords          LetterRecord[]
+  serviceRequests        ServiceRequest[]
+  visaRequests           VisaRequest[]
+  letters                Letter[]
+  letterRequests         LetterRequest[]
+  attachments            Attachment[]
+  auditLogs              AuditLog[]
+  notifications          Notification[]
+  loanApplications       LoanApplication[]
+  overtime               Overtime[]
+  salaryAdvances         SalaryAdvanceRequest[]
+  reimbursements         ReimbursementRequest[]
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  managerId              String?
+  manager                Employee?        @relation("ManagerToStaff", fields: [managerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reportees              Employee[]       @relation("ManagerToStaff")
+  requestedJobs          JobRequisition[] @relation("RequestedJobs")
+  changeRequests         EmployeeChangeRequest[]
+  /// P1: the interviewer relation moved to `InterviewParticipant` so a panel
+  /// can have many interviewers. This now points at the join.
+  interviewPanel  InterviewParticipant[]
+
+  // --- Exit lifecycle (brief: resignation / termination / end of contract) ---
+  /// One case per exit. A second live case is refused by the action, not by a
+  /// unique constraint, so the error can name the case that is already open.
+  exitCases      ExitCase[]
+  /// Prior-employer rehire assessments. Points at the employee who LEFT, not
+  /// at the one who came back.
+  rehireRecords  RehireRecord[]
+  performanceReviewsAsSubject PerformanceReview[] @relation("PerformanceSubject")
+  performanceReviewsAsManager PerformanceReview[] @relation("PerformanceManager")
+
+  // --- Indexes (P0-13) ---
+  // Filters: active-employee dropdowns (attendance, shifts, payroll) and department scope.
+  @@index([isActive])
+  @@index([department, isActive])
+  @@index([currentStatus])
+  // RET-001: `WHERE "deletedAt" IS NULL` on every operational listing, and
+  // `IS NOT NULL` on the archived-records view. Nullable-column B-tree, so one
+  // index serves both directions.
+  @@index([deletedAt])
+  // The archived view is always ordered newest-archive-first and always
+  // department-scoped for a MANAGER, so the composite index matches the only
+  // query that reads it.
+  @@index([department, deletedAt])
+}
+
+// ─── LEAVE BALANCE (Auto-created on employee onboarding) ─────────────────────
+model LeaveBalance {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  leaveType  String // ANNUAL, SICK, CASUAL, EMERGENCY, UNPAID, MATERNITY, PATERNITY, etc.
+  totalDays  Int      @default(0)
+  usedDays   Int      @default(0)
+  year       Int // Calendar year this balance applies to
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // --- Indexes (P0-13) ---
+  // Balance lookup is always (employee, leaveType, year).
+  @@index([employeeId, year])
+}
+
+// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
+model Notification {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  title      String
+  message    String
+  type       String   @default("INFO") // INFO, SUCCESS, WARNING, ALERT
+  isRead     Boolean  @default(false)
+  link       String? // Optional deep link
+  createdAt  DateTime @default(now())
+
+  // --- Indexes (P0-13) ---
+  // Per-employee notification feed reads.
+  @@index([employeeId, createdAt])
+}
+
+// ─── ATTENDANCE ───────────────────────────────────────────────────────────────
+model Attendance {
+  id              String         @id @default(cuid())
+  employeeId      String
+  employee        Employee       @relation(fields: [employeeId], references: [id])
+  date            DateTime
+  checkIn         DateTime?
+  checkOut        DateTime?
+  status          String         @default("PRESENT") // PRESENT, ABSENT, LATE, LEAVE, HOLIDAY
+  lateMinutes     Int            @default(0)
+  overtimeMinutes Int            @default(0)
+  shiftId         String?
+  shift           Shift?         @relation(fields: [shiftId], references: [id])
+  biometricLogs   BiometricLog[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // --- Indexes (P0-13) ---
+  // Import duplicate check and per-employee daily lookups.
+  @@index([employeeId, date])
+  @@index([date])
+}
+
+model Shift {
+  id                        String       @id @default(cuid())
+  name                      String
+  startTime                 String
+  endTime                   String
+  lateThreshold             Int          @default(15)
+  monthlyLateThresholdHours Int          @default(4)
+  weeklyOffs                String
+  employees                 Employee[]
+  attendance                Attendance[]
+}
+
+model BiometricLog {
+  id           String      @id @default(cuid())
+  attendanceId String?
+  attendance   Attendance? @relation(fields: [attendanceId], references: [id])
+  deviceId     String?
+  employeeId   String
+  timestamp    DateTime
+  type         String // IN, OUT
+  rawLog       String?
+
+  // --- P1.7 import idempotency ---
+  // Fingerprint of (device, employee, timestamp, type). The unique constraint
+  // is what makes "the same punch is never processed twice" a database
+  // guarantee rather than a hopeful read-then-write check, which two concurrent
+  // imports would both pass.
+  //
+  // MIGRATION SEQUENCE USED (no --accept-data-loss, no row deleted):
+  //   1. column added as nullable, `db push`
+  //   2. existing rows backfilled deterministically from values they already
+  //      hold, then a duplicate check, then CREATE UNIQUE INDEX by hand
+  //   3. `@unique` restored in the schema, `db push` — the index already
+  //      exists, so nothing is altered
+  //
+  // Nullable rather than NOT NULL because step 2 is a data backfill, and the
+  // project does not use --accept-data-loss.
+  punchHash String? @unique
+
+  @@index([employeeId, timestamp])
+  @@index([deviceId, timestamp])
+}
+
+/// Per-employee audit trail. `employeeId` is NULLABLE, and that is deliberate.
+///
+/// WHY NULLABLE — AND WHY NOT A SENTINEL, AND WHY NOT THE ACTOR
+/// -----------------------------------------------------------
+/// This model is scoped to an employee, which made it unusable for events that
+/// are not about one: an application received, an interview scheduled, an offer
+/// created, an offer letter issued. Those call sites passed
+/// `employeeId: "SYSTEM"` — a value with no matching `Employee` row — and
+/// Postgres refused every one of them with
+/// `P2003 / AuditLog_employeeId_fkey`. Because the writes sit inside
+/// `prisma.$transaction`, the entire feature rolled back rather than merely
+/// losing its audit row: an offer could not be created, so no offer letter
+/// could ever be issued.
+///
+/// Three ways out were considered.
+///
+/// (a) The CANDIDATE's id. REJECTED. `Candidate.id` and `Employee.id` are both
+///     `@default(cuid())` — the SAME id namespace, with nothing in the value to
+///     distinguish a person who applied from a person who was hired. A row filed
+///     under a candidate id resolves through the `employee` relation to a real
+///     and DIFFERENT person the moment the two generators collide, and until
+///     then it sits in that person's per-employee trail doing nothing. A
+///     plausible wrong answer is worse than an honest empty one.
+///
+/// (b) The ACTING employee's id (`user.employeeId`). REJECTED. It silently
+///     redefines this column from "the employee this happened TO" into "the
+///     employee who pressed the button", but only on some rows — `employeeId`
+///     means "subject" everywhere else (leave, payroll, exit, onboarding,
+///     attendance), and the sibling fix in `submitInterviewFeedback` rejected
+///     precisely this substitution in favour of the subject
+///     (`participant.interviewerId`). It is not reliably available either:
+///     `SessionUser.employeeId` is `string | null`, because staged employee
+///     entry (GAP-01) permits a User with no Employee row. So (b) would only
+///     trade a guaranteed failure for a data-dependent one.
+///
+/// (c) NULL, with the column nullable. CHOSEN. The subject of an offer event is
+///     a candidate who has not joined, and §19 is explicit that the Employee
+///     record is created at the joining stage. There is no employee to point
+///     at; inventing one is what produced this bug. Nothing is lost: `changedBy`
+///     is NOT NULL on every row and still records the actor, and `details`
+///     names the subject. Checked before choosing: the only reader of this table
+///     in the application is `app/dashboard/page.tsx`, which takes the newest
+///     rows unfiltered and renders `action`/`details`/`createdAt`; nothing
+///     filters by `employeeId` or includes the `employee` relation, and
+///     `lib/observability/retention.ts` prunes `SecurityAuditLog`, not this
+///     table. `@@index([employeeId, createdAt])` still works — Postgres indexes
+///     NULLs — and a per-employee read simply never matches these rows, which
+///     is the correct answer for an event that was never about that employee.
+///
+/// This RELAXES no integrity. A non-null `employeeId` is still a hard foreign
+/// key to `Employee` and still cannot name a person who does not exist. NULL is
+/// the only new value it accepts, and it carries exactly one meaning: "this
+/// event is not about an employee".
+model AuditLog {
+  id String @id @default(cuid())
+  /// NULL when the event's subject is not (yet) an Employee — a candidate, a
+  /// device, a system-level change. See the note above.
+  employeeId String?
+  employee   Employee? @relation(fields: [employeeId], references: [id])
+  action     String
+  details    String?
+  changedBy  String
+  createdAt  DateTime @default(now())
+
+  // --- Indexes (P0-13) ---
+  // Per-employee audit trail reads.
+  @@index([employeeId, createdAt])
+}
+
+// ─── LEAVE ────────────────────────────────────────────────────────────────────
+model LeaveRequest {
+  id            String   @id @default(cuid())
+  employeeId    String
+  employee      Employee @relation(fields: [employeeId], references: [id])
+  type          String
+  startDate     DateTime
+  endDate       DateTime
+  reason        String
+  managerStatus String   @default("PENDING")
+  managerId     String?
+  manager       User?    @relation("ManagerApprovals", fields: [managerId], references: [id])
+  hrStatus      String   @default("PENDING")
+  hrId          String?
+  hr            User?    @relation("HRApprovals", fields: [hrId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // --- P1.3 explicit state machine + half-day support ---
+  /// PENDING_MANAGER | MANAGER_APPROVED | PENDING_HR | APPROVED | REJECTED | CANCELLED
+  /// Denormalised from managerStatus/hrStatus so the workflow has ONE status a
+  /// state machine can validate, rather than two independent columns that can
+  /// disagree with each other.
+  status       String    @default("PENDING_MANAGER")
+  /// FULL_DAY | HALF_DAY_FIRST_HALF | HALF_DAY_SECOND_HALF
+  dayPart      String    @default("FULL_DAY")
+  /// Days actually deducted, computed once at approval. A half day is 0.5 —
+  /// never a fake date range.
+  deductedDays Float     @default(0)
+  /// Balance row credited at approval, so a reversal can find it.
+  balanceId    String?
+  decidedAt    DateTime?
+  /// Why the request entered its current state; surfaced in the approval UI.
+  decisionNote String?
+  cancelledById String?
+  cancelledAt  DateTime?
+
+  // --- Indexes (P0-13) ---
+  // Approval queues filter on the two workflow status columns.
+  @@index([managerStatus])
+  @@index([hrStatus])
+  @@index([employeeId, createdAt])
+  @@index([status])
+  @@index([status, type])
+}
+
+// ─── PAYROLL ──────────────────────────────────────────────────────────────────
+model SalaryStructure {
+  id                 String   @id @default(cuid())
+  employeeId         String   @unique
+  employee           Employee @relation(fields: [employeeId], references: [id])
+  ctc                Float    @default(0)
+  basic              Float    @default(0)
+  housingAllowance   Float    @default(0)
+  transportAllowance Float    @default(0)
+  medicalAllowance   Float    @default(0)
+  foodAllowance      Float    @default(0)
+  travelAllowance    Float    @default(0)
+  commission         Float    @default(0)
+  otherAllowances    Float    @default(0)
+  paymentMethod      String   @default("BANK_TRANSFER")
+  bankName           String?
+  iban               String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model SalaryRecord {
+  id                 String    @id @default(cuid())
+  employeeId         String
+  employee           Employee  @relation(fields: [employeeId], references: [id])
+  month              Int
+  year               Int
+  basic              Float
+  housingAllowance   Float     @default(0)
+  transportAllowance Float     @default(0)
+  medicalAllowance   Float     @default(0)
+  foodAllowance      Float     @default(0)
+  travelAllowance    Float     @default(0)
+  commission         Float     @default(0)
+  otherAllowances    Float     @default(0)
+  latePenalty        Float     @default(0)
+  penalty            Float     @default(0)
+  leaveDeduction     Float     @default(0)
+  loanDeduction      Float     @default(0)
+  advanceSalary      Float     @default(0)
+  otherDeductions    Float     @default(0)
+  overtimePay        Float     @default(0)
+  bonus              Float     @default(0)
+  netSalary          Float
+  status             String    @default("DRAFT") // DRAFT, LOCKED, PAID, CANCELLED
+  paymentMethod      String    @default("BANK_TRANSFER")
+  paidAt             DateTime?
+
+  // P1.4: one record per employee per period. This is the duplicate-prevention
+  // guarantee — a second payroll run for the same month cannot insert a second
+  // row, so re-running is safe and resumable.
+  @@unique([employeeId, year, month])
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  // --- Indexes (P0-13) ---
+  // Payroll period queries filter on (year, month).
+  @@index([year, month])
+  @@index([employeeId, year, month])
+}
+
+model LoanType {
+  id                 String   @id @default(cuid())
+  name               String   @unique // e.g. "Personal Loan", "Salary Advance"
+  description        String?
+  maxAmount          Float
+  interestRate       Float    @default(0)
+  maxRepaymentMonths Int
+  requiresProbation  Boolean  @default(true)
+  isActive           Boolean  @default(true)
+  applications       LoanApplication[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model LoanApplication {
+  id               String   @id @default(cuid())
+  employeeId       String
+  employee         Employee @relation(fields: [employeeId], references: [id])
+  loanTypeId       String
+  loanType         LoanType @relation(fields: [loanTypeId], references: [id])
+  requestedAmount  Float
+  repaymentMonths  Int
+  reason           String?
+  status           String   @default("DRAFT") // DRAFT, SUBMITTED, PENDING_MANAGER, PENDING_HR, PENDING_FINANCE, APPROVED, REJECTED, DISBURSED, CLOSED, CANCELLED
+  managerStatus    String   @default("PENDING")
+  hrStatus         String   @default("PENDING")
+  financeStatus    String   @default("PENDING")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  approvals        LoanApproval[]
+  disbursements    LoanDisbursement[]
+  installments     LoanInstallment[]
+  documents        LoanDocument[]
+}
+
+model LoanApproval {
+  id                String   @id @default(cuid())
+  applicationId     String
+  application       LoanApplication @relation(fields: [applicationId], references: [id])
+  approverEmail     String
+  level             String   // MANAGER, HR, FINANCE, FINAL
+  action            String   // APPROVED, REJECTED, ON_HOLD
+  comments          String?
+  createdAt         DateTime @default(now())
+}
+
+model LoanDisbursement {
+  id                String   @id @default(cuid())
+  applicationId     String
+  application       LoanApplication @relation(fields: [applicationId], references: [id])
+  method            String   // BANK_TRANSFER, CASH, SALARY_CREDIT
+  amount            Float
+  transactionRef    String?
+  disbursedAt       DateTime @default(now())
+}
+
+model LoanInstallment {
+  id                String   @id @default(cuid())
+  applicationId     String
+  application       LoanApplication @relation(fields: [applicationId], references: [id])
+  month             Int
+  year              Int
+  amount            Float
+  status            String   @default("PENDING") // PENDING, DEDUCTED, SKIPPED
+  deductedAt        DateTime?
+  createdAt         DateTime @default(now())
+}
+
+model LoanDocument {
+  id                String   @id @default(cuid())
+  applicationId     String
+  application       LoanApplication @relation(fields: [applicationId], references: [id])
+  fileUrl           String
+  fileName          String
+  uploadedAt        DateTime @default(now())
+}
+
+model LoanNotification {
+  id                String   @id @default(cuid())
+  targetEmail       String
+  title             String
+  message           String
+  isRead            Boolean  @default(false)
+  createdAt         DateTime @default(now())
+}
+
+model Overtime {
+  id          String   @id @default(cuid())
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  date        DateTime
+  hours       Float
+  ratePerHour Float
+  totalPay    Float
+  status      String   @default("PENDING") // PENDING, APPROVED, PAID, REJECTED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ─── UAE SERVICE REQUESTS ──────────────────────────────────────────────────────
+model ServiceCategory {
+  id             String         @id @default(cuid())
+  name           String         @unique // e.g. Emirates ID, Visa Services, Medical
+  type           String         @default("GENERAL") // GOVERNMENT, VISA, MEDICAL, PAYROLL, LEAVE, HR_LETTER
+  icon           String?
+  description    String?
+  requiresAmount   Boolean        @default(false)
+  requiresDates    Boolean        @default(false)
+  requiresDocument Boolean        @default(false)
+  slaDays        Int            @default(3)
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  requests       ServiceRequest[]
+}
+
+model ServiceRequest {
+  id              String            @id @default(cuid())
+  employeeId      String
+  employee        Employee          @relation(fields: [employeeId], references: [id])
+  categoryId      String
+  category        ServiceCategory   @relation(fields: [categoryId], references: [id])
+  details         String
+  amount          Float?
+  startDate       DateTime?
+  endDate         DateTime?
+  status          String            @default("PENDING") // PENDING, MANAGER_APPROVED, HR_APPROVED, PRO_PROCESSING, FINANCE_APPROVED, COMPLETED, REJECTED
+  workflowStep    Int               @default(1)
+  hrNote          String?
+  attachments     Attachment[]
+  approvals       ServiceApproval[]
+  comments        ServiceComment[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // --- Indexes (P0-13) ---
+  // Request lists filter by owner and status.
+  @@index([employeeId, status])
+  @@index([status])
+}
+
+model ServiceApproval {
+  id                String         @id @default(cuid())
+  serviceRequestId  String
+  serviceRequest    ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  approverId        String?
+  approverEmail     String?
+  level             String         // MANAGER, HR, FINANCE, PRO, CEO
+  action            String         // APPROVED, REJECTED
+  comments          String?
+  createdAt         DateTime       @default(now())
+}
+
+model ServiceComment {
+  id                String         @id @default(cuid())
+  serviceRequestId  String
+  serviceRequest    ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  authorId          String
+  authorName        String
+  content           String
+  createdAt         DateTime       @default(now())
+}
+
+model ReimbursementRequest {
+  id              String   @id @default(cuid())
+  employeeId      String
+  employee        Employee @relation(fields: [employeeId], references: [id])
+  category        String   // Fuel, Travel, Mobile, Accommodation, Medical, Misc
+  amount          Float
+  details         String
+  status          String   @default("PENDING")
+  attachments     Attachment[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model SalaryAdvanceRequest {
+  id              String   @id @default(cuid())
+  employeeId      String
+  employee        Employee @relation(fields: [employeeId], references: [id])
+  requestedAmount Float
+  repaymentMonths Int
+  reason          String
+  status          String   @default("PENDING") // PENDING, MANAGER_APPROVED, HR_APPROVED, FINANCE_APPROVED, PAID, REJECTED
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ─── DOCUMENTS & ATTACHMENTS ──────────────────────────────────────────────────
+model Attachment {
+  id                   String        @id @default(cuid())
+  serviceRequestId     String?
+  serviceRequest       ServiceRequest? @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  reimbursementId      String?
+  reimbursementRequest ReimbursementRequest? @relation(fields: [reimbursementId], references: [id], onDelete: Cascade)
+  visaRequestId  String?
+  visaRequest    VisaRequest?  @relation(fields: [visaRequestId], references: [id], onDelete: Cascade)
+  employeeId     String?
+  employee       Employee?     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  fileName       String
+  fileUrl        String
+  fileType       String
+  category       String
+  docNumber      String?
+  docExpiry      DateTime?
+  createdAt      DateTime      @default(now())
+}
+
+// ─── VISA APPLICATIONS ────────────────────────────────────────────────────────
+model VisaRequest {
+  id                 String       @id @default(cuid())
+  employeeId         String
+  employee           Employee     @relation(fields: [employeeId], references: [id])
+  visaType           String
+  destinationCountry String
+  purpose            String
+  status             String       @default("PENDING")
+  notes              String?
+  attachments        Attachment[]
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+}
+
+// ─── LETTERS ──────────────────────────────────────────────────────────────────
+model LetterRecord {
+  id            String    @id @default(cuid())
+  employeeId    String?
+  employee      Employee? @relation(fields: [employeeId], references: [id])
+  type          String
+  recipientName String
+  details       String?
+  generatedAt   DateTime  @default(now())
+
+  // --- P1.5 approval + versioning ---
+  // A corrected letter creates a NEW row with the next version number. Rows are
+  // never overwritten, so the full history of what was issued when is retained.
+  /// Stable identity shared by every version of the same logical document.
+  documentKey    String    @default("")
+  version        Int       @default(1)
+  status         String    @default("GENERATED") // DRAFT, PENDING_APPROVAL, APPROVED, REJECTED, GENERATED, VOID
+  requiresApproval Boolean @default(false)
+  requestedById  String?
+  approvedById   String?
+  approvedAt     DateTime?
+  rejectedReason String?
+  voidedAt       DateTime?
+  voidReason     String?
+  supersededById String?
+
+  @@index([documentKey, version])
+  @@index([employeeId, type])
+  @@index([status])
+}
+
+model LetterRequest {
+  id              String         @id @default(cuid())
+  employeeId      String
+  employee        Employee       @relation(fields: [employeeId], references: [id])
+  templateId      String
+  template        LetterTemplate @relation(fields: [templateId], references: [id])
+  reason          String?
+  status          String         @default("PENDING") // PENDING, MANAGER_APPROVED, HR_APPROVED, COMPLETED, REJECTED
+  approvals       LetterApproval[]
+  generatedLetter Letter?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model LetterApproval {
+  id                String         @id @default(cuid())
+  letterRequestId   String
+  letterRequest     LetterRequest  @relation(fields: [letterRequestId], references: [id], onDelete: Cascade)
+  approverId        String?
+  level             String         // MANAGER, HR
+  action            String         // APPROVED, REJECTED
+  comments          String?
+  createdAt         DateTime       @default(now())
+}
+
+model LetterTemplate {
+  id         String   @id @default(cuid())
+  name       String
+  type       String
+  content_en String
+  content_ar String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  letters    Letter[]
+  requests   LetterRequest[]
+}
+
+model Letter {
+  id              String         @id @default(cuid())
+  /// P1 §15/§19: a letter may belong to a CANDIDATE (an offer letter is issued
+  /// before the person becomes an Employee), so the employee link is optional.
+  /// A letter is only required to have one of employeeId / candidateId.
+  employeeId      String?
+  employee        Employee?      @relation(fields: [employeeId], references: [id])
+  /// Set when this letter was issued against a recruitment offer.
+  candidateId     String?
+  candidate       Candidate?     @relation(fields: [candidateId], references: [id])
+  templateId      String
+  template        LetterTemplate @relation(fields: [templateId], references: [id])
+  referenceNumber String         @unique
+  letterRequestId String?        @unique
+  letterRequest   LetterRequest? @relation(fields: [letterRequestId], references: [id])
+  /// The offer this letter documents, if any. Reverse side of
+  /// `OfferLetter.letterRecord`.
+  issuedForOffer  OfferLetter[]
+  status          String         @default("DRAFT")
+  content_en      String
+  content_ar      String?
+  pdfUrl          String?
+  comments        String?
+  approvedBy      String?
+  approvedAt      DateTime?
+  /// The job this offer letter was issued against, if any.
+  jobRequisition  JobRequisition? @relation(fields: [jobRequisitionId], references: [id])
+  jobRequisitionId String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+// ─── SYSTEM CONFIG ────────────────────────────────────────────────────────────
+model ServiceConfig {
+  id          String   @id @default(cuid())
+  module      String
+  key         String
+  label       String
+  description String?
+  type        String
+  value       String
+  options     Json?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([module, key])
+}
+
+// ─── RECRUITMENT & ONBOARDING ──────────────────────────────────────────────────
+model JobRequisition {
+  id              String      @id @default(cuid())
+  /// REQ-2026-0001. Unique so a requisition is addressable in approvals.
+  requisitionCode String?     @unique
+  title           String
+  department      String
+  branch          String?
+  location        String?
+  employmentType  String      @default("FULL_TIME")
+  positionsCount  Int         @default(1)
+  /// NEW_POSITION | REPLACEMENT
+  positionType    String      @default("NEW_POSITION")
+  /// Set when positionType is REPLACEMENT.
+  replacementEmployeeId String?
+  reason          String?
+  requiredSkills  String?
+  requiredExperience String?
+  requiredEducation String?
+  budget          Float?
+  minSalary       Float?
+  maxSalary       Float?
+  /// LOW | MEDIUM | HIGH | URGENT
+  priority        String      @default("MEDIUM")
+  targetJoiningDate DateTime?
+  /// DRAFT | SUBMITTED | MANAGER_REVIEW | HR_REVIEW | FINANCE_REVIEW | APPROVED | REJECTED | CANCELLED
+  status          String      @default("DRAFT")
+  managerApprovedById String?
+  managerApprovedAt   DateTime?
+  hrApprovedById  String?
+  hrApprovedAt    DateTime?
+  financeApprovedById String?
+  financeApprovedAt   DateTime?
+  approvedAt      DateTime?
+
+  requestedById   String
+  requestedBy     Employee    @relation("RequestedJobs", fields: [requestedById], references: [id])
+  /// Replaces the old `candidates` direct relation.
+  applications    Application[]
+  /// Offer letters issued against a vacancy on this requisition.
+  offerLetters    Letter[]
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([status])
+  @@index([department])
+}
+
+// ─── RECRUITMENT (P1) ────────────────────────────────────────────────────────
+// Restructured. The previous shape had `Candidate.jobId` REQUIRED, which made
+// "a candidate may apply to multiple jobs" impossible, and no Application
+// entity at all, so the pipeline state machine had nowhere to live.
+
+model Candidate {
+  id              String         @id @default(cuid())
+  /// Stable external reference, e.g. CAND-0001.
+  candidateCode   String?        @unique
+  firstName       String
+  lastName        String
+  email           String         @unique
+  phone           String?
+  nationality     String?
+  currentLocation String?
+  resumeUrl       String?
+  /// Private uploaded PDF resume; served only to users with recruitment access.
+  resumeData      Bytes?
+  resumeFileName  String?
+  /// Comma-separated skills; a dedicated join table is a later refinement.
+  skills          String?
+  currentEmployer String?
+  currentPosition String?
+  expectedSalary  Float?
+  noticePeriodDays Int?
+  availableFrom   DateTime?
+  /// CAREER_PAGE | REFERRAL | LINKEDIN | JOB_PORTAL | AGENCY | DIRECT | EMPLOYEE_REFERRAL | OTHER
+  source          String         @default("DIRECT")
+  tags            String?
+  notes           String?
+  /// Data-processing consent. Applications are refused without it.
+  consentGiven    Boolean        @default(false)
+  consentAt       DateTime?
+  /// A candidate is a person; a job is a role. They are linked by Application.
+  /// Letters of which this candidate is the subject (offer letters).
+  letters            Letter[]
+  applications    Application[]
+  interviews      Interview[]
+  offers          OfferLetter[]
+  joiningRecords  JoiningRecord[]
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([lastName, firstName])
+  @@index([source])
+}
+
+/// One application: a Candidate applying to one JobRequisition.
+/// This is where the pipeline state lives (brief §6).
+model Application {
+  id              String        @id @default(cuid())
+  candidateId     String
+  candidate       Candidate     @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  jobRequisitionId String
+  jobRequisition  JobRequisition @relation(fields: [jobRequisitionId], references: [id], onDelete: Cascade)
+
+  /// APPLIED | SCREENING | SHORTLISTED | INTERVIEW | ASSESSMENT | SELECTED |
+  /// OFFERED | OFFER_ACCEPTED | OFFER_DECLINED | REJECTED | WITHDRAWN | HIRED
+  status          String        @default("APPLIED")
+  /// Snapshot of screening answers (brief §7).
+  screeningStatus String?
+  screeningNotes  String?
+  /// SHORTLIST | HOLD | REJECT
+  screeningRecommendation String?
+  screenedBy      String?
+  screenedAt      DateTime?
+  rating          Float?
+  appliedAt       DateTime      @default(now())
+  lastTransitionAt DateTime     @default(now())
+  decidedAt       DateTime?
+
+  interviews     Interview[]
+  assessments    Assessment[]
+  offers         OfferLetter[]
+  joiningRecords JoiningRecord[]
+
+  /// A candidate may not hold two live applications for the SAME job, but may
+  /// hold many across different jobs. Enforced by a partial unique index
+  /// created in migration, not by application code alone.
+  @@unique([candidateId, jobRequisitionId])
+  @@index([jobRequisitionId, status])
+  @@index([candidateId, status])
+}
+
+model Interview {
+  id            String      @id @default(cuid())
+  candidateId   String
+  candidate     Candidate   @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  /// The panel is a first-class join (brief §11), not a single interviewerId.
+  interviewers  InterviewParticipant[]
+  applicationId String?
+  application   Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  /// HR | TECHNICAL | MANAGER | PANEL | FINAL
+  interviewType String      @default("HR")
+  /// 1-based round. Guards ordering.
+  round          Int         @default(1)
+  /// ONLINE | ONSITE
+  mode           String      @default("ONSITE")
+  location       String?
+  meetingLink    String?
+  scheduledAt    DateTime
+  startAt        DateTime
+  endAt          DateTime
+  coordinatorId  String?
+  status         String      @default("SCHEDULED")
+
+  feedback       InterviewFeedback[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([scheduledAt])
+  @@index([status])
+}
+
+/// One row per interviewer. Enables a panel without a schema change.
+model InterviewParticipant {
+  id           String    @id @default(cuid())
+  interviewId  String
+  interview    Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  interviewerId String
+  /// Denormalised for read convenience; the authority is the Employee record.
+  interviewerName String
+  employee      Employee? @relation(fields: [interviewerId], references: [id])
+  isLead       Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+
+  feedback     InterviewFeedback[]
+
+  @@unique([interviewId, interviewerId])
+  @@index([interviewerId])
+}
+
+/// Structured, per-interviewer feedback (brief §10).
+/// One interviewer can never overwrite another's: the unique key is
+/// (participantId), not (interviewId).
+model InterviewFeedback {
+  id           String              @id @default(cuid())
+  interviewId  String
+  interview    Interview           @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  participantId String
+  participant  InterviewParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  /// Each dimension scored 1-5 by the interviewer, not auto-derived.
+  technicalSkills  Int?
+  communication    Int?
+  problemSolving   Int?
+  domainKnowledge  Int?
+  teamFit          Int?
+  leadership       Int?
+  overall          Int?
+
+  strengths       String?
+  concerns        String?
+  comments        String?
+  /// STRONG_HIRE | HIRE | HOLD | NO_HIRE
+  recommendation  String?
+  submittedAt     DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  /// One submission per interviewer per interview.
+  @@unique([participantId])
+  @@index([interviewId])
+}
+
+model Assessment {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  /// TECHNICAL_TEST | PRACTICAL_TEST | WRITTEN_TEST | LANGUAGE_TEST | SKILL_ASSESSMENT
+  assessmentType String
+  assignedAt    DateTime    @default(now())
+  dueAt         DateTime?
+  completedAt   DateTime?
+  maxScore      Float?
+  score         Float?
+  /// PASS | FAIL | PENDING
+  result        String      @default("PENDING")
+  evaluatorId   String?
+  attachmentUrl String?
+  comments      String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([applicationId])
+}
+
+/// Offer. Previously `candidateId` was @unique, which meant a candidate could
+/// never receive a second, revised offer. Now versioned (brief §14, §23).
+model OfferLetter {
+  id            String      @id @default(cuid())
+  candidateId   String
+  candidate     Candidate   @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  applicationId String?
+  application   Application? @relation(fields: [applicationId], references: [id])
+
+  offeredSalary Float
+  designation   String
+  department    String
+  joiningDate   DateTime
+  /// DRAFT | PENDING_APPROVAL | APPROVED | SENT | VIEWED | ACCEPTED | DECLINED | EXPIRED | WITHDRAWN
+  status        String      @default("DRAFT")
+  /// Version within one application. Previous versions are never overwritten.
+  version       Int         @default(1)
+  allowances    Float       @default(0)
+  benefits      String?
+  probationPeriodMonths Int?
+  offerExpiry   DateTime?
+  contractType  String?
+  offeredById   String?
+  approvedById  String?
+  approvedAt    DateTime?
+  acceptedAt    DateTime?
+  declinedAt    DateTime?
+  /// ACCEPTED_IN_PERSON | ACCEPTED_ONLINE | ACCEPTED_EMAIL
+  acceptanceMethod String?
+  fileUrl       String?
+  supersededById String?
+  /// Reuse of the existing Letters engine, not a second PDF pipeline (P1 §15).
+  letterRecordId String?
+  letterRecord   Letter?  @relation(fields: [letterRecordId], references: [id])
+  joiningRecords JoiningRecord[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([candidateId, version])
+  @@index([status])
+  @@index([applicationId])
+}
+
+// ─── EXIT LIFECYCLE (resignation / termination / end of contract) ───────────
+//
+// One exit case per departure, plus the two records that exist only because the
+// departure happened: the exit interview and the rehire eligibility decision.
+//
+// ON DELETE, chosen deliberately (checklist item 6.5 — records being
+// destroyed):
+//
+//   * Nothing is CASCADEd from Employee. Deleting an employee must be REFUSED
+//     while an exit case or a rehire assessment exists, not silently take the
+//     evidence with it. This is the opposite of `OnboardingChecklistItem`, which
+//     cascades: an onboarding checklist is provisioning state, an exit case is a
+//     record someone can be held to.
+//   * The User actor relations are Restrict, not SetNull. SetNull would quietly
+//     erase who approved a termination the moment that administrator's account
+//     was removed. The fields are nullable because a case legitimately exists
+//     before anyone has decided it, and nullability is what expresses "not
+//     decided yet" without a fake value.
+//   * The two child tables DO cascade from ExitCase, matching
+//     `OffboardingChecklistItem.offboarding`. An exit interview is a component
+//     of its case and has no independent owner or meaning, so removing the case
+//     removes the component. The case itself is the record that is protected.
+
+/// The departure itself. `status` is a state-machine value, not a free label;
+/// the legal moves live in `lib/workflow/exit/state-machine.ts`.
+model ExitCase {
+  id           String   @id @default(cuid())
+  employeeId   String
+  /// Restrict, not Cascade — see the note above. An employee with an exit on
+  /// record cannot be deleted; the record outlives any attempt to remove it.
+  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  /// RESIGNATION | TERMINATION | END_OF_CONTRACT
+  type         String
+  /// REQUESTED, PENDING_APPROVAL, APPROVED, REJECTED, WITHDRAWN, NOTICE_PERIOD,
+  /// INTERVIEW_PENDING, INTERVIEW_COMPLETED, CLEARANCE_PENDING,
+  /// SETTLEMENT_PENDING, COMPLETED, CANCELLED
+  status       String   @default("REQUESTED")
+  /// The employee's stated reason, or HR's stated reason for a termination.
+  reason       String?
+  /// Private resignation letter bytes. Downloads are served through an
+  /// authenticated route; this is intentionally not a public uploads URL.
+  resignationLetterData Bytes?
+  resignationLetterName String?
+  resignationLetterType String?
+  /// Recorded by the action, not defaulted, so a back-dated request is visible
+  /// as back-dated instead of looking like it was raised today.
+  requestedAt  DateTime @default(now())
+  /// Contractual end date. Distinct from `lastWorkingDate`: the last day worked
+  /// can be shortened by notice, the effective date cannot.
+  effectiveDate     DateTime?
+  lastWorkingDate   DateTime?
+  /// INPUT, NOT A POLICY. Statutory and contractual notice periods differ by
+  /// jurisdiction, contract and length of service, so no value is computed
+  /// here. Null means "not yet agreed"; the caller must supply it or configure
+  /// `EXIT_POLICY.noticePeriodDays` in lib/workflow/exit/state-machine.ts, which
+  /// ships unset.
+  noticePeriodDays  Int?
+  initiatedById      String?
+  initiatedBy        User?    @relation("ExitCaseInitiatedBy", fields: [initiatedById], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  decidedById        String?
+  decidedBy          User?    @relation("ExitCaseDecidedBy", fields: [decidedById], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  decidedAt          DateTime?
+  /// Why a case was approved, rejected or withdrawn. Kept separate from
+  /// `reason`, which describes the departure rather than the decision.
+  decisionNote       String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  interview  ExitInterview?
+  rehire     RehireRecord?
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([status, type])
+}
+
+/// The exit interview. `rating` is a raw 1–5 answer supplied by the
+/// interviewer; nothing derives from it here, and no default is imposed.
+model ExitInterview {
+  id           String   @id @default(cuid())
+  /// One interview per case. The unique constraint is the database-level
+  /// double-submit guard; the action additionally re-validates the case status
+  /// inside the transaction before writing.
+  exitCaseId   String   @unique
+  exitCase     ExitCase @relation(fields: [exitCaseId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  conductedById String
+  conductedBy  User     @relation("ExitInterviewConductedBy", fields: [conductedById], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  conductedAt  DateTime @default(now())
+  /// 1–5, or null when the interview happened but was not scored. Stored as
+  /// given: a stored rating is a claim about what the leaver said.
+  rating       Int?
+  /// NULLABLE ON PURPOSE. Null means the question was not put or was declined.
+  /// Defaulting it to false would manufacture a negative answer that HR then
+  /// filters rehire candidates on.
+  wouldRejoin  Boolean?
+  comments     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+/// Whether this former employee may be rehired. Points at the PRIOR employee,
+/// so the record survives the person returning under a new Employee row.
+model RehireRecord {
+  id           String   @id @default(cuid())
+  /// The employee who left. Restrict — the assessment is evidence about this
+  /// person and must not vanish with them.
+  employeeId   String
+  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  /// One eligibility decision per exit. Re-assessment overwrites the row
+  /// deliberately (the newest decision is the current one) and every
+  /// overwriting write also appends an AuditLog row, so the earlier answer
+  /// remains recoverable.
+  exitCaseId   String   @unique
+  exitCase     ExitCase @relation(fields: [exitCaseId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  eligible     Boolean
+  assessedAt   DateTime @default(now())
+  assessedById String
+  assessedBy   User     @relation("RehireAssessedBy", fields: [assessedById], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([employeeId, eligible])
+}
+
+// ─── PERFORMANCE REVIEW (P2) ────────────────────────────────────────────────────
+//
+// Performance review cycle and reviews. Built on the same patterns as
+// recruitment-machine.ts: explicit state machines, role-based transitions,
+// permission-checked workflow functions, and audit logging.
+
+/// Performance review cycle — YEARLY, HALF_YEARLY, QUARTERLY
+model PerformanceCycle {
+  id             String       @id @default(cuid())
+  name           String       // e.g. "2026 H1", "2026 Q3"
+  type           String       // YEARLY | HALF_YEARLY | QUARTERLY
+  startDate      DateTime
+  endDate        DateTime
+  /// PLANNING → ACTIVE → CLOSED → ARCHIVED
+  status         String       @default("PLANNING")
+  /// Whether self-assessment is enabled for this cycle
+  selfAssessmentEnabled Boolean @default(true)
+  /// Whether manager review is enabled
+  managerReviewEnabled Boolean @default(true)
+  /// Whether calibration is enabled
+  calibrationEnabled Boolean @default(true)
+  createdById    String
+  createdBy      User         @relation("PerformanceCycleCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  reviews        PerformanceReview[]
+  questions      PerformanceQuestion[]
+
+  @@unique([type, startDate, endDate])
+  @@index([status])
+  @@index([startDate, endDate])
+}
+
+/// Performance review for an employee within a cycle
+model PerformanceReview {
+  id                 String       @id @default(cuid())
+  cycleId            String
+  cycle              PerformanceCycle @relation(fields: [cycleId], references: [id])
+  employeeId         String
+  subject            Employee     @relation("PerformanceSubject", fields: [employeeId], references: [id], onDelete: Cascade)
+  managerId          String?
+  manager            Employee?    @relation("PerformanceManager", fields: [managerId], references: [id], onDelete: SetNull)
+  /// DRAFT → SELF_ASSESSMENT → MANAGER_REVIEW → CALIBRATION → APPROVED → ACKNOWLEDGED
+  status             String       @default("DRAFT")
+  overallRating      Float?       // 1-5 scale
+  overallComment     String?
+  selfAssessmentAt   DateTime?
+  managerReviewAt    DateTime?
+  calibrationAt      DateTime?
+  approvedAt         DateTime?
+  approvedById       String?
+  approvedBy         User?        @relation("ReviewApprovedBy", fields: [approvedById], references: [id])
+  acknowledgedAt     DateTime?
+  acknowledgedById   String?
+  acknowledgedBy     User?        @relation("ReviewAcknowledgedBy", fields: [acknowledgedById], references: [id])
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  goals              PerformanceGoal[]
+  answers            PerformanceAnswer[]
+
+  @@unique([cycleId, employeeId])
+  @@index([cycleId, status])
+  @@index([employeeId])
+  @@index([managerId])
+}
+
+/// Performance goal within a review
+model PerformanceGoal {
+  id           String            @id @default(cuid())
+  reviewId     String
+  review       PerformanceReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  title        String
+  description  String?
+  weight       Float             @default(1)  // Weight for overall rating calculation
+  target       String            // Expected outcome
+  actual       String?           // Actual outcome
+  rating       Float?            // 1-5 scale, rated by manager
+  comment      String?
+  order        Int               @default(0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([reviewId])
+}
+
+/// Configurable questions per cycle (competency, behavioral, etc.)
+model PerformanceQuestion {
+  id           String             @id @default(cuid())
+  cycleId      String
+  cycle        PerformanceCycle   @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  text         String
+  /// KPI | COMPETENCY | BEHAVIORAL | GOAL | OPEN_ENDED
+  type         String             @default("COMPETENCY")
+  /// EMPLOYEE | MANAGER | BOTH
+  audience     String             @default("BOTH")
+  weight       Float              @default(1)
+  order        Int                @default(0)
+  isRequired   Boolean            @default(true)
+  options      Json?              // For rating scale options
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  answers      PerformanceAnswer[]
+
+  @@index([cycleId, order])
+}
+
+/// Employee/manager answers to questions
+model PerformanceAnswer {
+  id             String              @id @default(cuid())
+  reviewId       String
+  review         PerformanceReview   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  questionId     String
+  question       PerformanceQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  /// EMPLOYEE | MANAGER
+  answeredBy     String
+  answer         String?
+  rating         Float?              // 1-5 scale
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@unique([reviewId, questionId, answeredBy])
+  @@index([reviewId])
+  @@index([questionId])
+}
+
+/// Predefined calibration scenarios for consistent ratings
+model ReviewScenario {
+  id          String   @id @default(cuid())
+  name        String   // e.g. "Exceeds Expectations", "Meets Expectations", "Needs Improvement"
+  description String
+  rating      Float    // Reference rating 1-5
+  behaviors   Json?    // Key behaviors for this scenario
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, order])
+}
+
+// ─── COMPANY DOCUMENTS & POLICIES ─────────────────────────────────────────────
+/// Central repository for company policies, handbooks, procedures, and
+/// official documents. Distinct from employee-specific attachments.
+model CompanyDocument {
+  id          String   @id @default(cuid())
+  title       String
+  type        String   // POLICY | HANDBOOK | PROCEDURE | FORM | OTHER
+  category    String   // HR | FINANCE | IT | LEGAL | GENERAL
+  description String?
+  fileUrl     String
+  fileName    String
+  fileType    String
+  /// Private uploaded PDF; served through an authenticated route.
+  fileData    Bytes?
+  version     String   @default("1.0")
+  effectiveFrom DateTime?
+  effectiveTo   DateTime?
+  isActive    Boolean  @default(true)
+  publishedBy String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category, isActive])
+  @@index([type])
+}
+
+// ─── EMPLOYEE DATA CHANGE REQUESTS (Maker-Checker) ───────────────────────────
+model EmployeeChangeRequest {
+  id             String    @id @default(cuid())
+  employeeId     String
+  employee       Employee  @relation(fields: [employeeId], references: [id])
+  status         String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  requestedBy    String
+  approvedBy     String?
+  approvedAt     DateTime?
+  rejectionReason String?
+  
+  /// A JSON object containing the proposed changes, e.g. { "passportNumber": "A123", "address": "Dubai" }
+  changes        Json
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  documents      ChangeRequestDocument[]
+
+  @@index([employeeId, status])
+  @@index([status])
+}
+
+model ChangeRequestDocument {
+  id               String                @id @default(cuid())
+  requestId        String
+  request          EmployeeChangeRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  documentType     String                // VISA, PASSPORT, EMIRATES_ID, ADDRESS_PROOF
+  documentUrl      String
+  createdAt        DateTime              @default(now())
+}
+
+// ─── BUSINESS TRAVEL & AIR TICKET ENTITLEMENT (UAE) ───────────────────────────
+/// One company-purpose trip outside the country, requested rather than booked
+/// ad hoc.
+///
+/// The visa columns are SNAPSHOTS, not foreign keys: the employee row is the
+/// live visa record and is corrected by the compliance feature, but a travel
+/// case must show the visa context the trip was approved under even after the
+/// visa has been renewed. Linking to `DocumentRenewal` would couple the travel
+/// workflow to the compliance workflow's row ids; the snapshot is enough to
+/// answer "was this trip inside the visa window?", which is the actual question.
+model BusinessTravelRequest {
+  id                 String   @id @default(cuid())
+  employeeId         String
+  employee           Employee @relation(fields: [employeeId], references: [id])
+  purpose            String
+  destinationCountry String
+  destinationCity    String?
+  departureDate      DateTime
+  returnDate         DateTime?
+  /// Budget or quoted fare. AED is implicit: the company operates in the UAE
+  /// and there is no multi-currency settlement, so a second currency column
+  /// would be an unused field to keep consistent.
+  estimatedCost      Float    @default(0)
+  /// What HR agreed to pay, set by `grantTravelAmount`.
+  ///
+  /// SEPARATE FROM `estimatedCost` ON PURPOSE, AND SEPARATE AGAIN IN TYPE. The
+  /// estimate is the TRAVELLER'S QUOTE and is typed `Float` because it is a
+  /// free-text number from a form. The approved amount is a COMPANY COMMITMENT,
+  /// compared against a budget and summed across a window, so it is `Decimal`
+  /// and a `Float` variant of the same column would be a rounding dispute
+  /// waiting to happen. HR grants the amount after reviewing the quote, and the
+  /// two are allowed to disagree: `budgetVariance` records by how much.
+  approvedAmount     Decimal?
+  /// approvedAmount - estimatedCost, stored rather than derived at render time.
+  ///
+  /// A negative variance means the company is paying LESS than the traveller
+  /// quoted, which is a conversation worth having before the trip rather than a
+  /// footnote on the request. Persisting it keeps the figure on the row that
+  /// decided it, so an audit does not have to re-derive it from a quote that HR
+  /// may later have corrected.
+  budgetVariance     Decimal?
+  /// Who set `approvedAmount` and when. An amount with no author cannot be
+  /// audited, and "who agreed to this spend" is the first question asked of any
+  /// travel budget.
+  amountGrantedBy    String?
+  amountGrantedAt    DateTime?
+  /// ECONOMY | PREMIUM_ECONOMY | BUSINESS — what was asked for, which may be
+  /// above the employee's entitled class and is refused on approval if so.
+  travelClass        String   @default("ECONOMY")
+  /// COMPANY | EMPLOYEE — who pays. A trip the employee asked for personally is
+  /// not a company obligation, so this is recorded rather than assumed.
+  ticketCostBorneBy  String   @default("COMPANY")
+  status             String   @default("REQUESTED") // REQUESTED, PENDING_APPROVAL, APPROVED, REJECTED, COMPLETED, CANCELLED
+
+  /// Visa context at the moment the request was raised.
+  visaNumberSnapshot String?
+  visaExpirySnapshot DateTime?
+  visaIssueSnapshot  DateTime?
+
+  /// The entitlement window this request draws a ticket from, resolved once at
+  /// creation from `Employee.airTicketAnchorDate`. Stored so that completing
+  /// the request months later still increments the window it was granted under,
+  /// rather than whichever window happens to be open on the day it is flown.
+  entitlementId        String?
+  entitlement          AirTicketEntitlement? @relation(fields: [entitlementId], references: [id])
+  entitlementWindowKey String?
+  entitlementWindowStart DateTime?
+  entitlementWindowEnd   DateTime?
+
+  requestedBy  String
+  reviewedBy   String?
+  reviewedAt   DateTime?
+  decisionNote String?
+  completedAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  /// Ticket and boarding pass filed against THIS trip. Cascaded with the request,
+  /// because a document whose journey has been deleted is meaningless.
+  documents TravelDocument[]
+
+  // --- Indexes ---
+  // The register lists an employee's history newest-first.
+  @@index([employeeId, createdAt])
+  // Approval queues filter on status; the visa page joins travel to expiry.
+  @@index([status])
+  @@index([status, departureDate])
+  @@index([entitlementId])
+}
+
+/// Per-employee ledger for ONE entitlement window.
+///
+/// The "1 or 2 tickets per year" cap is answered by `usedTickets` on this row,
+/// and the row is keyed by (employee, window) so a question about a past window
+/// stays answerable after the window has rolled over.
+///
+/// The key is the window's START DATE, not a year number, because the window is
+/// anchored to the visa date: an anchor of 15 Sep 2026 gives windows keyed
+/// "2026-09-15" and "2027-09-15", neither of which is the calendar year.
+model AirTicketEntitlement {
+  id             String   @id @default(cuid())
+  employeeId     String
+  employee       Employee @relation(fields: [employeeId], references: [id])
+  /// `yyyy-MM-dd` of `windowStart`. Stable, sortable, and independent of the
+  /// label an operator happens to type.
+  windowKey      String
+  windowStart    DateTime
+  /// INCLUSIVE last day of the window. For a 15 Sep anchor that is 14 Sep of
+  /// the following year, not 15 Sep — see lib/workflow/business-travel.ts.
+  windowEnd      DateTime
+  /// Entitlement as it stood when this window opened. Denormalised so a later
+  /// change to the employee's contract cannot retroactively rewrite history.
+  entitledTickets Int     @default(0)
+  /// Tickets actually consumed. Incremented exactly once per request, inside the
+  /// same transaction that moves the request to COMPLETED, with a
+  /// compare-and-swap predicate so a double click cannot consume two tickets.
+  usedTickets     Int     @default(0)
+  /// The anchor date this window was derived from, recorded so an audit can
+  /// reproduce the boundary years later even if the visa is later corrected.
+  anchorSnapshot  DateTime?
+  anchorSource    String? // EXPLICIT | VISA_ISSUE_DATE | CALENDAR_YEAR_FALLBACK
+  /// Requests that draw a ticket from this window. A window can back several
+  /// requests (a 2-ticket employee), so this is one-to-many, not one-to-one.
+  consumingRequests BusinessTravelRequest[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  /// One ledger row per employee per window. The uniqueness is what makes the
+  /// cap a database fact rather than a read-then-write race.
+  @@unique([employeeId, windowKey])
+  @@index([employeeId, windowStart])
+}
+
+/// Supporting documents for ONE business travel request.
+///
+/// WHY THIS IS NOT THE SHARED `Attachment` MODEL
+/// `Attachment` hangs off an Employee and describes a document of record —
+/// passport, visa, contract — which persists independently of any one request.
+/// A ticket and a boarding pass belong to a specific journey: they are
+/// meaningless once that request is archived, and the same employee flying next
+/// month gets a different pair. Filing them as Employee attachments would make
+/// "the employee's current ticket" ambiguous the moment they travel twice.
+///
+/// The lifecycle differs too, and that is the point of storing them here:
+///   - TICKET is proof of booking, so it is expected once the request is
+///     APPROVED and before departure.
+///   - BOARDING_PASS is proof the employee actually flew, so it is expected by
+///     COMPLETED.
+/// `lib/workflow/business-travel.ts` enforces those, so a trip cannot be marked
+/// complete with nothing to show for it.
+///
+/// `@@unique([requestId, kind])` makes re-upload an upsert. A corrected boarding
+/// pass replaces the wrong one instead of leaving two and making it ambiguous
+/// which is authoritative.
+model TravelDocument {
+  id        String                @id @default(cuid())
+  requestId String
+  request   BusinessTravelRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  /// TICKET | BOARDING_PASS — see TRAVEL_DOCUMENT_KINDS in the workflow module.
+  kind      String
+
+  fileName  String
+  /// A `data:` URL holding the bytes, as `Attachment.fileUrl` does. A boarding
+  /// pass is a private document, so it is deliberately NOT written to
+  /// `public/uploads`, where anything served from it is readable by anyone who
+  /// guesses the filename.
+  fileUrl   String
+  fileType  String
+  fileBytes Int?
+
+  /// Booking reference / PNR. Separate from the file because it is the one
+  /// field an approver reads without opening a PDF.
+  reference String?
+
+  uploadedBy String
+  uploadedAt DateTime @default(now())
+
+  /// Who checked the scan against the journey, and when.
+  ///
+  /// AN UPLOAD IS NOT A VERIFICATION. These columns are written only by
+  /// `verifyTravelDocument`, which a human calls after looking at the file — the
+  /// same rule `OnboardingChecklistItem.verifiedBy` follows. An approver must
+  /// be able to say which of the two tickets on a trip was the forgery, and a
+  /// single `uploadedBy` column cannot answer it.
+  ///
+  /// `verifiedAt IS NOT NULL` is the ONLY accepted proof, because it is the
+  /// state written together with the approver's email and an audit row.
+  ///
+  /// The upsert on `@@unique([requestId, kind])` CLEARS both on re-upload: a new
+  /// scan is a new claim, and leaving the old sign-off behind would let a
+  /// replaced document inherit the verification of the one it replaced. That is
+  /// the trap `recordDocumentReceived` documents for employee documents.
+  verifiedBy String?
+  verifiedAt DateTime?
+
+  @@unique([requestId, kind])
+  @@index([kind])
+}
