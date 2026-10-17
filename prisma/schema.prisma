@@ -784,6 +784,7 @@ model Notification {
 // ─── ATTENDANCE ───────────────────────────────────────────────────────────────
 model Attendance {
   id              String         @id @default(cuid())
+  tenantId        String?
   employeeId      String
   employee        Employee       @relation(fields: [employeeId], references: [id])
   date            DateTime
@@ -800,6 +801,7 @@ model Attendance {
 
   // --- Indexes (P0-13) ---
   // Import duplicate check and per-employee daily lookups.
+  @@index([tenantId])
   @@index([employeeId, date])
   @@index([date])
 }
@@ -919,6 +921,7 @@ model AuditLog {
 // ─── LEAVE ────────────────────────────────────────────────────────────────────
 model LeaveRequest {
   id            String   @id @default(cuid())
+  tenantId      String?
   employeeId    String
   employee      Employee @relation(fields: [employeeId], references: [id])
   type          String
@@ -955,6 +958,7 @@ model LeaveRequest {
 
   // --- Indexes (P0-13) ---
   // Approval queues filter on the two workflow status columns.
+  @@index([tenantId])
   @@index([managerStatus])
   @@index([hrStatus])
   @@index([employeeId, createdAt])
@@ -985,6 +989,7 @@ model SalaryStructure {
 
 model SalaryRecord {
   id                 String    @id @default(cuid())
+  tenantId           String?
   employeeId         String
   employee           Employee  @relation(fields: [employeeId], references: [id])
   month              Int
@@ -1018,6 +1023,7 @@ model SalaryRecord {
   @@unique([employeeId, year, month])
   // --- Indexes (P0-13) ---
   // Payroll period queries filter on (year, month).
+  @@index([tenantId])
   @@index([year, month])
   @@index([employeeId, year, month])
 }

@@ -274,25 +274,55 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         async jwt({ token, user, account }) {
             if (user) {
                 token.id = user.id;
-                // The AdapterUser type does not declare `role`, but the token
-                // does and the whole authorization model reads it. Narrow rather
-                // than casting to `any`.
                 const role = (user as { role?: unknown }).role;
                 token.role = typeof role === 'string' && role.length > 0 ? role : 'STAFF';
                 const image = (user as { image?: unknown }).image;
                 token.image = typeof image === 'string' && image.length > 0 ? image : undefined;
             }
-            // On OAuth sign-in, fetch the role from the DB
-            if (account && account.provider !== 'credentials') {
+
+            // Resolve tenant membership and company context from database
+            if (token.id) {
                 const dbUser = await prisma.user.findUnique({
-                    where: { email: token.email! },
+                    where: { id: token.id as string },
+                    select: {
+                        role: true,
+                        image: true,
+                        employee: {
+                            select: {
+                                tenantId: true,
+                                companyId: true,
+                                tenant: { select: { slug: true } },
+                            },
+                        },
+                        memberships: {
+                            where: { status: 'ACTIVE' },
+                            take: 1,
+                            select: {
+                                role: true,
+                                tenantId: true,
+                                tenant: { select: { slug: true } },
+                            },
+                        },
+                    },
                 });
+
                 if (dbUser) {
-                    token.role = dbUser.role;
-                    token.id = dbUser.id;
-                    token.image = dbUser.image ?? undefined;
+                    const activeMembership = dbUser.memberships?.[0];
+                    if (activeMembership) {
+                        token.tenantId = activeMembership.tenantId;
+                        token.tenantSlug = activeMembership.tenant.slug;
+                        token.role = activeMembership.role;
+                    } else if (dbUser.employee?.tenantId) {
+                        token.tenantId = dbUser.employee.tenantId;
+                        token.tenantSlug = dbUser.employee.tenant?.slug ?? null;
+                        token.role = dbUser.role;
+                    }
+                    if (dbUser.employee?.companyId) {
+                        token.companyId = dbUser.employee.companyId;
+                    }
                 }
             }
+
             return token;
         },
     },

@@ -90,6 +90,12 @@ export const authConfig = {
                     typeof token.id === 'string' ? token.id : undefined;
                 (session.user as { image?: string }).image =
                     typeof token.image === 'string' ? token.image : undefined;
+                (session.user as { tenantId?: string | null }).tenantId =
+                    typeof token.tenantId === 'string' ? token.tenantId : null;
+                (session.user as { companyId?: string | null }).companyId =
+                    typeof token.companyId === 'string' ? token.companyId : null;
+                (session.user as { tenantSlug?: string | null }).tenantSlug =
+                    typeof token.tenantSlug === 'string' ? token.tenantSlug : null;
             }
             return session;
         },
