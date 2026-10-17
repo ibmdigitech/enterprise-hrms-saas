@@ -24,6 +24,8 @@ import type { NextAuthConfig } from 'next-auth';
 
 /** Coarse capability gate applied at the edge. */
 const EDGE_ROUTE_RULES: { prefix: string; roles: string[] }[] = [
+    // SaaS Platform Control Plane
+    { prefix: '/platform-admin', roles: ['SUPER_ADMIN'] },
     // System-wide business rules and configuration.
     { prefix: '/dashboard/admin', roles: ['SUPER_ADMIN', 'ADMIN'] },
     { prefix: '/settings', roles: ['SUPER_ADMIN', 'ADMIN'] },
