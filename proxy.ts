@@ -94,8 +94,35 @@ export default auth((req) => {
         return NextResponse.redirect(loginUrl);
     }
 
+    // Multi-tenant resolution at the edge:
+    // Extract subdomain (e.g. acme.hrms.io -> acme) or header x-tenant-id
+    const host = req.headers.get("host") || "";
+    const hostname = host.split(":")[0];
+    let tenantSlug = "";
+    
+    // Check if hostname has a subdomain (excluding root domain and common dev hosts)
+    const hostParts = hostname.split(".");
+    if (hostParts.length > 2 && !hostname.endsWith("localhost") && !hostname.endsWith("vercel.app")) {
+        tenantSlug = hostParts[0];
+    } else if (req.headers.has("x-tenant-slug")) {
+        tenantSlug = req.headers.get("x-tenant-slug") || "";
+    }
+
+    const requestHeaders = new Headers(req.headers);
+    if (tenantSlug) {
+        requestHeaders.set("x-resolved-tenant-slug", tenantSlug);
+    }
+    const tenantIdHeader = req.headers.get("x-tenant-id");
+    if (tenantIdHeader) {
+        requestHeaders.set("x-resolved-tenant-id", tenantIdHeader);
+    }
+
     // Authenticated. Role and capability enforcement happens server-side.
-    return NextResponse.next();
+    return NextResponse.next({
+        request: {
+            headers: requestHeaders,
+        },
+    });
 });
 
 export const config = {

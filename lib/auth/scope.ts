@@ -23,6 +23,10 @@ export interface AuthorizationSubject {
     /** Employee record linked to this User, when one exists. */
     employeeId: string | null;
     department: string | null;
+    /** Active SaaS Tenant ID */
+    tenantId: string | null;
+    /** Active Company ID */
+    companyId: string | null;
 }
 
 export const SCOPE_KIND_BY_ROLE: Record<Role, ScopeKind> = {
@@ -43,24 +47,39 @@ export function scopeKindForRole(roleInput: unknown): ScopeKind {
  * server-side. The role is re-read from the database rather than trusted from
  * the JWT, so a stale or forged token cannot grant authority.
  */
-export async function buildSubject(userId: string, email: string): Promise<AuthorizationSubject | null> {
+export async function buildSubject(
+    userId: string,
+    email: string,
+    activeTenantId: string | null = null
+): Promise<AuthorizationSubject | null> {
     const user = await prisma.user.findUnique({
         where: { id: userId },
         select: {
             id: true,
             email: true,
             role: true,
-            employee: { select: { id: true, department: true } },
+            employee: { select: { id: true, department: true, tenantId: true, companyId: true } },
+            memberships: activeTenantId ? {
+                where: { tenantId: activeTenantId, status: "ACTIVE" },
+                select: { role: true, tenantId: true }
+            } : undefined,
         },
     });
     if (!user) return null;
 
+    // If an active tenant is specified and user has a tenant membership, use that tenant's role
+    const activeMembership = user.memberships && user.memberships.length > 0 ? user.memberships[0] : null;
+    const effectiveRole = activeMembership ? toRole(activeMembership.role) : toRole(user.role);
+    const effectiveTenantId = activeMembership ? activeMembership.tenantId : (user.employee?.tenantId ?? activeTenantId);
+
     return {
         userId: user.id,
         email: user.email,
-        role: toRole(user.role),
+        role: effectiveRole,
         employeeId: user.employee?.id ?? null,
         department: user.employee?.department ?? null,
+        tenantId: effectiveTenantId,
+        companyId: user.employee?.companyId ?? null,
     };
 }
 
