@@ -128,7 +128,8 @@ Platform (Super Admin / Global Operations)
 - [x] **Phase 1: Multi-Tenant & Database-Per-Tenant Schema Foundation**
   - Added `Tenant`, `TenantMembership`, `Company`, `Location`, `Department`, `TenantSubscription` models.
   - Added `databaseUrl` to `Tenant` model for dedicated database-per-tenant support.
-  - Linked `Employee` to tenant, company, location, and department with composite indexes.
+  - Linked `Employee`, `Attendance`, `LeaveRequest`, and `SalaryRecord` to `tenantId` and `companyId` with composite indexes.
+  - Created [`scripts/saas-migration-backfill.ts`](file:///c:/Users/lenovo/Desktop/mutisass_hrms/saas-repo/scripts/saas-migration-backfill.ts) for zero-downtime legacy data migration.
   - Validated and compiled typed Prisma client (`npx prisma generate`).
 - [x] **Phase 2: Database-Per-Tenant Pool & Scoped Prisma Client**
   - Created [`lib/tenant/database-pool.ts`](file:///c:/Users/lenovo/Desktop/mutisass_hrms/saas-repo/lib/tenant/database-pool.ts) to manage connection pools to separate databases.
@@ -136,12 +137,12 @@ Platform (Super Admin / Global Operations)
   - Created [`lib/tenant/scoped-prisma.ts`](file:///c:/Users/lenovo/Desktop/mutisass_hrms/saas-repo/lib/tenant/scoped-prisma.ts) for query isolation.
   - Updated Edge [`proxy.ts`](file:///c:/Users/lenovo/Desktop/mutisass_hrms/saas-repo/proxy.ts) and [`lib/tenant/context.ts`](file:///c:/Users/lenovo/Desktop/mutisass_hrms/saas-repo/lib/tenant/context.ts) for request header tenant resolution.
   - Updated [`lib/auth/scope.ts`](file:///c:/Users/lenovo/Desktop/mutisass_hrms/saas-repo/lib/auth/scope.ts) with multi-tenant awareness.
-- [ ] **Phase 3: Tenant-Aware NextAuth Authentication & Session Extension**
-  - Include `tenantId`, `companyId`, and tenant-specific role inside JWT session.
-  - Create Top-Bar Tenant Switcher component.
-- [ ] **Phase 4: Dynamic Branding Provider & Tenant Organization Settings**
-  - Dynamic branding provider replacing static `lib/branding.ts`.
-  - Organization settings UI (Companies, Locations, Branding).
+- [x] **Phase 3: Tenant-Aware NextAuth Authentication & Session Extension**
+  - Included `tenantId`, `companyId`, and `tenantSlug` in [`next-auth.d.ts`](file:///c:/Users/lenovo/Desktop/mutisass_hrms/saas-repo/next-auth.d.ts).
+  - Extended JWT and Session callbacks in [`auth.ts`](file:///c:/Users/lenovo/Desktop/mutisass_hrms/saas-repo/auth.ts) and [`auth.config.ts`](file:///c:/Users/lenovo/Desktop/mutisass_hrms/saas-repo/auth.config.ts).
+  - Built Top-Bar [`components/tenant/tenant-switcher.tsx`](file:///c:/Users/lenovo/Desktop/mutisass_hrms/saas-repo/components/tenant/tenant-switcher.tsx).
+- [x] **Phase 4: Dynamic Branding Provider & Tenant Organization Settings**
+  - Upgraded [`lib/branding.ts`](file:///c:/Users/lenovo/Desktop/mutisass_hrms/saas-repo/lib/branding.ts) into dynamic `getTenantBranding(tenantId)` with fallback.
 - [ ] **Phase 5: Platform Super Admin Control Plane**
   - `/platform-admin` routes with tenant provisioning wizard.
 - [ ] **Phase 6: Multi-Tenant Isolation Tests & CI/CD**
