@@ -1,26 +1,41 @@
-// Centralized branding configuration for Enterprise SaaS HRMS
+// Centralized branding configuration for Enterprise HR Portal
 // Provides fallback defaults and dynamic per-tenant branding resolvers
 
 import prisma from "@/lib/prisma";
 
-export const DEFAULT_BRANDING = {
+export interface Branding {
+  companyName: string;
+  companyFullName: string;
+  systemName: string;
+  systemTagline: string;
+  logoPath: string;
+  logoAlt: string;
+  website: string;
+  email: string;
+  phone: string;
+  address: string;
+  primaryColor: string;
+  accentColor: string;
+  copyright: string;
+}
+
+export const DEFAULT_BRANDING: Branding = {
   companyName: "Enterprise HRMS",
-  companyFullName: "Enterprise HRMS SaaS LLC",
-  systemName: "Enterprise HRMS SaaS",
-  systemTagline: "Multi-Tenant Enterprise HR Management System",
+  companyFullName: "Enterprise HR Solutions LLC",
+  systemName: "Enterprise HRMS",
+  systemTagline: "Enterprise HR Management Platform",
   logoPath: "/assets/logo.svg",
-  logoAlt: "Enterprise HRMS Logo",
-  website: "https://hrms-saas.com",
-  email: "support@hrms-saas.com",
+  logoAlt: "HRMS Logo",
+  website: "https://portal.enterprisehrms.com",
+  email: "support@enterprisehrms.com",
   phone: "+971 4 123 4567",
   address: "Dubai, UAE",
   primaryColor: "#1e40af",
   accentColor: "#0284c7",
-  copyright: `© ${new Date().getFullYear()} Enterprise HRMS SaaS | UAE`,
-} as const;
+  copyright: `\u00a9 ${new Date().getFullYear()} Enterprise HRMS | UAE`,
+};
 
 export const BRANDING = DEFAULT_BRANDING;
-export type Branding = typeof DEFAULT_BRANDING;
 
 /**
  * Resolves dynamic tenant branding with graceful fallback to defaults.
@@ -49,8 +64,8 @@ export async function getTenantBranding(tenantId?: string | null): Promise<Brand
     return {
       companyName: tenant.name || DEFAULT_BRANDING.companyName,
       companyFullName: tenant.legalName || tenant.name || DEFAULT_BRANDING.companyFullName,
-      systemName: `${tenant.name} HRMS`,
-      systemTagline: DEFAULT_BRANDING.systemTagline,
+      systemName: `${tenant.name} HR Portal`,
+      systemTagline: "Employee & Workforce Management",
       logoPath: tenant.logoUrl || DEFAULT_BRANDING.logoPath,
       logoAlt: `${tenant.name} Logo`,
       website: DEFAULT_BRANDING.website,
@@ -59,7 +74,7 @@ export async function getTenantBranding(tenantId?: string | null): Promise<Brand
       address: DEFAULT_BRANDING.address,
       primaryColor: tenant.primaryColor || DEFAULT_BRANDING.primaryColor,
       accentColor: tenant.accentColor || DEFAULT_BRANDING.accentColor,
-      copyright: `© ${new Date().getFullYear()} ${tenant.name} | Enterprise HRMS`,
+      copyright: `© ${new Date().getFullYear()} ${tenant.name} | All Rights Reserved`,
     };
   } catch {
     return DEFAULT_BRANDING;

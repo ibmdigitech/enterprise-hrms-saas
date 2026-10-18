@@ -14,6 +14,7 @@ import { NavigationLinks } from "@/components/layout/NavigationLinks";
 import { Menu } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { TenantSwitcher, TenantOption } from "@/components/tenant/tenant-switcher";
 
 interface HeaderProps {
     user?: {
@@ -21,7 +22,11 @@ interface HeaderProps {
         email?: string | null;
         image?: string | null;
         role?: string | null;
+        tenantId?: string | null;
+        tenantSlug?: string | null;
     };
+    currentTenantName?: string | null;
+    tenants?: TenantOption[];
 }
 
 /**
@@ -38,7 +43,7 @@ interface HeaderProps {
 const ICON_BUTTON =
     "h-11 w-11 shrink-0 rounded-2xl bg-slate-100/50 text-slate-600 shadow-sm ring-1 ring-inset ring-slate-200/70 transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-600 hover:shadow-md hover:ring-indigo-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 motion-reduce:transition-none motion-reduce:transform-none dark:bg-slate-900/50 dark:text-slate-400 dark:ring-slate-800 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-300 dark:hover:ring-indigo-500/40";
 
-export function Header({ user }: HeaderProps) {
+export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     // Below `md` there is no room for a 448px field next to three 44px controls,
     // so search collapses to an icon that expands the field over the row.
@@ -88,6 +93,13 @@ export function Header({ user }: HeaderProps) {
                         </div>
                     </DialogContent>
                 </Dialog>
+
+                {/* SaaS Multi-Tenant Organization Switcher */}
+                <TenantSwitcher
+                    currentTenantId={user?.tenantId || null}
+                    currentTenantName={currentTenantName || user?.tenantSlug || "Organization"}
+                    tenants={tenants}
+                />
 
                 <Button
                     variant="ghost"

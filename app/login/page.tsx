@@ -150,7 +150,7 @@ function LoginForm() {
                     </div>
                     <CardTitle className="text-2xl font-bold text-white">Welcome back</CardTitle>
                     <CardDescription className="text-slate-400">
-                        Sign in to your HR System account
+                        Sign in to access your workforce portal
                     </CardDescription>
                 </CardHeader>
 

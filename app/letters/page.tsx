@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import LettersPageClient from "./LettersPageClient";
 
 export const metadata = {
-    title: "Letter Management | HR System",
+    title: "Letter Management | HR Portal",
     description: "Official UAE-compliant letter generation and governance system.",
 };
 

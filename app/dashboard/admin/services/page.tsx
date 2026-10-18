@@ -3,7 +3,7 @@ import { requirePageRole } from "@/lib/auth/page-guard";
 import { ROLES } from "@/lib/auth/roles";
 
 export const metadata = {
-    title: "Service Configuration | HR System",
+    title: "Service Configuration | HR Portal",
     description: "Manage system-wide HR business rules and configurations.",
 };
 

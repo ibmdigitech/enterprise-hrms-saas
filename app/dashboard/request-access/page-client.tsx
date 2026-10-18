@@ -24,7 +24,7 @@ export function RequestAccessPage () {
                     Back to Dashboard
                 </Link>
                 <h1 className="text-3xl font-bold tracking-tight">Request Role Access</h1>
-                <p className="text-muted-foreground">Apply for elevated permissions within the HR System.</p>
+                <p className="text-muted-foreground">Apply for elevated permissions within the portal.</p>
             </div>
 
             {state.success ? (

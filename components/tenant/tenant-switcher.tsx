@@ -37,11 +37,12 @@ export function TenantSwitcher({
         });
     };
 
-    if (!tenants || tenants.length === 0) {
+    if (!tenants || tenants.length <= 1) {
+        if (!currentTenantName) return null;
         return (
-            <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-400 bg-slate-900/50 rounded-lg border border-slate-800">
-                <Building2 className="w-3.5 h-3.5 text-slate-500" />
-                <span>{currentTenantName || "Single Tenant"}</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800">
+                <Building2 className="w-3.5 h-3.5 text-blue-500" />
+                <span className="max-w-[160px] truncate">{currentTenantName}</span>
             </div>
         );
     }

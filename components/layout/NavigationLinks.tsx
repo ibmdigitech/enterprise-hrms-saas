@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Activity, ArrowRightLeft, Bell, Briefcase, Calendar, CalendarClock,
+  Activity, ArrowRightLeft, Bell, Briefcase, Building2, Calendar, CalendarClock,
   CheckCircle2, ChevronDown, CreditCard, FileSignature, FileText, FileUp,
   HeartHandshake, LayoutDashboard, Plane, Settings2, Target, UserPlus, Users,
   UserRoundX, Layers, Sparkles, Shield, ShieldCheck, UserCircle, KeyRound, BookOpen, Rocket,
@@ -76,18 +76,15 @@ export const sidebarItems: NavItem[] = [
   { title: "Access Requests", href: "/dashboard/request-access", icon: KeyRound, iconColor: "text-indigo-400", permission: PERMISSIONS.ACCESS_APPROVE },
   { title: "Letter Templates", href: "/dashboard/settings/templates", icon: BookOpen, iconColor: "text-pink-400", permission: PERMISSIONS.LETTER_TEMPLATE_MANAGE },
   { title: "Company Documents", href: "/company/documents", icon: FolderOpen, iconColor: "text-teal-400", permission: PERMISSIONS.SETTINGS_VIEW },
+  { title: "Organization & Structure", href: "/company/organization", icon: Building2, iconColor: "text-blue-400", permission: PERMISSIONS.SETTINGS_VIEW },
+  { title: "Subscription & Billing", href: "/settings/billing", icon: CreditCard, iconColor: "text-emerald-400", permission: PERMISSIONS.SETTINGS_MANAGE },
   { title: "Service Configuration", href: "/dashboard/admin/services", icon: Settings2, iconColor: "text-sky-400", permission: PERMISSIONS.SERVICE_CONFIG_MANAGE },
   { title: "Shift & Roster Settings", href: "/settings/shifts", icon: Settings2, iconColor: "text-emerald-400", permission: PERMISSIONS.ATTENDANCE_SHIFT_MANAGE },
   { title: "Audit Log", href: "/system/logs", icon: Activity, iconColor: "text-slate-400", permission: PERMISSIONS.SYSTEM_AUDIT_VIEW },
-  // Without an entry here the href below is dropped: a group link is resolved
-  // through sidebarItems and filtered out when no matching item exists, so
-  // adding the path to the group's `links` array alone renders nothing.
-  { title: "SaaS Platform Admin", href: "/platform-admin", icon: ShieldCheck, iconColor: "text-blue-400", permission: PERMISSIONS.SYSTEM_CONFIG },
+  // SYSTEM_CONFIG is only held by SUPER_ADMIN — this link is never rendered for any company user.
+  // The label is intentionally generic so that if the sidebar ever leaks it cannot reveal platform details.
+  { title: "Platform Administration", href: "/platform-admin", icon: ShieldCheck, iconColor: "text-blue-400", permission: PERMISSIONS.SYSTEM_CONFIG },
   { title: "Backup & Recovery", href: "/system/backup", icon: ShieldCheck, iconColor: "text-emerald-400", permission: PERMISSIONS.SYSTEM_BACKUP_VIEW },
-  // Deployment & migration status. Shares SYSTEM_BACKUP_VIEW deliberately: both
-  // pages report infrastructure state an administrator must see, and splitting
-  // them would mean an operator could see their backups were stale without
-  // being able to see that migrations cannot deploy at all.
   { title: "Deployment & Health", href: "/system/deployment", icon: Rocket, iconColor: "text-sky-400", permission: PERMISSIONS.SYSTEM_BACKUP_VIEW },
 ] as NavItem[];
 
@@ -158,13 +155,19 @@ export const navigationGroups: NavGroupDef[] = [
         links: ["/dashboard/settings/templates", "/company/documents"],
       },
       {
+        title: "Organization",
+        icon: Building2,
+        color: "text-blue-400",
+        links: ["/company/organization", "/settings/billing"],
+      },
+      {
         title: "Workforce Configuration",
         icon: Settings2,
         color: "text-slate-400",
         links: ["/dashboard/admin/services", "/settings/shifts"],
       },
       {
-        title: "System",
+        title: "Configuration",
         icon: Activity,
         color: "text-slate-400",
         links: ["/platform-admin", "/system/logs", "/system/backup", "/system/deployment"],

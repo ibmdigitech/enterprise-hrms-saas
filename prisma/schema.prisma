@@ -1,10 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "./generated/client"
-}
-
-generator client_default {
-  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -2203,12 +2198,14 @@ model Tenant {
   updatedAt    DateTime @updatedAt
 
   // SaaS Hierarchy Relations
-  subscription TenantSubscription?
-  memberships  TenantMembership[]
-  companies    Company[]
-  locations    Location[]
-  departments  Department[]
-  employees    Employee[]
+  subscription        TenantSubscription?
+  memberships         TenantMembership[]
+  companies           Company[]
+  locations           Location[]
+  departments         Department[]
+  employees           Employee[]
+  invoices            SubscriptionInvoice[]
+  paymentTransactions PaymentTransaction[]
 
   @@index([slug])
   @@index([status])
@@ -2306,26 +2303,113 @@ model Department {
   @@index([companyId])
 }
 
+/// Global platform subscription tiers and feature catalogs.
+model SubscriptionPlan {
+  id             String               @id @default(cuid())
+  name           String               @unique // Starter, Growth, Enterprise, Custom
+  slug           String               @unique // starter, growth, enterprise, custom
+  description    String?
+  priceMonthly   Float                @default(0)
+  priceAnnual    Float                @default(0)
+  currency       String               @default("AED")
+  maxEmployees   Int                  @default(25)
+  maxCompanies   Int                  @default(1)
+  maxLocations   Int                  @default(2)
+  hasPayroll     Boolean              @default(true)
+  hasCompliance  Boolean              @default(true)
+  hasRecruitment Boolean              @default(true)
+  hasCustomTheme Boolean              @default(false)
+  hasApiAccess   Boolean              @default(false)
+  isPopular      Boolean              @default(false)
+  isActive       Boolean              @default(true)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  subscriptions  TenantSubscription[]
+
+  @@index([slug])
+  @@index([isActive])
+}
+
 /// Subscription limits, feature modules, and plan details for a Tenant.
 model TenantSubscription {
-  id             String    @id @default(cuid())
-  tenantId       String    @unique
-  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id                 String                @id @default(cuid())
+  tenantId           String                @unique
+  tenant             Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  planId             String?
+  plan               SubscriptionPlan?     @relation(fields: [planId], references: [id], onDelete: SetNull)
   /// STARTER, GROWTH, ENTERPRISE, CUSTOM
-  planTier       String    @default("TRIAL")
-  maxEmployees   Int       @default(25)
-  maxCompanies   Int       @default(1)
-  maxLocations   Int       @default(2)
-  hasPayroll     Boolean   @default(true)
-  hasCompliance  Boolean   @default(true)
-  hasRecruitment Boolean   @default(true)
-  hasCustomTheme Boolean   @default(false)
-  hasApiAccess   Boolean   @default(false)
-  startsAt       DateTime  @default(now())
-  expiresAt      DateTime?
-  status         String    @default("ACTIVE") // ACTIVE, PAST_DUE, CANCELLED
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  planTier           String                @default("TRIAL")
+  billingCycle       String                @default("MONTHLY") // MONTHLY, ANNUAL
+  maxEmployees       Int                   @default(25)
+  maxCompanies       Int                   @default(1)
+  maxLocations       Int                   @default(2)
+  hasPayroll         Boolean               @default(true)
+  hasCompliance      Boolean               @default(true)
+  hasRecruitment     Boolean               @default(true)
+  hasCustomTheme     Boolean               @default(false)
+  hasApiAccess       Boolean               @default(false)
+  startsAt           DateTime              @default(now())
+  expiresAt          DateTime?
+  currentPeriodStart DateTime              @default(now())
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean               @default(false)
+  status             String                @default("ACTIVE") // ACTIVE, PAST_DUE, CANCELLED
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  invoices           SubscriptionInvoice[]
 
   @@index([status])
+  @@index([planTier])
 }
+
+/// Tenant-isolated billing invoice records.
+model SubscriptionInvoice {
+  id                 String                @id @default(cuid())
+  tenantId           String
+  tenant             Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscriptionId     String?
+  subscription       TenantSubscription?   @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  invoiceNumber      String                @unique // INV-2026-0001
+  amount             Float
+  taxAmount          Float                 @default(0)
+  totalAmount        Float
+  currency           String                @default("AED")
+  status             String                @default("PENDING") // PENDING, PAID, OVERDUE, VOID
+  billingPeriodStart DateTime
+  billingPeriodEnd   DateTime
+  dueDate            DateTime
+  paidAt             DateTime?
+  paymentMethod      String?               // CARD, BANK_TRANSFER, MANUAL
+  invoicePdfUrl      String?
+  notes              String?
+  transactions       PaymentTransaction[]
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+/// Audit-compliant ledger of payment transactions per tenant.
+model PaymentTransaction {
+  id                 String               @id @default(cuid())
+  tenantId           String
+  tenant             Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invoiceId          String?
+  invoice            SubscriptionInvoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  amount             Float
+  currency           String               @default("AED")
+  status             String               @default("SUCCESS") // SUCCESS, PENDING, FAILED, REFUNDED
+  gateway            String               @default("STRIPE")  // STRIPE, NETWORK_INTL, TELR, BANK_TRANSFER, MANUAL
+  transactionRef     String               @unique
+  paymentMethodType  String?              // VISA, MASTERCARD, BANK_TRANSFER, APPLE_PAY
+  lastFour           String?
+  rawGatewayResponse Json?
+  createdAt          DateTime             @default(now())
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([createdAt])
+}
+

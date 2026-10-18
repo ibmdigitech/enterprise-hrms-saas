@@ -6,9 +6,10 @@ import { NavigationLinks } from "@/components/layout/NavigationLinks";
 
 interface SidebarProps {
   user?: { name?: string | null; email?: string | null; image?: string | null; role?: string | null };
+  currentTenantName?: string | null;
 }
 
-export function Sidebar({ user }: SidebarProps) {
+export function Sidebar({ user, currentTenantName }: SidebarProps) {
   const initials = user?.name
     ? user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
     : "?";
@@ -28,8 +29,12 @@ export function Sidebar({ user }: SidebarProps) {
           <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#0f1117] bg-emerald-500" />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-[15px] font-black leading-tight tracking-tight text-white">IBM Digitech</p>
-          <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.22em] text-indigo-400">Enterprise HRMS</p>
+          <p className="truncate text-[15px] font-black leading-tight tracking-tight text-white">
+            {currentTenantName || "Enterprise HR"}
+          </p>
+          <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.22em] text-indigo-400">
+            Workforce Portal
+          </p>
         </div>
       </div>
 
