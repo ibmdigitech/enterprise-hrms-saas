@@ -82,6 +82,7 @@ export const sidebarItems: NavItem[] = [
   // Without an entry here the href below is dropped: a group link is resolved
   // through sidebarItems and filtered out when no matching item exists, so
   // adding the path to the group's `links` array alone renders nothing.
+  { title: "SaaS Platform Admin", href: "/platform-admin", icon: ShieldCheck, iconColor: "text-blue-400", permission: PERMISSIONS.SYSTEM_CONFIG },
   { title: "Backup & Recovery", href: "/system/backup", icon: ShieldCheck, iconColor: "text-emerald-400", permission: PERMISSIONS.SYSTEM_BACKUP_VIEW },
   // Deployment & migration status. Shares SYSTEM_BACKUP_VIEW deliberately: both
   // pages report infrastructure state an administrator must see, and splitting
@@ -166,7 +167,7 @@ export const navigationGroups: NavGroupDef[] = [
         title: "System",
         icon: Activity,
         color: "text-slate-400",
-        links: ["/system/logs", "/system/backup", "/system/deployment"],
+        links: ["/platform-admin", "/system/logs", "/system/backup", "/system/deployment"],
       },
     ],
   },
