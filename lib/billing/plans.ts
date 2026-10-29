@@ -75,7 +75,7 @@ export const DEFAULT_PLANS: PlanTemplate[] = [
 // ZAR (South African Rand) pricing - approximate conversion from AED (1 AED ≈ 5 ZAR)
 export const DEFAULT_PLANS_ZAR: PlanTemplate[] = [
     {
-        name: "Starter",
+        name: "Starter (ZAR)",
         slug: "STARTER",
         description: "Essential HR & compliance for growing teams and startups.",
         priceMonthly: 3750,
@@ -92,7 +92,7 @@ export const DEFAULT_PLANS_ZAR: PlanTemplate[] = [
         isPopular: false,
     },
     {
-        name: "Growth",
+        name: "Growth (ZAR)",
         slug: "GROWTH",
         description: "Comprehensive HRMS with multi-company operations, recruiting & shifts.",
         priceMonthly: 9250,
@@ -109,7 +109,7 @@ export const DEFAULT_PLANS_ZAR: PlanTemplate[] = [
         isPopular: true,
     },
     {
-        name: "Enterprise",
+        name: "Enterprise (ZAR)",
         slug: "ENTERPRISE",
         description: "Full conglomerate isolation, dedicated database, unlimited scalability & custom branding.",
         priceMonthly: 18250,
@@ -131,60 +131,72 @@ export const DEFAULT_PLANS_ZAR: PlanTemplate[] = [
  * Ensures standard SaaS plans exist in database catalog for both AED and ZAR currencies.
  */
 export async function ensureDefaultPlans() {
-    // Ensure AED plans
-    for (const plan of DEFAULT_PLANS) {
-        await prisma.subscriptionPlan.upsert({
-            where: { slug: plan.slug },
-            update: {
-                name: plan.name,
-                description: plan.description,
-                priceMonthly: plan.priceMonthly,
-                priceAnnual: plan.priceAnnual,
-                currency: plan.currency,
-                maxEmployees: plan.maxEmployees,
-                maxCompanies: plan.maxCompanies,
-                maxLocations: plan.maxLocations,
-                hasPayroll: plan.hasPayroll,
-                hasCompliance: plan.hasCompliance,
-                hasRecruitment: plan.hasRecruitment,
-                hasCustomTheme: plan.hasCustomTheme,
-                hasApiAccess: plan.hasApiAccess,
-                isPopular: plan.isPopular,
-            },
-            create: {
-                ...plan,
-                isActive: true,
-            },
-        });
-    }
+    try {
+        // Ensure AED plans
+        for (const plan of DEFAULT_PLANS) {
+            try {
+                await prisma.subscriptionPlan.upsert({
+                    where: { slug: plan.slug },
+                    update: {
+                        name: plan.name,
+                        description: plan.description,
+                        priceMonthly: plan.priceMonthly,
+                        priceAnnual: plan.priceAnnual,
+                        currency: plan.currency,
+                        maxEmployees: plan.maxEmployees,
+                        maxCompanies: plan.maxCompanies,
+                        maxLocations: plan.maxLocations,
+                        hasPayroll: plan.hasPayroll,
+                        hasCompliance: plan.hasCompliance,
+                        hasRecruitment: plan.hasRecruitment,
+                        hasCustomTheme: plan.hasCustomTheme,
+                        hasApiAccess: plan.hasApiAccess,
+                        isPopular: plan.isPopular,
+                    },
+                    create: {
+                        ...plan,
+                        isActive: true,
+                    },
+                });
+            } catch (planErr) {
+                console.warn("[ensureDefaultPlans] skipping AED plan:", plan.slug, planErr);
+            }
+        }
 
-    // Ensure ZAR plans (use currency-specific slugs)
-    for (const plan of DEFAULT_PLANS_ZAR) {
-        const zarSlug = `${plan.slug}_ZAR`;
-        await prisma.subscriptionPlan.upsert({
-            where: { slug: zarSlug },
-            update: {
-                name: plan.name,
-                description: plan.description,
-                priceMonthly: plan.priceMonthly,
-                priceAnnual: plan.priceAnnual,
-                currency: plan.currency,
-                maxEmployees: plan.maxEmployees,
-                maxCompanies: plan.maxCompanies,
-                maxLocations: plan.maxLocations,
-                hasPayroll: plan.hasPayroll,
-                hasCompliance: plan.hasCompliance,
-                hasRecruitment: plan.hasRecruitment,
-                hasCustomTheme: plan.hasCustomTheme,
-                hasApiAccess: plan.hasApiAccess,
-                isPopular: plan.isPopular,
-            },
-            create: {
-                ...plan,
-                slug: zarSlug,
-                isActive: true,
-            },
-        });
+        // Ensure ZAR plans (use currency-specific slugs)
+        for (const plan of DEFAULT_PLANS_ZAR) {
+            const zarSlug = `${plan.slug}_ZAR`;
+            try {
+                await prisma.subscriptionPlan.upsert({
+                    where: { slug: zarSlug },
+                    update: {
+                        name: plan.name,
+                        description: plan.description,
+                        priceMonthly: plan.priceMonthly,
+                        priceAnnual: plan.priceAnnual,
+                        currency: plan.currency,
+                        maxEmployees: plan.maxEmployees,
+                        maxCompanies: plan.maxCompanies,
+                        maxLocations: plan.maxLocations,
+                        hasPayroll: plan.hasPayroll,
+                        hasCompliance: plan.hasCompliance,
+                        hasRecruitment: plan.hasRecruitment,
+                        hasCustomTheme: plan.hasCustomTheme,
+                        hasApiAccess: plan.hasApiAccess,
+                        isPopular: plan.isPopular,
+                    },
+                    create: {
+                        ...plan,
+                        slug: zarSlug,
+                        isActive: true,
+                    },
+                });
+            } catch (zarErr) {
+                console.warn("[ensureDefaultPlans] skipping ZAR plan:", zarSlug, zarErr);
+            }
+        }
+    } catch (e) {
+        console.error("[ensureDefaultPlans] unexpected error:", e);
     }
 }
 

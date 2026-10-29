@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { Building2, LogOut, Activity } from "lucide-react";
 import { NavigationLinks } from "@/components/layout/NavigationLinks";
@@ -10,6 +11,11 @@ interface SidebarProps {
 }
 
 export function Sidebar({ user, currentTenantName }: SidebarProps) {
+  const pathname = usePathname();
+  if (pathname.startsWith("/super-admin")) {
+    return null;
+  }
+
   const initials = user?.name
     ? user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
     : "?";

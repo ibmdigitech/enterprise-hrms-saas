@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { headers } from "next/headers";
 import "./globals.css";
 import { Sidebar } from "@/components/layout/SidebarOptimized";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -28,6 +29,10 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const reqHeaders = await headers();
+  const pathname = reqHeaders.get("x-pathname") || "";
+  const isSuperAdminPortal = pathname.startsWith("/super-admin");
+
   const session = await auth();
   const isLoggedIn = !!session?.user;
 
@@ -66,14 +71,12 @@ export default async function RootLayout({
           tenantSlug: dbUser.employee?.tenant?.slug || dbUser.memberships[0]?.tenant?.slug || null,
         };
 
-        // Display current company name or tenant name
         currentTenantName =
           dbUser.employee?.company?.name ||
           dbUser.employee?.tenant?.name ||
           dbUser.memberships[0]?.tenant?.name ||
           null;
 
-        // ONLY provide switchable organizations if user is SUPER_ADMIN or holds multiple authorized memberships
         if (dbUser.role === "SUPER_ADMIN") {
           const allTenants = await prisma.tenant.findMany({
             where: { status: "ACTIVE" },
@@ -97,25 +100,29 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body
+      <body suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-slate-50 dark:bg-slate-900`}
       >
         <Providers>
-          <div className="flex h-screen overflow-hidden">
-            {isLoggedIn && <Sidebar user={userWithPhoto} currentTenantName={currentTenantName} />}
-            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-              {isLoggedIn && (
-                <AppHeader
-                  user={userWithPhoto}
-                  currentTenantName={currentTenantName}
-                  tenants={userTenants}
-                />
-              )}
-              <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-6">
-                {children}
-              </main>
+          {isSuperAdminPortal ? (
+            children
+          ) : (
+            <div className="flex h-screen overflow-hidden">
+              {isLoggedIn && <Sidebar user={userWithPhoto} currentTenantName={currentTenantName} />}
+              <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+                {isLoggedIn && (
+                  <AppHeader
+                    user={userWithPhoto}
+                    currentTenantName={currentTenantName}
+                    tenants={userTenants}
+                  />
+                )}
+                <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-6">
+                  {children}
+                </main>
+              </div>
             </div>
-          </div>
+          )}
         </Providers>
         <Toaster position="top-right" richColors closeButton />
       </body>

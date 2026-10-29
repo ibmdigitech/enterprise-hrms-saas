@@ -12,7 +12,7 @@
 
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
-import { Role, ROLES, toRole, assertKnownRole, isSuperAdmin } from "./roles";
+import { Role, ROLES, toRole, assertKnownRole, isSuperAdmin, isPlatformRole, isCompanyRole } from "./roles";
 import {
     Permission,
     PermissionOverrides,
@@ -20,7 +20,7 @@ import {
     hasAnyPermission,
     hasAllPermissions,
 } from "./permissions";
-import { AuthorizationSubject, buildSubject, scopeKindForRole } from "./scope";
+import { AuthorizationSubject, buildSubject, scopeKindForRole, canAccessTenant, canAccessCompany } from "./scope";
 import { logSecurityEvent, SECURITY_ACTION } from "./audit";
 
 /* ------------------------------------------------------------------ */
@@ -55,6 +55,8 @@ export interface SessionUser {
     role: Role;
     employeeId: string | null;
     department: string | null;
+    tenantId: string | null;
+    companyId: string | null;
 }
 
 export type SessionResult =
@@ -92,6 +94,8 @@ export async function getSessionUser(): Promise<SessionResult> {
             role: subject.role,
             employeeId: subject.employeeId,
             department: subject.department,
+            tenantId: subject.tenantId,
+            companyId: subject.companyId,
         },
     };
 }
@@ -124,6 +128,38 @@ export async function requireRole(...allowed: readonly Role[]): Promise<SessionU
             detail: { requiredRoles: allowed, actualRole: user.role },
         });
         throw new AuthorizationError(`Requires one of: ${allowed.join(", ")}`);
+    }
+    return user;
+}
+
+export async function requirePlatformRole(): Promise<SessionUser> {
+    const user = await requireUser();
+    if (!isPlatformRole(user.role)) {
+        await logSecurityEvent({
+            action: SECURITY_ACTION.ACCESS_DENIED,
+            actorEmail: user.email,
+            actorRole: user.role,
+            target: "platform_role",
+            outcome: "DENIED",
+            detail: { requiredRoleType: "PLATFORM" },
+        });
+        throw new AuthorizationError("Requires platform role");
+    }
+    return user;
+}
+
+export async function requireCompanyRole(): Promise<SessionUser> {
+    const user = await requireUser();
+    if (!isCompanyRole(user.role)) {
+        await logSecurityEvent({
+            action: SECURITY_ACTION.ACCESS_DENIED,
+            actorEmail: user.email,
+            actorRole: user.role,
+            target: "company_role",
+            outcome: "DENIED",
+            detail: { requiredRoleType: "COMPANY" },
+        });
+        throw new AuthorizationError("Requires company role");
     }
     return user;
 }
@@ -203,6 +239,46 @@ export async function requireAllPermissions(
             detail: { requiredAll: required },
         });
         throw new AuthorizationError(`Missing all of: ${required.join(", ")}`);
+    }
+    return user;
+}
+
+/**
+ * Require access to a specific tenant.
+ */
+export async function requireTenantAccess(tenantId: string): Promise<SessionUser> {
+    const user = await requireUser();
+    const subject = await requireSubject();
+    if (!canAccessTenant(subject, tenantId)) {
+        await logSecurityEvent({
+            action: SECURITY_ACTION.ACCESS_DENIED,
+            actorEmail: user.email,
+            actorRole: user.role,
+            target: `tenant:${tenantId}`,
+            outcome: "DENIED",
+            detail: { requiredTenantId: tenantId },
+        });
+        throw new AuthorizationError(`Access denied to tenant: ${tenantId}`);
+    }
+    return user;
+}
+
+/**
+ * Require access to a specific company.
+ */
+export async function requireCompanyAccess(companyId: string): Promise<SessionUser> {
+    const user = await requireUser();
+    const subject = await requireSubject();
+    if (!canAccessCompany(subject, companyId)) {
+        await logSecurityEvent({
+            action: SECURITY_ACTION.ACCESS_DENIED,
+            actorEmail: user.email,
+            actorRole: user.role,
+            target: `company:${companyId}`,
+            outcome: "DENIED",
+            detail: { requiredCompanyId: companyId },
+        });
+        throw new AuthorizationError(`Access denied to company: ${companyId}`);
     }
     return user;
 }
@@ -313,6 +389,16 @@ export async function validateRoleChange(params: {
         return { allowed: false, reason: "Only SUPER_ADMIN may modify a SUPER_ADMIN account" };
     }
 
+    // Platform roles can only be granted by SUPER_ADMIN
+    if (isPlatformRole(nextRole) && actorRole !== ROLES.SUPER_ADMIN) {
+        return { allowed: false, reason: "Only SUPER_ADMIN may grant platform roles" };
+    }
+
+    // Company admin roles can be granted by SUPER_ADMIN or PLATFORM_SUPPORT/OPS
+    if (nextRole === ROLES.COMPANY_ADMIN && !isSuperAdmin(actorRole) && !isPlatformRole(actorRole)) {
+        return { allowed: false, reason: "Insufficient authority to grant COMPANY_ADMIN" };
+    }
+
     // No self-escalation.
     if (targetUserId && actorRole !== ROLES.SUPER_ADMIN) {
         const actor = await prisma.user.findUnique({
@@ -324,7 +410,7 @@ export async function validateRoleChange(params: {
         }
     }
 
-    // An ADMIN may not create another ADMIN of equal standing without authority.
+    // Legacy ADMIN role check
     if (nextRole === ROLES.ADMIN && actorRole !== ROLES.SUPER_ADMIN && actorRole !== ROLES.ADMIN) {
         return { allowed: false, reason: "Insufficient authority to grant ADMIN" };
     }
@@ -335,10 +421,53 @@ export async function validateRoleChange(params: {
 /** Roles a given actor is permitted to assign. Used to filter the UI options. */
 export function assignableRoles(actorRole: Role): Role[] {
     if (actorRole === ROLES.SUPER_ADMIN) {
-        return [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.FINANCE, ROLES.MANAGER, ROLES.STAFF];
+        return [
+            ROLES.SUPER_ADMIN,
+            ROLES.PLATFORM_SUPPORT,
+            ROLES.PLATFORM_OPS,
+            ROLES.PLATFORM_FINANCE,
+            ROLES.COMPANY_ADMIN,
+            ROLES.HR_MANAGER,
+            ROLES.DEPARTMENT_MANAGER,
+            ROLES.EMPLOYEE,
+            ROLES.ADMIN,
+            ROLES.HR,
+            ROLES.FINANCE,
+            ROLES.MANAGER,
+            ROLES.STAFF,
+        ];
     }
-    if (actorRole === ROLES.ADMIN) {
-        return [ROLES.HR, ROLES.FINANCE, ROLES.MANAGER, ROLES.STAFF];
+    if (actorRole === ROLES.PLATFORM_SUPPORT || actorRole === ROLES.PLATFORM_OPS) {
+        return [
+            ROLES.COMPANY_ADMIN,
+            ROLES.HR_MANAGER,
+            ROLES.DEPARTMENT_MANAGER,
+            ROLES.EMPLOYEE,
+            ROLES.ADMIN,
+            ROLES.HR,
+            ROLES.FINANCE,
+            ROLES.MANAGER,
+            ROLES.STAFF,
+        ];
+    }
+    if (actorRole === ROLES.COMPANY_ADMIN || actorRole === ROLES.ADMIN) {
+        return [
+            ROLES.HR_MANAGER,
+            ROLES.DEPARTMENT_MANAGER,
+            ROLES.EMPLOYEE,
+            ROLES.HR,
+            ROLES.FINANCE,
+            ROLES.MANAGER,
+            ROLES.STAFF,
+        ];
+    }
+    if (actorRole === ROLES.HR_MANAGER || actorRole === ROLES.HR) {
+        return [
+            ROLES.DEPARTMENT_MANAGER,
+            ROLES.EMPLOYEE,
+            ROLES.MANAGER,
+            ROLES.STAFF,
+        ];
     }
     return [];
 }
@@ -352,4 +481,4 @@ export function validateRoleValue(value: unknown): { ok: true; role: Role } | { 
     return { ok: true, role };
 }
 
-export { toRole, isSuperAdmin, scopeKindForRole };
+export { toRole, isSuperAdmin, isPlatformRole, isCompanyRole, scopeKindForRole, canAccessTenant, canAccessCompany };

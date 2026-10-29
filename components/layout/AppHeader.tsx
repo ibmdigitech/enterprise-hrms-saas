@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 
 interface AppHeaderProps {
     user?: {
@@ -15,13 +16,6 @@ interface AppHeaderProps {
     tenants?: Array<{ id: string; name: string; slug: string; role: string }>;
 }
 
-/**
- * The header contains Radix popover and dialog controls. Their generated IDs
- * differed between the Next.js server render and the browser, producing stale
- * aria-controls attributes and a hydration warning. Rendering this purely
- * client-side gives the controls one ID source and keeps every page's server
- * tree deterministic.
- */
 const Header = dynamic(
     () => import("@/components/layout/Header").then((module) => module.Header),
     {
@@ -43,5 +37,9 @@ const Header = dynamic(
 );
 
 export function AppHeader({ user, currentTenantName, tenants }: AppHeaderProps) {
+    const pathname = usePathname();
+    if (pathname.startsWith("/super-admin")) {
+        return null;
+    }
     return <Header user={user} currentTenantName={currentTenantName} tenants={tenants} />;
 }

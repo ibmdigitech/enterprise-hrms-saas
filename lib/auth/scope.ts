@@ -11,10 +11,10 @@
  */
 
 import prisma from "@/lib/prisma";
-import { Role, ROLES, toRole } from "./roles";
+import { Role, ROLES, toRole, isPlatformRole, isCompanyRole } from "./roles";
 import { resolvePermissions } from "./permissions";
 
-export type ScopeKind = "ALL" | "DEPARTMENT" | "SELF";
+export type ScopeKind = "ALL" | "TENANT" | "COMPANY" | "DEPARTMENT" | "SELF";
 
 export interface AuthorizationSubject {
     userId: string;
@@ -30,10 +30,20 @@ export interface AuthorizationSubject {
 }
 
 export const SCOPE_KIND_BY_ROLE: Record<Role, ScopeKind> = {
+    // Platform roles - full access across all tenants
     [ROLES.SUPER_ADMIN]: "ALL",
-    [ROLES.ADMIN]: "ALL",
-    [ROLES.HR]: "ALL",
-    [ROLES.FINANCE]: "ALL",
+    [ROLES.PLATFORM_SUPPORT]: "ALL",
+    [ROLES.PLATFORM_OPS]: "ALL",
+    [ROLES.PLATFORM_FINANCE]: "ALL",
+    // Company-scoped roles
+    [ROLES.COMPANY_ADMIN]: "TENANT",
+    [ROLES.HR_MANAGER]: "COMPANY",
+    [ROLES.DEPARTMENT_MANAGER]: "DEPARTMENT",
+    [ROLES.EMPLOYEE]: "SELF",
+    // Legacy roles (mapped to new roles)
+    [ROLES.ADMIN]: "TENANT",
+    [ROLES.HR]: "COMPANY",
+    [ROLES.FINANCE]: "COMPANY",
     [ROLES.MANAGER]: "DEPARTMENT",
     [ROLES.STAFF]: "SELF",
 };
@@ -89,17 +99,21 @@ export async function buildSubject(
  * carries an entity id.
  *
  * Rules:
- *  - ALL scope      → anything
- *  - DEPARTMENT     → records whose owner shares the subject's department
- *  - SELF           → only the subject's own employee record
+ *  - ALL scope       → anything
+ *  - TENANT scope    → records within the same tenant
+ *  - COMPANY scope   → records within the same company
+ *  - DEPARTMENT      → records whose owner shares the subject's department
+ *  - SELF            → only the subject's own employee record
  */
 export function canActOnEmployeeRecord(
     subject: AuthorizationSubject,
-    owner: { employeeId: string | null; department?: string | null }
+    owner: { employeeId: string | null; department?: string | null; tenantId?: string | null; companyId?: string | null }
 ): boolean {
     const kind = scopeKindForRole(subject.role);
     if (kind === "ALL") return true;
     if (kind === "SELF") return owner.employeeId !== null && owner.employeeId === subject.employeeId;
+    if (kind === "TENANT") return owner.tenantId !== null && owner.tenantId === subject.tenantId;
+    if (kind === "COMPANY") return owner.companyId !== null && owner.companyId === subject.companyId;
     // DEPARTMENT
     if (!owner.employeeId) return false;
     if (owner.employeeId === subject.employeeId) return true;
@@ -120,11 +134,48 @@ export function scopeEmployeeWhere(
     if (kind === "SELF") {
         return { ...where, ...(subject.employeeId ? { id: subject.employeeId } : { id: "__none__" }) };
     }
+    if (kind === "TENANT") {
+        return { ...where, ...(subject.tenantId ? { tenantId: subject.tenantId } : { tenantId: "__none__" }) };
+    }
+    if (kind === "COMPANY") {
+        return { ...where, ...(subject.companyId ? { companyId: subject.companyId } : { companyId: "__none__" }) };
+    }
     if (!subject.department) {
         // A manager with no department can only see their own record.
         return { ...where, ...(subject.employeeId ? { id: subject.employeeId } : { id: "__none__" }) };
     }
     return { ...where, department: subject.department };
+}
+
+/**
+ * Applies the subject's scope to a generic tenant-scoped model `where` clause.
+ */
+export function scopeTenantWhere(
+    subject: AuthorizationSubject,
+    where: Record<string, unknown> = {}
+): Record<string, unknown> {
+    const kind = scopeKindForRole(subject.role);
+    if (kind === "ALL") return where;
+    if (kind === "TENANT" || kind === "COMPANY" || kind === "DEPARTMENT" || kind === "SELF") {
+        return { ...where, ...(subject.tenantId ? { tenantId: subject.tenantId } : { tenantId: "__none__" }) };
+    }
+    return where;
+}
+
+/**
+ * Applies the subject's scope to a generic company-scoped model `where` clause.
+ */
+export function scopeCompanyWhere(
+    subject: AuthorizationSubject,
+    where: Record<string, unknown> = {}
+): Record<string, unknown> {
+    const kind = scopeKindForRole(subject.role);
+    if (kind === "ALL") return where;
+    if (kind === "TENANT" || kind === "COMPANY") {
+        return { ...where, ...(subject.companyId ? { companyId: subject.companyId } : { companyId: "__none__" }) };
+    }
+    // DEPARTMENT and SELF should not access company-scoped models directly
+    return { ...where, companyId: "__none__" };
 }
 
 /**
@@ -140,8 +191,71 @@ export function hasBroadScope(subject: AuthorizationSubject): boolean {
     const { permissions } = resolvePermissions(subject.role);
     return (
         scopeKindForRole(subject.role) === "ALL" ||
+        scopeKindForRole(subject.role) === "TENANT" ||
         permissions.has("employees.view") ||
-        permissions.has("payroll.payroll.view.all") ||
         permissions.has("payroll.payslip.view.all")
     );
 }
+
+/**
+ * Check if subject can access a specific tenant.
+ */
+export function canAccessTenant(subject: AuthorizationSubject, tenantId: string): boolean {
+    const kind = scopeKindForRole(subject.role);
+    if (kind === "ALL") return true;
+    return subject.tenantId === tenantId;
+}
+
+/**
+ * Check if subject can access a specific company.
+ */
+export function canAccessCompany(subject: AuthorizationSubject, companyId: string): boolean {
+    const kind = scopeKindForRole(subject.role);
+    if (kind === "ALL") return true;
+    if (kind === "TENANT") return subject.tenantId !== null; // Tenant admin can access all companies in tenant
+    return subject.companyId === companyId;
+}
+
+/**
+ * Get the list of tenant IDs the subject can access.
+ */
+export async function getAccessibleTenantIds(subject: AuthorizationSubject): Promise<string[]> {
+    const kind = scopeKindForRole(subject.role);
+    if (kind === "ALL") {
+        const tenants = await prisma.tenant.findMany({
+            where: { status: "ACTIVE" },
+            select: { id: true },
+        });
+        return tenants.map(t => t.id);
+    }
+    if (subject.tenantId) {
+        return [subject.tenantId];
+    }
+    return [];
+}
+
+/**
+ * Get the list of company IDs the subject can access.
+ */
+export async function getAccessibleCompanyIds(subject: AuthorizationSubject): Promise<string[]> {
+    const kind = scopeKindForRole(subject.role);
+    if (kind === "ALL") {
+        const companies = await prisma.company.findMany({
+            select: { id: true },
+        });
+        return companies.map(c => c.id);
+    }
+    if (kind === "TENANT" && subject.tenantId) {
+        const companies = await prisma.company.findMany({
+            where: { tenantId: subject.tenantId },
+            select: { id: true },
+        });
+        return companies.map(c => c.id);
+    }
+    if (subject.companyId) {
+        return [subject.companyId];
+    }
+    return [];
+}
+
+export { toRole, isPlatformRole, isCompanyRole };

@@ -8,7 +8,7 @@ import {
   CheckCircle2, ChevronDown, CreditCard, FileSignature, FileText, FileUp,
   HeartHandshake, LayoutDashboard, Plane, Settings2, Target, UserPlus, Users,
   UserRoundX, Layers, Sparkles, Shield, ShieldCheck, UserCircle, KeyRound, BookOpen, Rocket,
-  FolderOpen, type LucideIcon,
+  FolderOpen, GraduationCap, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PERMISSIONS, resolvePermissions } from "@/lib/auth/permissions";
@@ -64,6 +64,7 @@ export const sidebarItems: NavItem[] = [
   { title: "Notifications", href: "/notifications", icon: Bell, iconColor: "text-sky-400", permission: PERMISSIONS.NOTIFICATION_VIEW },
   { title: "Business Travel", href: "/travel", icon: Plane, iconColor: "text-orange-400", permission: PERMISSIONS.TRAVEL_VIEW },
   { title: "Performance", href: "/performance", icon: Target, iconColor: "text-fuchsia-400", permission: PERMISSIONS.PERFORMANCE_VIEW },
+  { title: "Training & Certification", href: "/dashboard/training", icon: GraduationCap, iconColor: "text-blue-400", permission: PERMISSIONS.TRAINING_VIEW },
 
   /* ── TALENT ───────────────────────────────────────────── */
   { title: "Recruitment", href: "/recruitment", icon: UserPlus, iconColor: "text-amber-400", permission: PERMISSIONS.RECRUITMENT_VIEW },
@@ -83,7 +84,7 @@ export const sidebarItems: NavItem[] = [
   { title: "Audit Log", href: "/system/logs", icon: Activity, iconColor: "text-slate-400", permission: PERMISSIONS.SYSTEM_AUDIT_VIEW },
   // SYSTEM_CONFIG is only held by SUPER_ADMIN — this link is never rendered for any company user.
   // The label is intentionally generic so that if the sidebar ever leaks it cannot reveal platform details.
-  { title: "Platform Administration", href: "/platform-admin", icon: ShieldCheck, iconColor: "text-blue-400", permission: PERMISSIONS.SYSTEM_CONFIG },
+  { title: "Super Admin Portal", href: "/super-admin/dashboard", icon: ShieldCheck, iconColor: "text-blue-400", permission: PERMISSIONS.SYSTEM_CONFIG },
   { title: "Backup & Recovery", href: "/system/backup", icon: ShieldCheck, iconColor: "text-emerald-400", permission: PERMISSIONS.SYSTEM_BACKUP_VIEW },
   { title: "Deployment & Health", href: "/system/deployment", icon: Rocket, iconColor: "text-sky-400", permission: PERMISSIONS.SYSTEM_BACKUP_VIEW },
 ] as NavItem[];
@@ -126,7 +127,7 @@ export const navigationGroups: NavGroupDef[] = [
     collapsible: true,
     links: [
       "/payroll", "/attendance/shifts", "/letters", "/visa", "/staff-services",
-      "/requests", "/notifications", "/travel", "/performance",
+      "/requests", "/notifications", "/travel", "/performance", "/dashboard/training",
     ],
   },
   {
@@ -170,7 +171,7 @@ export const navigationGroups: NavGroupDef[] = [
         title: "Configuration",
         icon: Activity,
         color: "text-slate-400",
-        links: ["/platform-admin", "/system/logs", "/system/backup", "/system/deployment"],
+        links: ["/super-admin/dashboard", "/system/logs", "/system/backup", "/system/deployment"],
       },
     ],
   },

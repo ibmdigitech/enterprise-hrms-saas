@@ -44,6 +44,27 @@ model User {
 
   // --- SaaS Multi-Tenant relation ---
   memberships TenantMembership[]
+
+  // --- Support Ticket relations ---
+  supportTicketsCreated   SupportTicket[] @relation("SupportTicketCreatedBy")
+  supportTicketsAssigned  SupportTicket[] @relation("SupportTicketAssignedTo")
+  supportTicketsResolved  SupportTicket[] @relation("SupportTicketResolvedBy")
+  supportTicketMessages   SupportTicketMessage[]
+
+  // --- Training relations ---
+  trainingCoursesCreated     TrainingCourse[]     @relation("TrainingCourseCreatedBy")
+  trainingCoursesUpdated     TrainingCourse[]     @relation("TrainingCourseUpdatedBy")
+  trainingSessionsCreated    TrainingSession[]    @relation("TrainingSessionCreatedBy")
+  trainingSessionsInstructed TrainingSession[]    @relation("TrainingSessionInstructor")
+  trainingEnrollmentsApproved TrainingEnrollment[] @relation("TrainingEnrollmentApprovedBy")
+  trainingEnrollmentsCreated TrainingEnrollment[] @relation("TrainingEnrollmentEnrolledBy")
+  trainingAttendancesMarked  TrainingAttendance[] @relation("TrainingAttendanceMarkedBy")
+  trainingCertificatesIssued TrainingCertificate[] @relation("TrainingCertificateIssuedBy")
+  trainingCertificatesRevoked TrainingCertificate[] @relation("TrainingCertificateRevokedBy")
+  trainingTemplatesCreated   TrainingCertificateTemplate[] @relation("TrainingCertificateTemplateCreatedBy")
+  trainingAssessmentsCreated TrainingAssessment[] @relation("TrainingAssessmentCreatedBy")
+  trainingAssessmentsGraded  TrainingAssessmentAttempt[] @relation("TrainingAssessmentAttemptGradedBy")
+  employeeSkillsAssessed     EmployeeTrainingSkill[] @relation("EmployeeTrainingSkillAssessedBy")
 }
 
 model Account {
@@ -703,6 +724,10 @@ model Employee {
   overtime              Overtime[]
   salaryAdvances        SalaryAdvanceRequest[]
   reimbursements        ReimbursementRequest[]
+  trainingEnrollments    TrainingEnrollment[]
+  trainingAttendances    TrainingAttendance[]
+  trainingCertificates   TrainingCertificate[]
+  trainingSkills         EmployeeTrainingSkill[]
   createdAt             DateTime                @default(now())
   updatedAt             DateTime                @updatedAt
   managerId             String?
@@ -723,6 +748,7 @@ model Employee {
   rehireRecords               RehireRecord[]
   performanceReviewsAsSubject PerformanceReview[] @relation("PerformanceSubject")
   performanceReviewsAsManager PerformanceReview[] @relation("PerformanceManager")
+  trainingAssessmentAttempts  TrainingAssessmentAttempt[]
 
   // --- Indexes (P0-13) ---
   // Filters: active-employee dropdowns (attendance, shifts, payroll) and department scope.
@@ -2207,6 +2233,25 @@ model Tenant {
   invoices            SubscriptionInvoice[]
   paymentTransactions PaymentTransaction[]
 
+  // New Super Admin Relations
+  companyModules      CompanyModule[]
+  supportTickets      SupportTicket[]
+  integrations        Integration[]
+  backgroundJobs      BackgroundJob[]
+  integrationHealth   IntegrationHealth[]
+  applicationErrors   ApplicationError[]
+
+  // Training relations
+  trainingCourses            TrainingCourse[]
+  trainingSessions           TrainingSession[]
+  trainingEnrollments        TrainingEnrollment[]
+  trainingCertificates       TrainingCertificate[]
+  trainingCertificateTemplates TrainingCertificateTemplate[]
+  trainingAssessments        TrainingAssessment[]
+  trainingSkills             TrainingSkill[]
+  trainingCategories         TrainingCategory[]
+  employeeTrainingSkills     EmployeeTrainingSkill[]
+
   @@index([slug])
   @@index([status])
 }
@@ -2245,9 +2290,20 @@ model Company {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  locations   Location[]
-  departments Department[]
-  employees   Employee[]
+  locations        Location[]
+  departments      Department[]
+  employees        Employee[]
+
+  // New Super Admin Relations
+  companyModules   CompanyModule[]
+  supportTickets   SupportTicket[]
+  
+  // Training relations
+  trainingCourses            TrainingCourse[]
+  trainingSessions           TrainingSession[]
+  trainingEnrollments        TrainingEnrollment[]
+  trainingCertificates       TrainingCertificate[]
+  trainingCertificateTemplates TrainingCertificateTemplate[]
 
   @@unique([tenantId, name])
   @@index([tenantId])
@@ -2411,5 +2467,672 @@ model PaymentTransaction {
   @@index([tenantId])
   @@index([status])
   @@index([createdAt])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── SAAS MODULES & ENTITLEMENTS ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Represents an available SaaS module/feature in the platform.
+model Module {
+  id          String   @id @default(cuid())
+  key         String   @unique // e.g., "payroll", "recruitment", "attendance"
+  name        String
+  description String?
+  category    String   @default("CORE") // CORE, HR, FINANCE, COMPLIANCE, TALENT, OPERATIONS
+  isActive    Boolean  @default(true)
+  isCore      Boolean  @default(false) // Core modules cannot be disabled
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  companyModules CompanyModule[]
+
+  @@index([category, isActive])
+  @@index([key])
+}
+
+/// Company-specific module entitlement (links Tenant/Company to Module with config).
+model CompanyModule {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  moduleId  String
+  module    Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  /// ENABLED, DISABLED, TRIAL, EXPIRED
+  status    String   @default("ENABLED")
+  /// Module-specific configuration (JSON)
+  config    Json?
+  /// When the entitlement expires (for trials or time-limited modules)
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, companyId, moduleId])
+  @@index([tenantId, status])
+  @@index([companyId, status])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── SUPPORT & TICKETING ──────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Support tickets raised by company administrators or platform users.
+model SupportTicket {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  companyId   String?
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  /// Subject/title of the ticket
+  subject     String
+  /// Detailed description
+  description String
+  /// Ticket category
+  category    String   @default("GENERAL") // GENERAL, BILLING, TECHNICAL, FEATURE_REQUEST, COMPLIANCE, SECURITY
+  /// Priority level
+  priority    String   @default("NORMAL") // LOW, NORMAL, HIGH, URGENT, CRITICAL
+  /// Current status
+  status      String   @default("OPEN") // OPEN, IN_PROGRESS, WAITING_CUSTOMER, WAITING_THIRD_PARTY, RESOLVED, CLOSED
+  /// Who created the ticket
+  createdById String
+  createdBy   User     @relation("SupportTicketCreatedBy", fields: [createdById], references: [id])
+  /// Assigned platform support agent
+  assignedToId String?
+  assignedTo   User?    @relation("SupportTicketAssignedTo", fields: [assignedToId], references: [id])
+  /// SLA deadline
+  slaDeadline DateTime?
+  /// Resolution summary
+  resolution  String?
+  resolvedAt  DateTime?
+  resolvedById String?
+  resolvedBy   User?    @relation("SupportTicketResolvedBy", fields: [resolvedById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  messages    SupportTicketMessage[]
+
+  @@index([tenantId, status])
+  @@index([companyId, status])
+  @@index([assignedToId, status])
+  @@index([priority, status])
+  @@index([createdAt])
+}
+
+/// Messages/updates on a support ticket.
+model SupportTicketMessage {
+  id           String       @id @default(cuid())
+  ticketId     String
+  ticket       SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId     String
+  author       User         @relation(fields: [authorId], references: [id])
+  content      String
+  /// INTERNAL (support team only) or PUBLIC (visible to customer)
+  visibility   String       @default("PUBLIC")
+  attachments  String[]     @default([])
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([ticketId, createdAt])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── PLATFORM USERS & ROLES ───────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Platform-level user accounts (Super Admin, Support, Operations).
+/// Separate from tenant-scoped User model for platform operations.
+model PlatformUser {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  passwordHash  String?
+  /// SUPER_ADMIN, PLATFORM_SUPPORT, PLATFORM_OPS, PLATFORM_FINANCE
+  role          String   @default("PLATFORM_SUPPORT")
+  /// ACTIVE, SUSPENDED, INACTIVE
+  status        String   @default("ACTIVE")
+  mfaEnabled    Boolean  @default(false)
+  mfaSecret     String?
+  lastLoginAt   DateTime?
+  failedLogins  Int      @default(0)
+  lockedUntil   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdById   String?
+  createdBy     PlatformUser? @relation("PlatformUserCreatedBy", fields: [createdById], references: [id])
+  createdUsers  PlatformUser[] @relation("PlatformUserCreatedBy")
+
+  // --- Super Admin Relations ---
+  platformSettingsUpdated PlatformSetting[] @relation("PlatformSettingUpdatedBy")
+  integrationsCreated     Integration[]   @relation("IntegrationCreatedBy")
+
+  @@index([role, status])
+  @@index([email])
+}
+
+/// Platform-wide settings and configuration.
+model PlatformSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  category    String   @default("GENERAL") // GENERAL, BRANDING, SECURITY, NOTIFICATIONS, INTEGRATIONS, BILLING
+  label       String
+  description String?
+  type        String   @default("STRING") // STRING, NUMBER, BOOLEAN, JSON, SELECT, SECRET
+  value       String
+  options     Json?    // For SELECT type: array of {label, value}
+  isPublic    Boolean  @default(false) // Whether non-super-admin can read
+  isEditable  Boolean  @default(true)  // Whether it can be changed via UI
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+  updatedBy   PlatformUser? @relation("PlatformSettingUpdatedBy", fields: [updatedById], references: [id])
+
+  @@index([category])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── INTEGRATIONS ──────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Platform and tenant-level integration configurations.
+model Integration {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  /// Integration type
+  type        String   // EMAIL, SMS, ATTENDANCE_DEVICE, AI_SERVICE, PAYMENT_PROVIDER, CALENDAR, SSO
+  /// Provider identifier (e.g., "sendgrid", "twilio", "stripe", "openai", "google", "microsoft")
+  provider    String
+  /// Configuration (encrypted for secrets)
+  config      Json
+  /// Whether this integration is enabled
+  isEnabled   Boolean  @default(true)
+  /// Whether this is a platform-level (global) or tenant-specific integration
+  scope       String   @default("TENANT") // PLATFORM, TENANT
+  name        String   // Human-readable name
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  createdBy   PlatformUser? @relation("IntegrationCreatedBy", fields: [createdById], references: [id])
+
+  // New Super Admin Relations
+  healthChecks IntegrationHealth[]
+
+  @@unique([tenantId, type, provider])
+  @@index([tenantId, type])
+  @@index([type, provider])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── SYSTEM HEALTH & MONITORING ───────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Background job execution tracking.
+model BackgroundJob {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  /// Job identifier (e.g., "payroll.run", "invoice.generate", "accrual.process")
+  jobKey      String
+  /// QUEUED, RUNNING, COMPLETED, FAILED, RETRYING, CANCELLED
+  status      String   @default("QUEUED")
+  /// Input parameters
+  payload     Json?
+  /// Result or error details
+  result      Json?
+  /// Error message if failed
+  error       String?
+  /// Number of retry attempts
+  attempts    Int      @default(0)
+  maxAttempts Int      @default(3)
+  /// Scheduled execution time
+  scheduledAt DateTime?
+  /// Actual start time
+  startedAt   DateTime?
+  /// Completion time
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, jobKey, status])
+  @@index([status, scheduledAt])
+  @@index([jobKey, status])
+}
+
+/// Integration health checks and status.
+model IntegrationHealth {
+  id            String   @id @default(cuid())
+  tenantId      String?
+  tenant        Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  integrationId String
+  integration   Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  /// HEALTHY, DEGRADED, DOWN, UNKNOWN
+  status        String   @default("UNKNOWN")
+  /// Last check timestamp
+  lastCheckAt   DateTime @default(now())
+  /// Response time in milliseconds
+  responseTimeMs Int?
+  /// Error message if unhealthy
+  error         String?
+  /// Additional metrics
+  metrics       Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([integrationId])
+  @@index([tenantId, status])
+  @@index([status])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── TRAINING & CERTIFICATION ──────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Training course catalog. Each tenant can define their own courses.
+model TrainingCourse {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  companyId       String?
+  company         Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  title           String
+  code            String   // e.g., "HR-101", "SAFETY-001"
+  description     String?
+  category        String   // TECHNICAL, COMPLIANCE, SOFT_SKILLS, MANAGEMENT, ONBOARDING, SAFETY
+  level           String   @default("BEGINNER") // BEGINNER, INTERMEDIATE, ADVANCED
+  durationHours   Float    @default(0)
+  maxParticipants Int?
+  /// DRAFT, PUBLISHED, ARCHIVED
+  status          String   @default("DRAFT")
+  /// Whether completion generates a certificate
+  issuesCertificate Boolean  @default(true)
+  /// Certificate template reference
+  certificateTemplateId String?
+  /// Prerequisite courses (self-referential)
+  prerequisites   TrainingCourse[] @relation("CoursePrerequisites")
+  /// Courses that require this as prerequisite
+  requiredBy      TrainingCourse[] @relation("CoursePrerequisites")
+  /// Tags for search/filtering
+  tags            String[]
+  /// External provider (if outsourced)
+  provider        String?
+  /// Cost per participant (for budget tracking)
+  costPerParticipant Float? @default(0)
+  currency        String   @default("AED")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdById     String
+  createdBy       User     @relation("TrainingCourseCreatedBy", fields: [createdById], references: [id])
+  updatedById     String?
+  updatedBy       User?    @relation("TrainingCourseUpdatedBy", fields: [updatedById], references: [id])
+
+  enrollments     TrainingEnrollment[]
+  sessions        TrainingSession[]
+  certificates    TrainingCertificate[]
+  assessments     TrainingAssessment[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId, status])
+  @@index([tenantId, category])
+  @@index([companyId, status])
+}
+
+/// Training session/schedule for a course
+model TrainingSession {
+  id            String   @id @default(cuid())
+  courseId      String
+  course        TrainingCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  companyId     String?
+  company       Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  title         String
+  /// SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED
+  status        String   @default("SCHEDULED")
+  startDate     DateTime
+  endDate       DateTime
+  location      String?  // Physical or virtual (e.g., "Zoom", "Room 101", "Online")
+  timezone      String   @default("Asia/Dubai")
+  instructorId  String?
+  instructor    User?    @relation("TrainingSessionInstructor", fields: [instructorId], references: [id])
+  maxParticipants Int?
+  /// Meeting link for virtual sessions
+  meetingLink   String?
+  /// Materials/attachments
+  materials     String[] @default([])
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdById   String
+  createdBy     User     @relation("TrainingSessionCreatedBy", fields: [createdById], references: [id])
+
+  enrollments   TrainingEnrollment[]
+  attendances   TrainingAttendance[]
+
+  @@index([courseId, status])
+  @@index([tenantId, startDate])
+  @@index([companyId, startDate])
+  @@index([instructorId])
+}
+
+/// Employee enrollment in a training session
+model TrainingEnrollment {
+  id             String   @id @default(cuid())
+  sessionId      String
+  session        TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  courseId       String
+  course         TrainingCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  employeeId     String
+  employee       Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  companyId      String?
+  company        Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  /// REQUESTED, APPROVED, REJECTED, WAITLISTED, CANCELLED, COMPLETED
+  status         String   @default("REQUESTED")
+  /// APPROVED, REJECTED, PENDING
+  approvalStatus String   @default("PENDING")
+  approvedById   String?
+  approvedBy     User?    @relation("TrainingEnrollmentApprovedBy", fields: [approvedById], references: [id])
+  approvedAt     DateTime?
+  /// Completion tracking
+  completedAt    DateTime?
+  score          Float?   // Assessment score if applicable
+  /// PENDING, PASSED, FAILED
+  assessmentStatus String  @default("PENDING")
+  feedback       String?
+  /// Certificate issued
+  certificateId  String?
+  certificate    TrainingCertificate?
+  enrolledAt     DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  enrolledById   String
+  enrolledBy     User     @relation("TrainingEnrollmentEnrolledBy", fields: [enrolledById], references: [id])
+
+  attendances    TrainingAttendance[]
+  assessmentAttempts TrainingAssessmentAttempt[]
+  employeeSkills EmployeeTrainingSkill[]
+
+  @@unique([sessionId, employeeId])
+  @@index([employeeId, status])
+  @@index([courseId, status])
+  @@index([tenantId, status])
+  @@index([companyId, status])
+  @@index([approvalStatus])
+}
+
+/// Attendance tracking for training sessions
+model TrainingAttendance {
+  id            String   @id @default(cuid())
+  enrollmentId  String
+  enrollment    TrainingEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  sessionId     String
+  session       TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  employeeId    String
+  employee      Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date          DateTime
+  /// PRESENT, ABSENT, LATE, EXCUSED
+  status        String   @default("PRESENT")
+  checkInAt     DateTime?
+  checkOutAt    DateTime?
+  durationMinutes Int    @default(0)
+  notes         String?
+  markedById    String
+  markedBy      User     @relation("TrainingAttendanceMarkedBy", fields: [markedById], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([enrollmentId, date])
+  @@index([sessionId, date])
+  @@index([employeeId, date])
+}
+
+/// Training certificate issued upon completion
+model TrainingCertificate {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  companyId       String?
+  company         Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  courseId        String
+  course          TrainingCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  enrollmentId    String   @unique
+  enrollment      TrainingEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  employeeId      String
+  employee        Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  /// Certificate number (auto-generated: CERT-XXXXXX)
+  certificateNumber String  @unique
+  /// ISSUED, REVOKED, EXPIRED
+  status          String   @default("ISSUED")
+  /// Issue date
+  issuedAt        DateTime @default(now())
+  /// Expiry date (for certifications that expire)
+  expiresAt       DateTime?
+  /// Certificate title (e.g., "Certificate of Completion", "Certified Professional")
+  title           String
+  /// Grade/Score if applicable
+  grade           String?
+  score           Float?
+  /// Verification code for public verification
+  verificationCode String   @unique
+  /// Digital signature hash
+  signatureHash   String?
+  /// Template used for generation
+  templateId      String?
+  /// Generated PDF/document URL
+  documentUrl     String?
+  /// Employee photo at time of issuance (for certificate personalization)
+  employeePhoto   String?
+  /// Additional metadata (instructor, venue, etc.)
+  metadata        Json?
+  issuedById      String
+  issuedBy        User     @relation("TrainingCertificateIssuedBy", fields: [issuedById], references: [id])
+  revokedAt       DateTime?
+  revokedById     String?
+  revokedBy       User?    @relation("TrainingCertificateRevokedBy", fields: [revokedById], references: [id])
+  revocationReason String?
+  employeeSkills  EmployeeTrainingSkill[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId, status])
+  @@index([employeeId, status])
+  @@index([courseId, issuedAt])
+  @@index([verificationCode])
+  @@index([certificateNumber])
+}
+
+/// Certificate template for generating certificates
+model TrainingCertificateTemplate {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  companyId   String?
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  name        String
+  /// DEFAULT, COURSE_COMPLETION, CERTIFICATION, ACCREDITATION
+  type        String   @default("COURSE_COMPLETION")
+  /// HTML/CSS template with placeholders
+  htmlTemplate String
+  /// CSS styles
+  cssStyles   String?
+  /// Placeholder fields available
+  placeholders Json?  // e.g., ["employeeName", "courseTitle", "issueDate", "certificateNumber", "employeePhoto", "instructorName"]
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String
+  createdBy   User     @relation("TrainingCertificateTemplateCreatedBy", fields: [createdById], references: [id])
+
+  @@index([tenantId, type])
+  @@index([tenantId, isDefault])
+}
+
+/// Training assessment/exam
+model TrainingAssessment {
+  id            String   @id @default(cuid())
+  courseId      String
+  course        TrainingCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?
+  /// MCQ, ESSAY, PRACTICAL, PROJECT
+  type          String   @default("MCQ")
+  passingScore  Float    @default(70) // Percentage
+  maxAttempts   Int      @default(3)
+  timeLimitMinutes Int?   // null = no limit
+  questions     Json     // Array of question objects
+  /// DRAFT, PUBLISHED
+  status        String   @default("DRAFT")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdById   String
+  createdBy     User     @relation("TrainingAssessmentCreatedBy", fields: [createdById], references: [id])
+
+  attempts      TrainingAssessmentAttempt[]
+
+  @@index([courseId, status])
+  @@index([tenantId, status])
+}
+
+/// Employee assessment attempt
+model TrainingAssessmentAttempt {
+  id              String   @id @default(cuid())
+  assessmentId    String
+  assessment      TrainingAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  enrollmentId    String
+  enrollment      TrainingEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  employeeId      String
+  employee        Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  attemptNumber   Int      @default(1)
+  /// IN_PROGRESS, SUBMITTED, GRADED, PASSED, FAILED
+  status          String   @default("IN_PROGRESS")
+  answers         Json?    // Employee's answers
+  score           Float?
+  maxScore        Float?
+  /// Percentage score
+  percentage      Float?
+  startedAt       DateTime @default(now())
+  submittedAt     DateTime?
+  gradedAt        DateTime?
+  gradedById      String?
+  gradedBy        User?    @relation("TrainingAssessmentAttemptGradedBy", fields: [gradedById], references: [id])
+  feedback        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([enrollmentId, attemptNumber])
+  @@index([assessmentId, status])
+  @@index([employeeId, status])
+}
+
+/// Training skill/competency tracking
+model TrainingSkill {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name          String
+  category      String   // TECHNICAL, SOFT_SKILLS, COMPLIANCE, MANAGEMENT, LANGUAGE
+  description   String?
+  /// Whether this skill can be certified
+  isCertifiable Boolean  @default(false)
+  /// Proficiency levels: BEGINNER, INTERMEDIATE, ADVANCED, EXPERT
+  proficiencyLevels Json?  // [{"level": "BEGINNER", "description": "..."}, ...]
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  employeeSkills EmployeeTrainingSkill[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId, category])
+  @@index([isActive])
+}
+
+/// Employee skill proficiency
+model EmployeeTrainingSkill {
+  id            String   @id @default(cuid())
+  employeeId    String
+  employee      Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  skillId       String
+  skill         TrainingSkill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  /// BEGINNER, INTERMEDIATE, ADVANCED, EXPERT
+  level         String   @default("BEGINNER")
+  /// Source of skill: TRAINING, EXPERIENCE, CERTIFICATION, SELF_ASSESSED, MANAGER_ASSESSED
+  source        String   @default("SELF_ASSESSED")
+  /// Related training enrollment if from training
+  enrollmentId  String?
+  enrollment    TrainingEnrollment? @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+  /// Related certificate if from certification
+  certificateId String?
+  certificate   TrainingCertificate? @relation(fields: [certificateId], references: [id], onDelete: SetNull)
+  assessedById  String?
+  assessedBy    User?    @relation("EmployeeTrainingSkillAssessedBy", fields: [assessedById], references: [id])
+  assessedAt    DateTime?
+  expiresAt     DateTime? // For skills that need renewal
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([employeeId, skillId])
+  @@index([employeeId, level])
+  @@index([tenantId, level])
+  @@index([expiresAt])
+}
+
+/// Training category for organizing courses
+model TrainingCategory {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  color       String?  // Hex color for UI
+  icon        String?  // Icon name
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, name])
+  @@index([tenantId, isActive])
+}
+
+/// Application error tracking and monitoring.
+model ApplicationError {
+  id           String   @id @default(cuid())
+  tenantId     String?
+  tenant       Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  /// Error type/category
+  type         String   // ERROR, WARNING, CRITICAL, PERFORMANCE
+  /// Error message
+  message      String
+  /// Stack trace
+  stackTrace   String?
+  /// Request context (URL, method, user agent, etc.)
+  context      Json?
+  /// User who encountered the error
+  userId       String?
+  /// How many times this error occurred
+  count        Int      @default(1)
+  /// FIRST_SEEN, RECURRING, RESOLVED, IGNORED
+  status       String   @default("FIRST_SEEN")
+  /// Related job/ticket ID
+  relatedId    String?
+  firstSeenAt  DateTime @default(now())
+  lastSeenAt   DateTime @default(now())
+  resolvedAt   DateTime?
+  resolvedById String?
+
+  @@index([tenantId, type, status])
+  @@index([status, lastSeenAt])
+  @@index([type, status])
 }
 

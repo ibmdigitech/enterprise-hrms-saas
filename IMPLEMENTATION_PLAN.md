@@ -1,209 +1,308 @@
-# HRMS Multi-Tenant SaaS Implementation Plan
+# Enterprise HRMS SaaS – Super Admin & Multi-Company Implementation Plan
 
-## Objective
+## Project Status
+**Repository**: https://github.com/ibmdigitech/enterprise-hrms-saas  
+**Date**: October 2026  
+**Current Phase**: Phase 1 - Foundation & Schema (In Progress)
 
-Evolve the current single-company HRMS into a secure, production-operated, multi-tenant SaaS product. Each customer organization must have a separate workforce, configuration, users, workflows, documents, payroll, and audit history. A user must never read or change another tenant's records by changing a URL, API payload, file ID, or background-job input.
+---
 
-This document is the implementation roadmap. It does not mean the work is complete. The current application is **not ready to onboard multiple customer companies**.
+## ✅ Completed Work (Phase 1 - Foundation)
 
-## Current state and known blockers
+### 1. Prisma Schema Extensions
+**File**: `prisma/schema.prisma`
 
-- The Prisma schema has no `Tenant`/`Organization` model or organization ownership fields on business records.
-- Queries such as dashboard workforce, attendance, payroll, performance, and audit queries run across the current database without a customer boundary.
-- `User.role` is global. There is no organization membership model to support company-scoped roles.
-- `lib/auth/scope.ts` currently models self/department/global access, not tenant isolation.
-- The role request/approval feature is partial; there is no complete tenant user invite, suspension, membership, or session-revocation workflow.
-- Backup/restore scripts exist, but the nightly Windows task was not installed on the checked host. Off-host copies and a restore drill are not confirmed.
-- The database is PostgreSQL, while `prisma/migrations/migration_lock.toml` says SQLite. `prisma migrate status` fails with provider mismatch, and the current PostgreSQL database has no `_prisma_migrations` baseline. Migration history must be repaired before relying on migrations for production deployments.
-- ESLint currently scans archived/generated content and reports a large, noisy failure count. The lint scope must be corrected before it can be a useful release gate.
-- Employee directory desktop/mobile parity, photo handling, performance questions, and resignation request work have been addressed in code, but still need release-browser QA and production schema/deployment checks.
+Added the following new models:
+- **Module** - SaaS feature modules catalog
+- **CompanyModule** - Company-specific module entitlements
+- **SupportTicket** & **SupportTicketMessage** - Support ticketing system
+- **PlatformUser** - Platform-level users (Super Admin, Support, Ops, Finance)
+- **PlatformSetting** - Platform-wide configuration
+- **Integration** - Platform/tenant integrations (Email, SMS, Payment, AI, etc.)
+- **BackgroundJob** - Background job tracking
+- **IntegrationHealth** - Integration health monitoring
+- **ApplicationError** - Application error tracking
 
-## Architecture decisions to make before coding
+### 2. Role System Overhaul
+**File**: `lib/auth/roles.ts`
 
-Record these decisions in an ADR before the tenant migration begins:
+New role hierarchy:
+```
+SUPER_ADMIN (60) - Platform owner, full access
+├── PLATFORM_SUPPORT (55) - Platform support team
+├── PLATFORM_OPS (55) - Platform operations
+├── PLATFORM_FINANCE (30) - Platform billing/finance
+├── COMPANY_ADMIN (50) - Company administrator
+├── HR_MANAGER (40) - HR management
+├── DEPARTMENT_MANAGER (20) - Team/department manager
+├── EMPLOYEE (10) - Self-service employee
+└── Legacy roles (ADMIN, HR, FINANCE, MANAGER, STAFF) - Backward compatibility
+```
 
-1. **Tenant resolution:** use one verified organization context per request, selected from a membership-backed active organization. A slug/subdomain may identify the requested organization but never grants access by itself.
-2. **Database isolation:** begin with one PostgreSQL database and shared tables with a non-null `tenantId` on tenant-owned entities. Add PostgreSQL row-level security as defense in depth only after connection-pool/session-context behavior is verified. Do not rely on application filters alone without cross-tenant tests.
-3. **Identity:** one login account may have memberships in multiple organizations. Store application roles on the organization membership, not as the user's global HR role. Keep any platform-operator role separate from customer-admin roles.
-4. **Existing customer:** migrate all current HRMS data into one explicitly named default organization and preserve existing IDs/history wherever possible.
-5. **Hosting and data residency:** select production cloud/region, database, object storage, email, monitoring, payment provider, and recovery objectives before billing or launch work.
-6. **Commercial model:** define plans, trial, seats/employee limits, payroll/features entitlements, billing cycle, tax handling, cancellation, and read-only/grace behavior for failed payments.
+### 3. Permission System Rewrite
+**File**: `lib/auth/permissions.ts`
 
-## Delivery phases
+Comprehensive permission catalog with:
+- Platform-level permissions (tenants, billing, plans, modules, users, roles, tickets, audit, integrations, settings, health)
+- Company-scoped permissions (company CRUD, branches, users, subscription, modules, usage, activity, settings)
+- Subscription & billing permissions
+- Module management permissions
+- Support ticket permissions
+- Integration permissions
+- All existing HRMS permissions preserved
 
-### Phase 0 — Baseline, product decisions, and migration repair
+Role grant mappings updated for new role hierarchy with backward compatibility.
 
-**Deliverables**
+### 4. Scope/Authorization System
+**File**: `lib/auth/scope.ts`
 
-- Complete route, server-action, API, scheduled-job, file, and data-model inventory.
-- Classify every model as platform-global, tenant-owned, or child-owned through a tenant-owned parent.
-- Write the architecture decisions above, a threat model, and the tenant-to-feature ownership matrix.
-- Establish supported local/CI/staging/production environment configurations without exposing secrets.
-- Repair Prisma migration history for PostgreSQL: choose and document a safe baseline strategy, make `migration_lock.toml` match the provider, create a baseline for the already-provisioned database, and prove a new empty database can migrate from zero. Do not mark migrations applied without comparing the live schema to the migration result.
-- Exclude archive folders, generated Prisma clients, `.next`, build outputs, and dependencies from lint/typecheck scopes. Capture a clean baseline.
+New scope kinds: `ALL`, `TENANT`, `COMPANY`, `DEPARTMENT`, `SELF`
 
-**Gate**
+Added helper functions:
+- `scopeTenantWhere()` - Tenant-scoped query filtering
+- `scopeCompanyWhere()` - Company-scoped query filtering
+- `canAccessTenant()` / `canAccessCompany()` - Access checks
+- `getAccessibleTenantIds()` / `getAccessibleCompanyIds()` - Accessible resource lists
 
-- `prisma migrate deploy` works on a fresh PostgreSQL database and on a database upgraded from the existing single-company schema.
-- A schema diff is reviewed and backed up before any production migration.
-- Product has approved the default organization, membership, billing, and hosting choices.
+### 5. Authorization Guards
+**File**: `lib/auth/guards.ts`
 
-### Phase 1 — Tenant and membership foundation
+New guard functions:
+- `requirePlatformRole()` - Require any platform role
+- `requireCompanyRole()` - Require any company role
+- `requireTenantAccess(tenantId)` - Tenant-level access control
+- `requireCompanyAccess(companyId)` - Company-level access control
+- Updated `validateRoleChange()` for new role hierarchy
+- Updated `assignableRoles()` for new role hierarchy
 
-**Data model**
+---
 
-- Add `Organization` (tenant) with stable ID, unique slug, display/legal names, status, locale/timezone/currency, timestamps, and retention/deletion state.
-- Add `OrganizationMembership` with `organizationId`, `userId`, tenant role, membership status, invitation/activation timestamps, and unique `(organizationId, userId)`.
-- Add tenant-owned invitations with hashed, expiring, single-use tokens and auditable inviter/acceptance metadata.
-- Keep a separate, tightly limited platform support identity/role; do not make platform support a normal tenant role.
-- Replace global tenant role assumptions in `User.role` through a compatibility migration. Preserve login identity and provide an explicit active-organization context for sessions.
+## 📋 Implementation Phases
 
-**Tenant context**
+### Phase 2: Super Admin Portal UI (Next)
+**Route Group**: `/super-admin` (or extend `/platform-admin`)
 
-- Resolve the active organization server-side from a valid session membership on every request.
-- Require membership to be active and tenant status to permit the requested operation.
-- Never trust a client-supplied `tenantId` as authorization. Validate route slug, selected organization, and membership together.
-- Define `requireTenantUser`, `requireTenantPermission`, and tenant-scoped query helpers. Include tenant context in audit events and observability logs without logging secrets or sensitive HR data.
+#### 2.1 Layout & Navigation
+- [ ] Create `(super-admin)` route group layout
+- [ ] Responsive sidebar navigation with collapsible groups
+- [ ] Top header with platform branding
+- [ ] Dark/light mode support
+- [ ] Mobile-responsive drawer navigation
 
-**Gate**
+#### 2.2 Screens to Implement
 
-- Unit tests prove unknown, suspended, removed, and cross-organization memberships cannot resolve a tenant context.
-- Users in two organizations receive the correct independent role and active-tenant context.
+| Priority | Screen | Route | Description |
+|----------|--------|-------|-------------|
+| P0 | Dashboard | `/super-admin/dashboard` | Platform statistics, companies, employees, subscriptions, revenue, pending requests, alerts |
+| P0 | Companies | `/super-admin/companies` | Search, filter, create, edit, suspend, reactivate, archive companies |
+| P0 | Add Company | `/super-admin/companies/new` | Multi-step onboarding wizard (details, admin invite, subscription, modules) |
+| P0 | Company Details | `/super-admin/companies/[id]` | Overview, branches, users, subscription, modules, usage, activity, settings |
+| P0 | Company Admins | `/super-admin/companies/[id]/admins` | Invite, manage, disable, reset administrator access |
+| P0 | Subscription Plans | `/super-admin/plans` | CRUD for plans, prices, limits, trial, billing cycles |
+| P0 | Subscriptions | `/super-admin/subscriptions` | Assign, upgrade, downgrade, renew, cancel, expire |
+| P0 | Billing | `/super-admin/billing` | Invoices, payment status, receipts, transaction history |
+| P0 | Modules | `/super-admin/modules` | Manage SaaS modules and company entitlements |
+| P0 | Platform Users | `/super-admin/users` | Super Admin and authorized support accounts |
+| P0 | Roles & Permissions | `/super-admin/roles` | Platform and company role matrices |
+| P0 | Support Tickets | `/super-admin/tickets` | Company requests, issues, status, resolution |
+| P0 | Audit Logs | `/super-admin/audit` | Searchable security and administrative events |
+| P0 | Integrations | `/super-admin/integrations` | Email, attendance devices, AI services, payment providers |
+| P0 | Platform Settings | `/super-admin/settings` | Branding, security policies, notification templates, general config |
+| P0 | System Health | `/super-admin/health` | Failed jobs, integration status, errors, monitoring |
 
-### Phase 2 — Tenant ownership across the data model
+### Phase 3: Multi-Tenant Architecture Enforcement
+- [ ] Prisma middleware/extension for automatic tenant filtering
+- [ ] Row-level security policies (if using PostgreSQL RLS)
+- [ ] Tenant context derivation from authenticated membership
+- [ ] Company switching for multi-company users
+- [ ] Secure support access (explicit, audited)
 
-Add tenant ownership to every independently queried or addressed business entity, including at minimum:
+### Phase 4: Company Admin Portal
+**Route Group**: `/company/[companyId]` or similar branded workspace
 
-- employees, users/memberships, departments, locations, shifts, leave policies/requests/balances, attendance and device configuration;
-- payroll periods, salary structures, salary records, loans, overtime, settlements, and financial exports;
-- recruitment requisitions, candidates, interviews, offers, generated letters and templates;
-- performance cycles, reviews, goals, questions and answers;
-- company settings/documents, service requests, approvals, notifications, audit/security records, and exit/offboarding cases/checklists.
+- [ ] Branded workspace per company
+- [ ] Navigation based on subscription entitlements + user permissions
+- [ ] All existing HRMS modules (Employee Mgmt, Organization, Recruitment, Attendance, Leave, Payroll, etc.)
+- [ ] Module visibility based on `CompanyModule` entitlements
 
-For child tables, either store `tenantId` directly or prove ownership by a tenant-scoped parent relation and enforce the relation with composite foreign keys/unique constraints where practical. Add tenant-aware indexes and tenant-scoped uniqueness (for example, employee code unique within an organization instead of globally). Remove global uniqueness only where product rules allow it.
+### Phase 5: Database Migrations & Data Backfill
+- [ ] Generate Prisma migration for new models
+- [ ] Safe data backfill scripts for existing tenants
+- [ ] Default module seeding
+- [ ] Default platform settings seeding
+- [ ] Integration configuration seeding
 
-**Data migration sequence**
+### Phase 6: API & Server Actions
+- [ ] Super Admin API routes for all CRUD operations
+- [ ] Company onboarding workflow server actions
+- [ ] Subscription management actions
+- [ ] Billing/invoice actions
+- [ ] Module entitlement actions
+- [ ] Support ticket actions
+- [ ] Platform settings actions
+- [ ] Integration configuration actions
 
-1. Create the default organization.
-2. Add nullable tenant columns and backfill every existing row to the default organization.
-3. Validate there are no orphaned or unassigned tenant-owned rows.
-4. Add foreign keys, indexes, and tenant-scoped unique constraints.
-5. Make required tenant columns non-null.
-6. Map each existing user to a membership and preserve the current effective role for the default organization.
-7. Reconcile uploaded files and stored attachments to tenant-owned storage keys.
+### Phase 7: Testing
+- [ ] Super Admin access tests
+- [ ] Company Admin access restriction tests
+- [ ] Company A vs Company B isolation tests
+- [ ] Company creation & admin invitation tests
+- [ ] Multi-company membership switching tests
+- [ ] Subscription expiration & module access tests
+- [ ] Employee/payroll/document authorization tests
+- [ ] Audit logging tests
+- [ ] Responsive UI tests
+- [ ] Existing HRMS regression tests
 
-Each migration must have a backup, tested rollback/recovery procedure, row-count reconciliation, and an explicit stop condition if validation fails.
+### Phase 8: Documentation & Deployment
+- [ ] Environment variable documentation
+- [ ] README with setup/deployment instructions
+- [ ] API documentation
+- [ ] Migration guide for existing deployments
 
-### Phase 3 — Enforce isolation through every access path
+---
 
-- Add tenant context to all Prisma reads, creates, updates, deletes, upserts, aggregates, exports, and bulk operations.
-- Require both record ID and tenant ownership on mutations (`where: { id, tenantId }` or an equivalent ownership-checked parent lookup). Never authorize by ID alone.
-- Update every server action and API route, including search, health/diagnostic exceptions, seed/import/export endpoints, and file downloads. Public health endpoints must return only operational status.
-- Scope joins and nested writes; a tenant-owned parent must not accept a child ID from another tenant.
-- Scope scheduled jobs and retry queues with a tenant identifier captured from trusted database state.
-- Scope notification delivery, audit views, search indexes, caches, generated PDFs, file storage keys, and signed download URLs.
-- Add database RLS only as a second boundary if request/transaction context can be set and cleared safely for pooled connections. Test that no tenant setting leaks between reused connections.
-- Add safe platform-operator workflows with explicit break-glass reason, short-lived access, tenant selection, and immutable audit events.
+## 🎯 Immediate Next Steps
 
-**P0 release gate**
+### Step 1: Generate Prisma Migration
+```bash
+cd saas-repo
+npx prisma migrate dev --name add-super-admin-models
+```
 
-- Automated adversarial tests attempt cross-tenant read, update, delete, aggregate, file download, and export using valid IDs from another tenant.
-- The same tests cover direct server actions, API routes, pages, nested relations, background jobs, and cached results.
-- No feature is marked tenant-ready based only on UI hiding or client filters.
+### Step 2: Create Super Admin Route Group Structure
+```
+app/
+  (super-admin)/
+    layout.tsx          # Super Admin layout with sidebar
+    dashboard/
+      page.tsx          # Dashboard
+      actions.ts        # Dashboard server actions
+      DashboardClient.tsx
+    companies/
+      page.tsx          # Companies list
+      actions.ts        # Company CRUD actions
+      CompaniesClient.tsx
+      new/
+        page.tsx        # Multi-step onboarding wizard
+        OnboardingWizard.tsx
+      [id]/
+        page.tsx        # Company details
+        actions.ts
+        CompanyDetailsClient.tsx
+        admins/
+          page.tsx      # Company administrators
+          actions.ts
+    plans/
+      page.tsx          # Subscription plans
+      plans-client.tsx  # Existing - enhance
+      plan-actions.ts   # Existing - enhance
+    subscriptions/
+      page.tsx
+      actions.ts
+    billing/
+      page.tsx          # Existing - enhance
+      billing-client.tsx
+      billing-actions.ts
+    modules/
+      page.tsx
+      actions.ts
+    users/
+      page.tsx
+      actions.ts
+    roles/
+      page.tsx
+      actions.ts
+    tickets/
+      page.tsx
+      actions.ts
+    audit/
+      page.tsx          # Existing - enhance
+    integrations/
+      page.tsx
+      actions.ts
+    settings/
+      page.tsx
+      actions.ts
+    health/
+      page.tsx
+      actions.ts
+```
 
-### Phase 4 — Tenant onboarding and access management
+### Step 3: Create Shared UI Components
+- [ ] `components/super-admin/Sidebar.tsx` - Responsive sidebar
+- [ ] `components/super-admin/Header.tsx` - Top header
+- [ ] `components/super-admin/DataTable.tsx` - Searchable, filterable, paginated tables
+- [ ] `components/super-admin/KPICard.tsx` - Dashboard metrics cards
+- [ ] `components/super-admin/ModuleCard.tsx` - Module management
+- [ ] `components/super-admin/SubscriptionCard.tsx` - Subscription display
 
-- Build organization creation and setup wizard: company identity, timezone/currency/locale, workweek, leave rules, payroll settings, and first administrator.
-- Build owner/admin invitations, resend/revoke/expiry flows, membership activation, role change, suspension, removal, and session revocation.
-- Add organization switcher for users with multiple memberships and make the active organization visible in the shell.
-- Move role requests, approval, and assignment to membership-level roles; repair the current self-service route guard so an employee can request access while only authorized approvers can grant it.
-- Keep least-privilege permission checks on the server and provide tenant-scoped audit history for all access changes.
-- Add account recovery, MFA policy, session expiry, rate limits, and tenant-specific SSO only after core identity flows are tested.
+---
 
-**Gate**
+## 🔧 Technical Decisions
 
-- An owner can onboard a tenant without developer/database access.
-- An invited user cannot enter until token validation and membership activation succeed.
-- Role change and suspension take effect on the next request and revoke old sessions as required.
+### Route Group Choice: `/super-admin` vs `/platform-admin`
+**Decision**: Use `/super-admin` as new route group, keep `/platform-admin` as alias or redirect
+- Cleaner separation from existing platform admin
+- Clearer semantics for "Super Admin" role
+- Can coexist during transition
 
-### Phase 5 — Tenant configuration, files, and business workflows
+### Database Strategy
+- **Additive migrations only** - No destructive changes
+- **Default data seeding** - Core modules, platform settings, default plans
+- **Backward compatibility** - Legacy roles map to new permissions
 
-- Make company settings, policies, templates, branding, approval routes, departments, and attendance devices tenant-specific.
-- Confirm all HR workflows work within one tenant and cannot transition records from another: onboarding, leave, payroll, recruitment, performance, letters, visa/compliance, requests, resignation, termination, clearance, and final settlement.
-- Move private document bytes to managed object storage with encryption, tenant-prefixed object keys, short-lived signed URLs, malware scanning, content/size validation, retention, and deletion lifecycle. Do not expose private HR files from a public uploads directory.
-- Include tenant identity in PDF/CSV export authorization and avoid cross-tenant data in filenames, templates, caches, and logs.
-- Create plan feature flags/entitlements in a server-owned service; do not scatter plan-name checks through the UI.
-- Design tenant deletion/export workflow with legal retention and audit requirements before enabling self-service deletion.
+### Tenant Isolation
+- Prisma `$extends` middleware for automatic `tenantId`/`companyId` injection
+- Server-side authorization on every sensitive operation
+- No client-trusted company IDs
 
-### Phase 6 — Billing and SaaS lifecycle
+### UI Framework
+- **Radix UI** + **Tailwind CSS 4** (existing)
+- **shadcn/ui** patterns (existing)
+- **Responsive**: Desktop sidebar, Tablet collapsible, Mobile drawer
+- **Theme**: Light/Dark with CSS variables
 
-- Integrate a selected payment provider through verified signed webhooks; make webhook handling idempotent and replay-safe.
-- Add subscription, plan, billing customer, invoice/payment state, trial, cancellation, and entitlement records without putting card data in this app.
-- Enforce seats, employee limits, and feature entitlements on the server, with clear admin-visible usage and upgrade paths.
-- Define behavior for delinquency, failed payment, cancellation, plan downgrades, tax changes, refunds, and customer data export.
-- Add billing audit records and reconcile provider state periodically rather than trusting only webhook delivery.
+---
 
-### Phase 7 — Production operations, backup, and security
+## 📦 Dependencies to Verify
+- [ ] `@radix-ui/react-*` components available
+- [ ] `sonner` for toasts
+- [ ] `zod` for validation
+- [ ] `date-fns` for date formatting
+- [ ] `recharts` or similar for analytics charts
+- [ ] `lucide-react` for icons (already used)
 
-- Select production database and managed object storage with durable volumes, encryption at rest/in transit, network controls, connection pooling, and separate credentials per environment.
-- Configure automated encrypted off-host PostgreSQL backups, object versioning/backup, retention, alerting, and a documented owner. Local copies alone do not satisfy disaster recovery.
-- Define and publish RPO/RTO targets; perform restore drills into an isolated environment and verify row counts, files, auth, and tenant boundaries.
-- Install and monitor backup scheduling in the actual production environment. The current Windows Task Scheduler script is a local-host helper and is not production confirmation.
-- Set secrets from a secrets manager, rotate existing credentials, enforce secure cookies/TLS, validate CSP, rate limits, CSRF/origin controls, and outbound mail safety.
-- Add uptime/readiness monitoring, database saturation/connection alerts, error reporting with PII scrubbing, structured tenant-aware logs, audit retention, and incident response/on-call ownership.
-- Add data retention, export, deletion, privacy policy, terms, and security incident procedures appropriate to launch markets.
+---
 
-### Phase 8 — Quality, accessibility, and launch
+## 🚀 Deployment Checklist
+- [ ] Run Prisma migration on staging
+- [ ] Seed default modules and platform settings
+- [ ] Create initial SUPER_ADMIN user
+- [ ] Configure environment variables for new features
+- [ ] Test multi-tenant isolation
+- [ ] Verify existing HRMS functionality unaffected
+- [ ] Load test platform admin endpoints
+- [ ] Document rollback procedure
 
-- Build CI gates: format/lint on application source, TypeScript, unit tests, integration tests against PostgreSQL, migration checks, production build, dependency/security scan, and secret scan.
-- Add tenant isolation tests as required checks for every new data-access feature.
-- Browser QA all 65 current App Router routes (then-current inventory) on desktop and mobile with staff, manager, HR, finance, admin, and platform support accounts. Verify role-specific navigation, permissions, empty/error/loading states, keyboard use, and accessibility.
-- Re-run employee directory/photo parity and resignation letter upload/download checks after tenant scoping and object-storage migration.
-- Load-test onboarding, employee search, dashboard aggregates, payroll, exports, and tenant-switch behavior using realistic tenant sizes; test noisy-neighbor controls.
-- Pilot with one internal tenant and a small group of isolated customer tenants before general availability. Define rollback and data-restore decision points.
+---
 
-## Suggested implementation order and deliverables
+## 📝 Notes
 
-| Milestone | Main deliverable | Exit gate |
-|---|---|---|
-| M0 | Architecture decisions, threat model, PostgreSQL migration baseline | Fresh and upgraded database migrations pass |
-| M1 | Tenant + membership + active-tenant context | Membership and session tests pass |
-| M2 | Tenant ownership and safe data backfill | All existing rows belong to the default tenant |
-| M3 | Tenant-scoped data access and API/action enforcement | Cross-tenant adversarial suite passes |
-| M4 | Tenant onboarding, invitations, user/role administration | Owner can onboard/manage members end to end |
-| M5 | Tenant-specific configuration and private file storage | Core HR workflows pass per tenant |
-| M6 | Billing, plans, entitlements, SaaS lifecycle | Webhook and entitlement tests pass |
-| M7 | Production backup, restore, monitoring, security operations | Restore drill meets approved RPO/RTO |
-| M8 | Browser QA, pilot, launch approval | All launch gates are signed off |
+### Existing Assets to Reuse
+- `/platform-admin` dashboard, billing, plans, audit - enhance rather than rebuild
+- `lib/branding.ts` - dynamic tenant branding
+- `components/tenant/tenant-switcher.tsx` - multi-tenant switching
+- `lib/tenant/scoped-prisma.ts` - tenant isolation
+- All existing HRMS modules and workflows
 
-## Definition of production-ready multi-tenant SaaS
+### Risk Mitigation
+- **No breaking changes** to existing user-facing routes
+- **Feature flags** for gradual rollout
+- **Comprehensive audit logging** for all admin actions
+- **MFA requirement** for SUPER_ADMIN accounts
 
-Do not launch multiple customer organizations until all are true:
+---
 
-- Every customer-owned row and file is tied to a tenant and every request is authorized against the active membership.
-- Cross-tenant access tests fail safely across all code paths, including background jobs and exports.
-- PostgreSQL migrations are reproducible from an empty database and from the current single-company production baseline.
-- Existing data is mapped to a default organization and reconciled without loss.
-- Tenant onboarding, role administration, user suspension, export, and support audit flows work without direct database edits.
-- Production backups are encrypted and off-host; a restore drill has succeeded and meets the approved RPO/RTO.
-- Billing entitlements are server-enforced and payment webhooks are verified and idempotent.
-- Build, typecheck, lint, automated tests, browser QA, security review, and operational sign-off pass on the release commit.
-- Privacy, retention, security incident, support, and deployment ownership are documented.
-
-## Existing employee-module work carried forward
-
-The earlier implementation plan's employee-module objectives remain required regression checks during Phase 8:
-
-- Desktop and mobile employee views must use the same employee records, filters, profile links, and actions.
-- Employee photos must share null-safe normalization and fallback behavior across the directory and profile page.
-- The employee detail page must remain null-safe and consistent with the directory.
-- Responsive navigation, page hero, and table layouts must avoid clipping at mobile and desktop breakpoints.
-- Letter lists must safely handle absent employee relations.
-
-## Working rules
-
-- Implement one migration slice at a time; keep it small, reviewed, and reversible.
-- Do not deploy schema changes with ad-hoc production `db push` after the PostgreSQL migration baseline is established.
-- Never merge a feature that accepts tenant IDs from the browser without resolving and validating membership server-side.
-- Preserve historical HR, payroll, exit, and audit records; tenant offboarding must follow retention policy rather than cascade-delete evidence.
-- Update this plan and the architecture decision records as decisions change; report completed milestones with commit, migration, test, and deployment evidence.
+*Last Updated: October 2026*  
+*Next Review: After Phase 2 completion*

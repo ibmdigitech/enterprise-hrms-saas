@@ -132,7 +132,7 @@ export const authConfig = {
             // Public route: send an authenticated visitor onward.
             if (isPublicRoute) {
                 if (isLoggedIn && !isActivationRoute) {
-                    return Response.redirect(new URL("/dashboard", nextUrl));
+                    const role = (auth?.user as { role?: string } | undefined)?.role; return Response.redirect(new URL(role === "SUPER_ADMIN" ? "/super-admin/dashboard" : "/dashboard", nextUrl));
                 }
                 return true;
             }
@@ -164,3 +164,4 @@ export const authConfig = {
         },
     },
 } satisfies NextAuthConfig;
+

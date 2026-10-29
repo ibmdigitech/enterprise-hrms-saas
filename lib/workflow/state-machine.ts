@@ -523,3 +523,172 @@ export const TRAVEL_REQUEST_TRANSITIONS: TransitionMap = {
     [TRAVEL_REQUEST_STATUS.COMPLETED]: {},
     [TRAVEL_REQUEST_STATUS.CANCELLED]: {},
 };
+
+/* ------------------------------------------------------------------ */
+/* TRAINING COURSE                                                     */
+/* ------------------------------------------------------------------ */
+
+export const TRAINING_COURSE_STATUS = {
+    DRAFT: "DRAFT",
+    PUBLISHED: "PUBLISHED",
+    ARCHIVED: "ARCHIVED",
+} as const;
+
+export type TrainingCourseStatus = (typeof TRAINING_COURSE_STATUS)[keyof typeof TRAINING_COURSE_STATUS];
+
+export const TRAINING_COURSE_TRANSITIONS: TransitionMap = {
+    [TRAINING_COURSE_STATUS.DRAFT]: {
+        [TRAINING_COURSE_STATUS.PUBLISHED]: { actors: ["HR", "ADMIN", "SUPER_ADMIN"] },
+        [TRAINING_COURSE_STATUS.ARCHIVED]: { actors: ["HR", "ADMIN", "SUPER_ADMIN"] },
+    },
+    [TRAINING_COURSE_STATUS.PUBLISHED]: {
+        [TRAINING_COURSE_STATUS.ARCHIVED]: { actors: ["HR", "ADMIN", "SUPER_ADMIN"] },
+        [TRAINING_COURSE_STATUS.DRAFT]: { actors: ["HR", "ADMIN", "SUPER_ADMIN"] },
+    },
+    [TRAINING_COURSE_STATUS.ARCHIVED]: {
+        [TRAINING_COURSE_STATUS.DRAFT]: { actors: ["HR", "ADMIN", "SUPER_ADMIN"] },
+    },
+};
+
+/* ------------------------------------------------------------------ */
+/* TRAINING SESSION                                                    */
+/* ------------------------------------------------------------------ */
+
+export const TRAINING_SESSION_STATUS = {
+    SCHEDULED: "SCHEDULED",
+    IN_PROGRESS: "IN_PROGRESS",
+    COMPLETED: "COMPLETED",
+    CANCELLED: "CANCELLED",
+} as const;
+
+export type TrainingSessionStatus = (typeof TRAINING_SESSION_STATUS)[keyof typeof TRAINING_SESSION_STATUS];
+
+export const TRAINING_SESSION_TRANSITIONS: TransitionMap = {
+    [TRAINING_SESSION_STATUS.SCHEDULED]: {
+        [TRAINING_SESSION_STATUS.IN_PROGRESS]: { actors: ["HR", "ADMIN", "SUPER_ADMIN", "MANAGER"] },
+        [TRAINING_SESSION_STATUS.CANCELLED]: { actors: ["HR", "ADMIN", "SUPER_ADMIN", "MANAGER"] },
+    },
+    [TRAINING_SESSION_STATUS.IN_PROGRESS]: {
+        [TRAINING_SESSION_STATUS.COMPLETED]: { actors: ["HR", "ADMIN", "SUPER_ADMIN", "MANAGER"] },
+        [TRAINING_SESSION_STATUS.CANCELLED]: { actors: ["HR", "ADMIN", "SUPER_ADMIN"] },
+    },
+    [TRAINING_SESSION_STATUS.COMPLETED]: {},
+    [TRAINING_SESSION_STATUS.CANCELLED]: {},
+};
+
+/* ------------------------------------------------------------------ */
+/* TRAINING ENROLLMENT                                                 */
+/* ------------------------------------------------------------------ */
+
+export const TRAINING_ENROLLMENT_STATUS = {
+    REQUESTED: "REQUESTED",
+    APPROVED: "APPROVED",
+    REJECTED: "REJECTED",
+    WAITLISTED: "WAITLISTED",
+    CANCELLED: "CANCELLED",
+    COMPLETED: "COMPLETED",
+} as const;
+
+export type TrainingEnrollmentStatus = (typeof TRAINING_ENROLLMENT_STATUS)[keyof typeof TRAINING_ENROLLMENT_STATUS];
+
+/**
+ * Employee requests enrollment → Manager/HR approves/rejects → Employee completes
+ * A separate APPROVAL_STATUS tracks the approval step: PENDING, APPROVED, REJECTED
+ */
+export const TRAINING_ENROLLMENT_TRANSITIONS: TransitionMap = {
+    [TRAINING_ENROLLMENT_STATUS.REQUESTED]: {
+        [TRAINING_ENROLLMENT_STATUS.APPROVED]: { actors: ["MANAGER", "HR", "ADMIN", "SUPER_ADMIN"] },
+        [TRAINING_ENROLLMENT_STATUS.REJECTED]: { actors: ["MANAGER", "HR", "ADMIN", "SUPER_ADMIN"] },
+        [TRAINING_ENROLLMENT_STATUS.WAITLISTED]: { actors: ["HR", "ADMIN", "SUPER_ADMIN"] },
+        [TRAINING_ENROLLMENT_STATUS.CANCELLED]: { actors: ["STAFF", "MANAGER", "HR", "ADMIN", "SUPER_ADMIN"] },
+    },
+    [TRAINING_ENROLLMENT_STATUS.WAITLISTED]: {
+        [TRAINING_ENROLLMENT_STATUS.APPROVED]: { actors: ["HR", "ADMIN", "SUPER_ADMIN"] },
+        [TRAINING_ENROLLMENT_STATUS.REJECTED]: { actors: ["HR", "ADMIN", "SUPER_ADMIN"] },
+        [TRAINING_ENROLLMENT_STATUS.CANCELLED]: { actors: ["STAFF", "HR", "ADMIN", "SUPER_ADMIN"] },
+    },
+    [TRAINING_ENROLLMENT_STATUS.APPROVED]: {
+        [TRAINING_ENROLLMENT_STATUS.COMPLETED]: { actors: ["STAFF", "MANAGER", "HR", "ADMIN", "SUPER_ADMIN"] },
+        [TRAINING_ENROLLMENT_STATUS.CANCELLED]: { actors: ["STAFF", "MANAGER", "HR", "ADMIN", "SUPER_ADMIN"] },
+    },
+    [TRAINING_ENROLLMENT_STATUS.REJECTED]: {
+        [TRAINING_ENROLLMENT_STATUS.REQUESTED]: { actors: ["STAFF", "HR", "ADMIN", "SUPER_ADMIN"] },
+    },
+    [TRAINING_ENROLLMENT_STATUS.COMPLETED]: {},
+    [TRAINING_ENROLLMENT_STATUS.CANCELLED]: {},
+};
+
+/* ------------------------------------------------------------------ */
+/* TRAINING CERTIFICATE                                                */
+/* ------------------------------------------------------------------ */
+
+export const TRAINING_CERTIFICATE_STATUS = {
+    ISSUED: "ISSUED",
+    REVOKED: "REVOKED",
+    EXPIRED: "EXPIRED",
+} as const;
+
+export type TrainingCertificateStatus = (typeof TRAINING_CERTIFICATE_STATUS)[keyof typeof TRAINING_CERTIFICATE_STATUS];
+
+export const TRAINING_CERTIFICATE_TRANSITIONS: TransitionMap = {
+    [TRAINING_CERTIFICATE_STATUS.ISSUED]: {
+        [TRAINING_CERTIFICATE_STATUS.REVOKED]: { actors: ["HR", "ADMIN", "SUPER_ADMIN"] },
+        [TRAINING_CERTIFICATE_STATUS.EXPIRED]: { actors: ["SYSTEM"] }, // Auto-transition via cron
+    },
+    [TRAINING_CERTIFICATE_STATUS.REVOKED]: {},
+    [TRAINING_CERTIFICATE_STATUS.EXPIRED]: {},
+};
+
+/* ------------------------------------------------------------------ */
+/* TRAINING ASSESSMENT                                                 */
+/* ------------------------------------------------------------------ */
+
+export const TRAINING_ASSESSMENT_STATUS = {
+    DRAFT: "DRAFT",
+    PUBLISHED: "PUBLISHED",
+} as const;
+
+export type TrainingAssessmentStatus = (typeof TRAINING_ASSESSMENT_STATUS)[keyof typeof TRAINING_ASSESSMENT_STATUS];
+
+export const TRAINING_ASSESSMENT_TRANSITIONS: TransitionMap = {
+    [TRAINING_ASSESSMENT_STATUS.DRAFT]: {
+        [TRAINING_ASSESSMENT_STATUS.PUBLISHED]: { actors: ["HR", "ADMIN", "SUPER_ADMIN"] },
+    },
+    [TRAINING_ASSESSMENT_STATUS.PUBLISHED]: {
+        [TRAINING_ASSESSMENT_STATUS.DRAFT]: { actors: ["HR", "ADMIN", "SUPER_ADMIN"] },
+    },
+};
+
+/* ------------------------------------------------------------------ */
+/* TRAINING ASSESSMENT ATTEMPT                                         */
+/* ------------------------------------------------------------------ */
+
+export const TRAINING_ATTEMPT_STATUS = {
+    IN_PROGRESS: "IN_PROGRESS",
+    SUBMITTED: "SUBMITTED",
+    GRADED: "GRADED",
+    PASSED: "PASSED",
+    FAILED: "FAILED",
+} as const;
+
+export type TrainingAttemptStatus = (typeof TRAINING_ATTEMPT_STATUS)[keyof typeof TRAINING_ATTEMPT_STATUS];
+
+export const TRAINING_ATTEMPT_TRANSITIONS: TransitionMap = {
+    [TRAINING_ATTEMPT_STATUS.IN_PROGRESS]: {
+        [TRAINING_ATTEMPT_STATUS.SUBMITTED]: { actors: ["STAFF", "MANAGER", "HR", "ADMIN", "SUPER_ADMIN"] },
+    },
+    [TRAINING_ATTEMPT_STATUS.SUBMITTED]: {
+        [TRAINING_ATTEMPT_STATUS.GRADED]: { actors: ["HR", "ADMIN", "SUPER_ADMIN", "MANAGER"] },
+        [TRAINING_ATTEMPT_STATUS.PASSED]: { actors: ["HR", "ADMIN", "SUPER_ADMIN"] }, // Auto-grade
+        [TRAINING_ATTEMPT_STATUS.FAILED]: { actors: ["HR", "ADMIN", "SUPER_ADMIN"] }, // Auto-grade
+    },
+    [TRAINING_ATTEMPT_STATUS.GRADED]: {
+        [TRAINING_ATTEMPT_STATUS.PASSED]: { actors: ["HR", "ADMIN", "SUPER_ADMIN"] },
+        [TRAINING_ATTEMPT_STATUS.FAILED]: { actors: ["HR", "ADMIN", "SUPER_ADMIN"] },
+    },
+    [TRAINING_ATTEMPT_STATUS.PASSED]: {},
+    [TRAINING_ATTEMPT_STATUS.FAILED]: {
+        // Retry allowed if attempts remaining (checked in action)
+        [TRAINING_ATTEMPT_STATUS.IN_PROGRESS]: { actors: ["STAFF"] },
+    },
+};

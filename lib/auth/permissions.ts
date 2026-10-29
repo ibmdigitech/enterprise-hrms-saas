@@ -12,7 +12,7 @@
  *
  * Design rules:
  *  - DENY always beats ALLOW. An override can remove a capability a role grants.
- *  - An unrecognised or missing role resolves to STAFF (least privilege).
+ *  - An unrecognised or missing role resolves to EMPLOYEE (least privilege).
  *  - Nothing here trusts a client-supplied value; callers pass the server-side
  *    role loaded from the database.
  */
@@ -24,22 +24,78 @@ import { Role, ROLES, toRole } from "./roles";
 /* ------------------------------------------------------------------ */
 
 export const PERMISSIONS = {
+    // Platform Administration
+    PLATFORM_TENANTS_VIEW: "platform.tenants.view",
+    PLATFORM_TENANTS_CREATE: "platform.tenants.create",
+    PLATFORM_TENANTS_MANAGE: "platform.tenants.manage",
+    PLATFORM_TENANTS_SUSPEND: "platform.tenants.suspend",
+    PLATFORM_TENANTS_DELETE: "platform.tenants.delete",
+    PLATFORM_DASHBOARD_VIEW: "platform.dashboard.view",
+    PLATFORM_BILLING_VIEW: "platform.billing.view",
+    PLATFORM_BILLING_MANAGE: "platform.billing.manage",
+    PLATFORM_PLANS_VIEW: "platform.plans.view",
+    PLATFORM_PLANS_MANAGE: "platform.plans.manage",
+    PLATFORM_MODULES_VIEW: "platform.modules.view",
+    PLATFORM_MODULES_MANAGE: "platform.modules.manage",
+    PLATFORM_USERS_VIEW: "platform.users.view",
+    PLATFORM_USERS_MANAGE: "platform.users.manage",
+    PLATFORM_ROLES_VIEW: "platform.roles.view",
+    PLATFORM_ROLES_MANAGE: "platform.roles.manage",
+    PLATFORM_TICKETS_VIEW: "platform.tickets.view",
+    PLATFORM_TICKETS_MANAGE: "platform.tickets.manage",
+    PLATFORM_AUDIT_VIEW: "platform.audit.view",
+    PLATFORM_INTEGRATIONS_VIEW: "platform.integrations.view",
+    PLATFORM_INTEGRATIONS_MANAGE: "platform.integrations.manage",
+    PLATFORM_SETTINGS_VIEW: "platform.settings.view",
+    PLATFORM_SETTINGS_MANAGE: "platform.settings.manage",
+    PLATFORM_HEALTH_VIEW: "platform.health.view",
+    PLATFORM_TENANT_HEALTH: "platform.tenant.health",
+    PLATFORM_TENANT_IMPERSONATE: "platform.tenant.impersonate",
+
     // System
     SYSTEM_CONFIG: "system.config",
     SYSTEM_AUDIT_VIEW: "system.audit.view",
-    /**
-     * View backup status and run the backup/restore tooling.
-     *
-     * Its own permission rather than a reuse of `system.audit.view`, because the
-     * two surfaces have different audiences: audit logs are read by HR as part of
-     * their job, whereas backup status exposes host paths, container names and
-     * scheduled-task state. Reusing one permission would either leak that to HR
-     * or hide the backup page from an administrator who should see it — and the
-     * sidebar link and the page gate must agree, or the link leads to a refusal.
-     */
     SYSTEM_BACKUP_VIEW: "system.backup.view",
     SYSTEM_USER_MANAGE: "system.user.manage",
     SYSTEM_SEED: "system.seed",
+
+    // Company Administration (Company-scoped)
+    COMPANY_VIEW: "company.view",
+    COMPANY_CREATE: "company.create",
+    COMPANY_EDIT: "company.edit",
+    COMPANY_SUSPEND: "company.suspend",
+    COMPANY_REACTIVATE: "company.reactivate",
+    COMPANY_ARCHIVE: "company.archive",
+    COMPANY_BRANCHES_VIEW: "company.branches.view",
+    COMPANY_BRANCHES_MANAGE: "company.branches.manage",
+    COMPANY_USERS_VIEW: "company.users.view",
+    COMPANY_USERS_INVITE: "company.users.invite",
+    COMPANY_USERS_MANAGE: "company.users.manage",
+    COMPANY_USERS_DISABLE: "company.users.disable",
+    COMPANY_SUBSCRIPTION_VIEW: "company.subscription.view",
+    COMPANY_SUBSCRIPTION_MANAGE: "company.subscription.manage",
+    COMPANY_MODULES_VIEW: "company.modules.view",
+    COMPANY_MODULES_MANAGE: "company.modules.manage",
+    COMPANY_USAGE_VIEW: "company.usage.view",
+    COMPANY_ACTIVITY_VIEW: "company.activity.view",
+    COMPANY_SETTINGS_VIEW: "company.settings.view",
+    COMPANY_SETTINGS_MANAGE: "company.settings.manage",
+
+    // Subscription & Billing (Company-scoped)
+    SUBSCRIPTION_PLANS_VIEW: "subscription.plans.view",
+    SUBSCRIPTION_PLANS_MANAGE: "subscription.plans.manage",
+    SUBSCRIPTIONS_VIEW: "subscriptions.view",
+    SUBSCRIPTIONS_ASSIGN: "subscriptions.assign",
+    SUBSCRIPTIONS_UPGRADE: "subscriptions.upgrade",
+    SUBSCRIPTIONS_DOWNGRADE: "subscriptions.downgrade",
+    SUBSCRIPTIONS_RENEW: "subscriptions.renew",
+    SUBSCRIPTIONS_CANCEL: "subscriptions.cancel",
+    SUBSCRIPTIONS_EXPIRE: "subscriptions.expire",
+    BILLING_INVOICES_VIEW: "billing.invoices.view",
+    BILLING_INVOICES_MANAGE: "billing.invoices.manage",
+    BILLING_PAYMENTS_VIEW: "billing.payments.view",
+    BILLING_PAYMENTS_RECORD: "billing.payments.record",
+    BILLING_RECEIPTS_VIEW: "billing.receipts.view",
 
     // Employees
     EMPLOYEES_VIEW: "employees.view",
@@ -48,25 +104,6 @@ export const PERMISSIONS = {
     EMPLOYEES_DELETE: "employees.delete",
     EMPLOYEES_IMPORT: "employees.import",
     EMPLOYEES_EXPORT: "employees.export",
-    /**
-     * Approve a pending `EmployeeChangeRequest`.
-     *
-     * This is deliberately NOT `employees.create` or `employees.edit`.
-     *
-     * Every other approval domain already owns a dedicated `*.approve`
-     * permission - `leave.approve`, `letter.approve`, `request.approve`,
-     * `service.approve`. Employee data changes were the sole exception: the
-     * approvals page gated its Data Changes tab on `canManageEmployees`, and
-     * `approveChangeRequest`/`rejectChangeRequest` required `EMPLOYEES_CREATE`.
-     *
-     * Two real consequences followed from that borrowing:
-     *   - MANAGER holds `leave.approve` but not `employees.create`, so a
-     *     manager could approve a subordinate's leave yet was shown no Data
-     *     Changes tab and was refused if they navigated to it directly.
-     *   - HR could not delegate "may approve corrections" without also handing
-     *     over "may rewrite any employee's record". Those are different risks
-     *     and conflating them means the safer grant is never made.
-     */
     EMPLOYEES_APPROVE: "employees.approve",
 
     // Attendance
@@ -91,11 +128,8 @@ export const PERMISSIONS = {
     PAYROLL_PAYSLIP_VIEW_ALL: "payroll.payslip.view.all",
     PAYROLL_EXPORT: "payroll.export",
     PAYROLL_OVERTIME_MANAGE: "payroll.overtime.manage",
-    /** Freeze a period so its inputs can no longer be edited. */
     PAYROLL_LOCK: "payroll.lock",
-    /** Final settlement of an offboarding case. */
     PAYROLL_SETTLE: "payroll.settle",
-    /** Unlock a frozen period. Deliberately separated from PAYROLL_LOCK. */
     PAYROLL_UNLOCK: "payroll.unlock",
 
     // Loans
@@ -110,22 +144,16 @@ export const PERMISSIONS = {
     LETTER_APPROVE: "letter.approve",
     LETTER_TEMPLATE_MANAGE: "letter.template.manage",
 
-// Visa & compliance
+    // Visa & compliance
     VISA_VIEW: "visa.view",
     VISA_MANAGE: "visa.manage",
 
     // Business travel & air ticket entitlement
-    /** See travel requests. Scope decides whose: SELF by default. */
     TRAVEL_VIEW: "travel.view",
-    /** See the whole entitlement register rather than only one's own record. */
     TRAVEL_VIEW_ALL: "travel.view.all",
-    /** Raise a travel request for oneself. */
     TRAVEL_REQUEST: "travel.request",
-    /** Raise a travel request on another employee's behalf. */
     TRAVEL_REQUEST_ANY: "travel.request.any",
-    /** Approve, reject, or complete a travel request. */
     TRAVEL_APPROVE: "travel.approve",
-    /** Set the yearly ticket entitlement, cabin class, and visa anchor date. */
     TRAVEL_ENTITLEMENT_MANAGE: "travel.entitlement.manage",
 
     // Requests & services
@@ -137,18 +165,12 @@ export const PERMISSIONS = {
     SERVICE_APPROVE: "service.approve",
 
     // Recruitment
-    /** Read requisitions, jobs, candidates, applications. */
     RECRUITMENT_VIEW: "recruitment.view",
-    /** Create/edit requisitions, jobs, candidates, applications. */
     RECRUITMENT_CREATE: "recruitment.create",
     RECRUITMENT_EDIT: "recruitment.edit",
-    /** Move a requisition through its approval chain. */
     RECRUITMENT_APPROVE: "recruitment.approve",
-    /** Schedule, reschedule, cancel interviews. */
     RECRUITMENT_INTERVIEW: "recruitment.interview",
-    /** Draft, issue and revise offers. */
     RECRUITMENT_OFFER: "recruitment.offer",
-    /** Convert a candidate to an employee. Reserved, like employee deletion. */
     RECRUITMENT_CONVERT: "recruitment.convert",
 
     // Performance
@@ -185,10 +207,25 @@ export const PERMISSIONS = {
     ACCESS_REQUEST: "access.request",
     ACCESS_APPROVE: "access.approve",
 
-    // Recruitment
-    /// Coarse grant kept for backwards compatibility. New code should use the
-    /// granular recruitment.* capabilities declared above.
+    // Recruitment (legacy)
     RECRUITMENT_MANAGE: "recruitment.manage",
+
+    // Modules
+    MODULES_VIEW: "modules.view",
+    MODULES_MANAGE: "modules.manage",
+    COMPANY_MODULES_ASSIGN: "company.modules.assign",
+
+    // Support
+    SUPPORT_TICKETS_VIEW: "support.tickets.view",
+    SUPPORT_TICKETS_CREATE: "support.tickets.create",
+    SUPPORT_TICKETS_MANAGE: "support.tickets.manage",
+    SUPPORT_TICKETS_ASSIGN: "support.tickets.assign",
+    SUPPORT_TICKETS_RESOLVE: "support.tickets.resolve",
+
+    // Integrations
+    INTEGRATIONS_VIEW: "integrations.view",
+    INTEGRATIONS_MANAGE: "integrations.manage",
+    INTEGRATIONS_CONFIGURE: "integrations.configure",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -203,8 +240,8 @@ const BASE_GRANTS: readonly Permission[] = [
     PERMISSIONS.ACCESS_REQUEST,
 ];
 
-/** Self-service capabilities for a regular employee. */
-const STAFF_GRANTS: readonly Permission[] = [
+/** Self-service capabilities for a regular employee (EMPLOYEE). */
+const EMPLOYEE_GRANTS: readonly Permission[] = [
     ...BASE_GRANTS,
     PERMISSIONS.RESIGNATION_CREATE,
     PERMISSIONS.ATTENDANCE_VIEW,
@@ -214,69 +251,39 @@ const STAFF_GRANTS: readonly Permission[] = [
     PERMISSIONS.LOAN_VIEW,
     PERMISSIONS.LOAN_APPLY,
     PERMISSIONS.LETTER_VIEW,
-PERMISSIONS.VISA_VIEW,
-    // A staff member may raise their own business travel request, and may see
-    // their own entitlement and visa anchor. Neither TRAVEL_VIEW_ALL nor
-    // TRAVEL_APPROVE is granted: a traveller deciding their own trip is exactly
-    // what the maker-checker guard in TRAVEL_REQUEST_TRANSITIONS prevents.
+    PERMISSIONS.VISA_VIEW,
     PERMISSIONS.TRAVEL_VIEW,
     PERMISSIONS.TRAVEL_REQUEST,
     PERMISSIONS.REQUEST_VIEW,
     PERMISSIONS.REQUEST_CREATE,
     PERMISSIONS.SERVICE_VIEW,
     PERMISSIONS.SERVICE_CREATE,
+    PERMISSIONS.PERFORMANCE_VIEW,
+    PERMISSIONS.TRAINING_VIEW,
 ];
 
-/** Team scope additions for a department manager. */
-const MANAGER_GRANTS: readonly Permission[] = [
-    ...STAFF_GRANTS,
+/** Team scope additions for a department manager (DEPARTMENT_MANAGER). */
+const DEPARTMENT_MANAGER_GRANTS: readonly Permission[] = [
+    ...EMPLOYEE_GRANTS,
     PERMISSIONS.LEAVE_APPROVE,
     PERMISSIONS.REQUEST_APPROVE,
     PERMISSIONS.SERVICE_APPROVE,
-    // A manager already approves leave, staff-service requests, travel and loans
-    // for their team, but held no `employees.*` permission at all — which locked
-    // them out of the Data Changes queue entirely. Correcting a subordinate's
-    // passport or bank detail is the same kind of decision, so refusing it while
-    // allowing the rest was incoherent rather than a security boundary.
-    //
-    // APPROVE only. Not `employees.edit`, because the manager decides whether a
-    // submitted change is accepted; they do not get to rewrite a record directly,
-    // and `advanceChangeRequest` additionally scopes them to their own direct
-    // reports so the grant cannot be used to approve a stranger's corrections.
     PERMISSIONS.EMPLOYEES_APPROVE,
     PERMISSIONS.ATTENDANCE_EXPORT,
     PERMISSIONS.LETTER_VIEW,
     PERMISSIONS.VISA_VIEW,
-    // A manager sees their department's travel and decides it, but cannot set
-    // an entitlement — that changes what the company owes.
     PERMISSIONS.TRAVEL_VIEW_ALL,
     PERMISSIONS.TRAVEL_APPROVE,
+    PERMISSIONS.EMPLOYEES_VIEW,
+    PERMISSIONS.PERFORMANCE_REVIEW,
 ];
 
-/** Finance / payroll department. */
-const FINANCE_GRANTS: readonly Permission[] = [
-    ...BASE_GRANTS,
-    PERMISSIONS.PAYROLL_VIEW,
-    PERMISSIONS.PAYROLL_GENERATE,
-    PERMISSIONS.PAYROLL_STRUCTURE_MANAGE,
-    PERMISSIONS.PAYROLL_PAYSLIP_VIEW_ALL,
-    PERMISSIONS.PAYROLL_EXPORT,
-    PERMISSIONS.PAYROLL_OVERTIME_MANAGE,
-    PERMISSIONS.LOAN_VIEW,
-    PERMISSIONS.LOAN_APPROVE,
-    PERMISSIONS.LOAN_MANAGE,
-    PERMISSIONS.PAYROLL_LOCK,
-    PERMISSIONS.PAYROLL_SETTLE,
-    PERMISSIONS.RECRUITMENT_OFFER,
-    PERMISSIONS.EXIT_SETTLEMENT,
-];
-
-const HR_GRANTS: readonly Permission[] = [
-    ...STAFF_GRANTS,
+/** HR Manager capabilities (HR_MANAGER). */
+const HR_MANAGER_GRANTS: readonly Permission[] = [
+    ...DEPARTMENT_MANAGER_GRANTS,
     PERMISSIONS.EMPLOYEES_VIEW,
     PERMISSIONS.EMPLOYEES_CREATE,
     PERMISSIONS.EMPLOYEES_EDIT,
-    PERMISSIONS.EMPLOYEES_APPROVE,
     PERMISSIONS.EMPLOYEES_IMPORT,
     PERMISSIONS.EMPLOYEES_EXPORT,
     PERMISSIONS.ATTENDANCE_VIEW,
@@ -285,28 +292,23 @@ const HR_GRANTS: readonly Permission[] = [
     PERMISSIONS.ATTENDANCE_EXPORT,
     PERMISSIONS.ATTENDANCE_SHIFT_MANAGE,
     PERMISSIONS.ATTENDANCE_MACHINE,
-    PERMISSIONS.LEAVE_APPROVE,
     PERMISSIONS.LEAVE_MANAGE,
     PERMISSIONS.LETTER_GENERATE,
     PERMISSIONS.LETTER_APPROVE,
     PERMISSIONS.LETTER_TEMPLATE_MANAGE,
     PERMISSIONS.VISA_MANAGE,
-    // HR owns the entitlement contract: who gets one ticket, who gets two, in
-    // what cabin, anchored to which visa date.
     PERMISSIONS.TRAVEL_VIEW_ALL,
     PERMISSIONS.TRAVEL_REQUEST_ANY,
     PERMISSIONS.TRAVEL_APPROVE,
     PERMISSIONS.TRAVEL_ENTITLEMENT_MANAGE,
     PERMISSIONS.REQUEST_APPROVE,
     PERMISSIONS.SERVICE_APPROVE,
-    PERMISSIONS.RECRUITMENT_MANAGE,
     PERMISSIONS.RECRUITMENT_VIEW,
     PERMISSIONS.RECRUITMENT_CREATE,
     PERMISSIONS.RECRUITMENT_EDIT,
     PERMISSIONS.RECRUITMENT_APPROVE,
     PERMISSIONS.RECRUITMENT_INTERVIEW,
     PERMISSIONS.RECRUITMENT_OFFER,
-    PERMISSIONS.RECRUITMENT_CONVERT,
     PERMISSIONS.EXIT_CLEARANCE,
     PERMISSIONS.EXIT_SETTLEMENT,
     PERMISSIONS.RESIGNATION_VIEW,
@@ -318,27 +320,32 @@ const HR_GRANTS: readonly Permission[] = [
     PERMISSIONS.PERFORMANCE_APPROVE,
     PERMISSIONS.TRAINING_MANAGE,
     PERMISSIONS.SETTINGS_VIEW,
+    PERMISSIONS.COMPANY_VIEW,
+    PERMISSIONS.COMPANY_BRANCHES_VIEW,
+    PERMISSIONS.COMPANY_USERS_VIEW,
+    PERMISSIONS.COMPANY_SUBSCRIPTION_VIEW,
+    PERMISSIONS.COMPANY_MODULES_VIEW,
+    PERMISSIONS.COMPANY_USAGE_VIEW,
+    PERMISSIONS.COMPANY_ACTIVITY_VIEW,
 ];
 
-const ADMIN_GRANTS: readonly Permission[] = [
-    ...HR_GRANTS,
-    ...FINANCE_GRANTS,
-    PERMISSIONS.EMPLOYEES_DELETE,
-    PERMISSIONS.SYSTEM_USER_MANAGE,
-    PERMISSIONS.SYSTEM_AUDIT_VIEW,
-    // Backup status is infrastructure state, not people data, so it starts at
-    // ADMIN rather than HR. Matches the page gate on /system/backup.
-    PERMISSIONS.SYSTEM_BACKUP_VIEW,
-    PERMISSIONS.ACCESS_APPROVE,
-    PERMISSIONS.PAYROLL_UNLOCK,
+/** Company Administrator capabilities (COMPANY_ADMIN). */
+const COMPANY_ADMIN_GRANTS: readonly Permission[] = [
+    ...HR_MANAGER_GRANTS,
+    PERMISSIONS.PAYROLL_VIEW,
+    PERMISSIONS.PAYROLL_GENERATE,
+    PERMISSIONS.PAYROLL_STRUCTURE_MANAGE,
+    PERMISSIONS.PAYROLL_PAYSLIP_VIEW_ALL,
+    PERMISSIONS.PAYROLL_EXPORT,
+    PERMISSIONS.PAYROLL_OVERTIME_MANAGE,
+    PERMISSIONS.LOAN_VIEW,
+    PERMISSIONS.LOAN_APPROVE,
+    PERMISSIONS.LOAN_MANAGE,
+    PERMISSIONS.PAYROLL_LOCK,
+    PERMISSIONS.PAYROLL_SETTLE,
+    PERMISSIONS.RECRUITMENT_CONVERT,
     PERMISSIONS.EXIT_COMPLETE,
     PERMISSIONS.EXIT_INTERVIEW,
-    PERMISSIONS.RESIGNATION_VIEW,
-    PERMISSIONS.RESIGNATION_CREATE,
-    PERMISSIONS.RESIGNATION_APPROVE,
-    PERMISSIONS.TERMINATION_VIEW,
-    PERMISSIONS.TERMINATION_CREATE,
-    PERMISSIONS.TERMINATION_APPROVE,
     PERMISSIONS.PERFORMANCE_VIEW,
     PERMISSIONS.PERFORMANCE_REVIEW,
     PERMISSIONS.TRAINING_VIEW,
@@ -346,21 +353,113 @@ const ADMIN_GRANTS: readonly Permission[] = [
     PERMISSIONS.SETTINGS_MANAGE,
     PERMISSIONS.SERVICE_CONFIG_MANAGE,
     PERMISSIONS.LETTER_TEMPLATE_MANAGE,
+    PERMISSIONS.COMPANY_EDIT,
+    PERMISSIONS.COMPANY_BRANCHES_MANAGE,
+    PERMISSIONS.COMPANY_USERS_INVITE,
+    PERMISSIONS.COMPANY_USERS_MANAGE,
+    PERMISSIONS.COMPANY_USERS_DISABLE,
+    PERMISSIONS.COMPANY_SUBSCRIPTION_MANAGE,
+    PERMISSIONS.COMPANY_MODULES_MANAGE,
+    PERMISSIONS.COMPANY_SETTINGS_MANAGE,
+    PERMISSIONS.SUBSCRIPTION_PLANS_VIEW,
+    PERMISSIONS.BILLING_INVOICES_VIEW,
+    PERMISSIONS.BILLING_PAYMENTS_VIEW,
+    PERMISSIONS.BILLING_RECEIPTS_VIEW,
+    PERMISSIONS.MODULES_VIEW,
+    PERMISSIONS.COMPANY_MODULES_ASSIGN,
+];
+
+/** Platform Finance capabilities (PLATFORM_FINANCE). */
+const PLATFORM_FINANCE_GRANTS: readonly Permission[] = [
+    ...BASE_GRANTS,
+    PERMISSIONS.PLATFORM_BILLING_VIEW,
+    PERMISSIONS.PLATFORM_BILLING_MANAGE,
+    PERMISSIONS.PLATFORM_PLANS_VIEW,
+    PERMISSIONS.BILLING_INVOICES_VIEW,
+    PERMISSIONS.BILLING_INVOICES_MANAGE,
+    PERMISSIONS.BILLING_PAYMENTS_VIEW,
+    PERMISSIONS.BILLING_PAYMENTS_RECORD,
+    PERMISSIONS.BILLING_RECEIPTS_VIEW,
+    PERMISSIONS.SUBSCRIPTION_PLANS_VIEW,
+    PERMISSIONS.SUBSCRIPTIONS_VIEW,
+    PERMISSIONS.SUBSCRIPTIONS_ASSIGN,
+];
+
+/** Platform Operations capabilities (PLATFORM_OPS). */
+const PLATFORM_OPS_GRANTS: readonly Permission[] = [
+    ...PLATFORM_FINANCE_GRANTS,
+    PERMISSIONS.PLATFORM_TENANTS_VIEW,
+    PERMISSIONS.PLATFORM_DASHBOARD_VIEW,
+    PERMISSIONS.PLATFORM_TENANTS_CREATE,
+    PERMISSIONS.PLATFORM_TENANTS_MANAGE,
+    PERMISSIONS.PLATFORM_TENANTS_SUSPEND,
+    PERMISSIONS.PLATFORM_MODULES_VIEW,
+    PERMISSIONS.PLATFORM_MODULES_MANAGE,
+    PERMISSIONS.PLATFORM_INTEGRATIONS_VIEW,
+    PERMISSIONS.PLATFORM_INTEGRATIONS_MANAGE,
+    PERMISSIONS.PLATFORM_HEALTH_VIEW,
+    PERMISSIONS.PLATFORM_TENANT_HEALTH,
+    PERMISSIONS.SYSTEM_BACKUP_VIEW,
+    PERMISSIONS.SYSTEM_AUDIT_VIEW,
+];
+
+/** Platform Support capabilities (PLATFORM_SUPPORT). */
+const PLATFORM_SUPPORT_GRANTS: readonly Permission[] = [
+    ...PLATFORM_OPS_GRANTS,
+    PERMISSIONS.PLATFORM_USERS_VIEW,
+    PERMISSIONS.PLATFORM_USERS_MANAGE,
+    PERMISSIONS.PLATFORM_ROLES_VIEW,
+    PERMISSIONS.PLATFORM_ROLES_MANAGE,
+    PERMISSIONS.PLATFORM_TICKETS_VIEW,
+    PERMISSIONS.PLATFORM_TICKETS_MANAGE,
+    PERMISSIONS.PLATFORM_AUDIT_VIEW,
+    PERMISSIONS.PLATFORM_SETTINGS_VIEW,
+    PERMISSIONS.PLATFORM_SETTINGS_MANAGE,
+    PERMISSIONS.PLATFORM_TENANT_IMPERSONATE,
+    PERMISSIONS.SUPPORT_TICKETS_VIEW,
+    PERMISSIONS.SUPPORT_TICKETS_CREATE,
+    PERMISSIONS.SUPPORT_TICKETS_MANAGE,
+    PERMISSIONS.SUPPORT_TICKETS_ASSIGN,
+    PERMISSIONS.SUPPORT_TICKETS_RESOLVE,
 ];
 
 /** SYSTEM_SEED is deliberately NOT in any static grant — see guards.ts. */
 const SUPER_ADMIN_GRANTS: readonly Permission[] = [
-    ...ADMIN_GRANTS,
+    ...PLATFORM_SUPPORT_GRANTS,
     PERMISSIONS.SYSTEM_CONFIG,
     PERMISSIONS.SYSTEM_SEED,
+    PERMISSIONS.PLATFORM_TENANTS_DELETE,
 ];
 
+// Legacy role grants (for backward compatibility)
+/** @deprecated Use EMPLOYEE_GRANTS */
+const STAFF_GRANTS: readonly Permission[] = EMPLOYEE_GRANTS;
+
+/** @deprecated Use DEPARTMENT_MANAGER_GRANTS */
+const MANAGER_GRANTS: readonly Permission[] = DEPARTMENT_MANAGER_GRANTS;
+
+/** @deprecated Use HR_MANAGER_GRANTS */
+const HR_GRANTS: readonly Permission[] = HR_MANAGER_GRANTS;
+
+/** @deprecated Use COMPANY_ADMIN_GRANTS */
+const ADMIN_GRANTS: readonly Permission[] = COMPANY_ADMIN_GRANTS;
+
+/** @deprecated Use PLATFORM_FINANCE_GRANTS */
+const FINANCE_GRANTS: readonly Permission[] = PLATFORM_FINANCE_GRANTS;
+
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
+    [ROLES.EMPLOYEE]: EMPLOYEE_GRANTS,
     [ROLES.STAFF]: STAFF_GRANTS,
+    [ROLES.DEPARTMENT_MANAGER]: DEPARTMENT_MANAGER_GRANTS,
     [ROLES.MANAGER]: MANAGER_GRANTS,
     [ROLES.FINANCE]: FINANCE_GRANTS,
+    [ROLES.PLATFORM_FINANCE]: PLATFORM_FINANCE_GRANTS,
     [ROLES.HR]: HR_GRANTS,
+    [ROLES.HR_MANAGER]: HR_MANAGER_GRANTS,
     [ROLES.ADMIN]: ADMIN_GRANTS,
+    [ROLES.COMPANY_ADMIN]: COMPANY_ADMIN_GRANTS,
+    [ROLES.PLATFORM_OPS]: PLATFORM_OPS_GRANTS,
+    [ROLES.PLATFORM_SUPPORT]: PLATFORM_SUPPORT_GRANTS,
     [ROLES.SUPER_ADMIN]: SUPER_ADMIN_GRANTS,
 };
 
@@ -392,7 +491,7 @@ export function resolvePermissions(
     overrides?: PermissionOverrides | null
 ): EffectivePermissions {
     const role = toRole(roleInput);
-    const resolved = new Set<string>(ROLE_PERMISSIONS[role] ?? ROLE_PERMISSIONS[ROLES.STAFF]);
+    const resolved = new Set<string>(ROLE_PERMISSIONS[role] ?? ROLE_PERMISSIONS[ROLES.EMPLOYEE]);
 
     // ALLOW is applied first so that DENY can always override it below.
     for (const p of overrides?.allow ?? []) {
