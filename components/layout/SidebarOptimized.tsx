@@ -1,8 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { Building2, LogOut, Activity } from "lucide-react";
+import { Building2, LogOut, Activity, ShieldAlert } from "lucide-react";
 import { NavigationLinks } from "@/components/layout/NavigationLinks";
 
 interface SidebarProps {
@@ -51,6 +52,17 @@ export function Sidebar({ user, currentTenantName }: SidebarProps) {
 
       {/* ── Footer ───────────────────────────────────────────────── */}
       <div className="relative z-10 border-t border-slate-800/60 p-3 space-y-2">
+        {/* Super Admin Quick Access Pill (for Super Admin users) */}
+        {user?.role === "SUPER_ADMIN" && (
+          <Link
+            href="/super-admin/dashboard"
+            className="flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-indigo-950/80 to-violet-950/80 px-3 py-2 text-indigo-300 ring-1 ring-indigo-500/30 transition-all hover:ring-indigo-500/60 hover:text-white"
+          >
+            <ShieldAlert className="h-4 w-4 text-indigo-400 shrink-0" />
+            <span className="text-[11px] font-bold tracking-wide">Super Admin Portal</span>
+          </Link>
+        )}
+
         {/* System status pill */}
         <div className="flex items-center gap-2 rounded-xl bg-slate-800/50 px-3 py-2 ring-1 ring-slate-700/40">
           <div className="relative flex shrink-0 items-center justify-center">
