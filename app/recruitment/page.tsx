@@ -18,7 +18,15 @@ export default async function RecruitmentPage() {
         include: { employee: true }
     });
 
-    if (!user || (user.role !== "HR" && user.role !== "ADMIN" && user.role !== "MANAGER")) {
+    if (
+        !user ||
+        (user.role !== "HR" &&
+            user.role !== "ADMIN" &&
+            user.role !== "MANAGER" &&
+            user.role !== "HR_MANAGER" &&
+            user.role !== "COMPANY_ADMIN" &&
+            user.role !== "SUPER_ADMIN")
+    ) {
         redirect("/dashboard");
     }
 

@@ -34,7 +34,12 @@ export default async function PayrollPage() {
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
 
-    const canViewAllPayroll = userRole === "ADMIN" || userRole === "HR";
+    const canViewAllPayroll =
+        userRole === "ADMIN" ||
+        userRole === "HR" ||
+        userRole === "HR_MANAGER" ||
+        userRole === "COMPANY_ADMIN" ||
+        userRole === "SUPER_ADMIN";
     // `null` means "this account has no employee profile", so there is nothing it
     // is entitled to see — not the same as "an employee with no records".
     const payrollScope: { employeeId?: string } | null = canViewAllPayroll
