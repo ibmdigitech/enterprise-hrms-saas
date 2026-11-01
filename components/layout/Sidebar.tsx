@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { resolvePermissions, PERMISSIONS } from "@/lib/auth/permissions";
 import { signOut } from "next-auth/react";
 import { Progress } from "@/components/ui/progress";
-import { LayoutDashboard, Users, Calendar, CreditCard, Settings, LogOut, FileText, Building2, Briefcase, FileUp, Settings2, HeartHandshake, ChevronRight, Activity, CheckCircle2, ArrowRightLeft, Bell, UserPlus, CalendarClock, FileSignature, Target, UserRoundX, ShieldAlert } from "lucide-react";
+import { LayoutDashboard, Users, Calendar, CreditCard, Settings, LogOut, FileText, Building2, Briefcase, FileUp, Settings2, HeartHandshake, ChevronRight, Activity, CheckCircle2, ArrowRightLeft, Bell, UserPlus, CalendarClock, FileSignature, Target, UserRoundX, ShieldAlert, TrendingUp } from "lucide-react";
 
 /**
  * Navigation is filtered by the same permission model the server enforces
@@ -19,6 +19,7 @@ import { LayoutDashboard, Users, Calendar, CreditCard, Settings, LogOut, FileTex
 export const sidebarItems = [
     { title: "Dashboard",         href: "/dashboard",                icon: LayoutDashboard, exact: true },
     { title: "Employees",         href: "/employees",                icon: Users,             permission: PERMISSIONS.EMPLOYEES_VIEW },
+    { title: "Promotions",        href: "/promotions",               icon: TrendingUp,        permission: PERMISSIONS.EMPLOYEE_PROMOTION_VIEW },
     { title: "Resignation & Exit",href: "/exits",                    icon: UserRoundX,        permission: PERMISSIONS.RESIGNATION_CREATE },
     { title: "Attendance",        href: "/attendance",               icon: Calendar,          permission: PERMISSIONS.ATTENDANCE_VIEW },
     { title: "Leaves",            href: "/leaves",                   icon: Briefcase,         permission: PERMISSIONS.LEAVE_VIEW },

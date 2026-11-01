@@ -448,3 +448,92 @@ export async function getPendingPromotionsQueue() {
     });
 }
 
+
+
+/**
+ * Gets all promotions across the tenant (for the main Promotions page).
+ */
+export async function getAllPromotions() {
+    await requirePermission(PERMISSIONS.EMPLOYEE_PROMOTION_VIEW);
+
+    const session = await auth();
+    if (!session?.user?.email) return [];
+
+    const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true, email: true },
+    });
+    if (!user) return [];
+
+    const subject = await buildSubject(user.id, user.email);
+    if (!subject) return [];
+
+    const whereClause: any = {};
+    if (subject.tenantId) {
+        whereClause.tenantId = subject.tenantId;
+    }
+
+    return prisma.employeePromotion.findMany({
+        where: whereClause,
+        include: {
+            employee: {
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    employeeCode: true,
+                    department: true,
+                    designation: true,
+                    basicSalary: true,
+                    housingAllowance: true,
+                    transportAllowance: true,
+                    otherAllowance: true,
+                },
+            },
+            requestedBy: { select: { name: true, email: true } },
+            approvedBy: { select: { name: true, email: true } },
+        },
+        orderBy: { effectiveDate: "desc" },
+    });
+}
+
+/**
+ * Gets list of active employees for promotion selection.
+ */
+export async function getEmployeesForPromotion() {
+    await requirePermission(PERMISSIONS.EMPLOYEE_PROMOTION_CREATE);
+
+    const session = await auth();
+    if (!session?.user?.email) return [];
+
+    const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true, email: true },
+    });
+    if (!user) return [];
+
+    const subject = await buildSubject(user.id, user.email);
+    if (!subject) return [];
+
+    const whereClause: any = { isActive: true };
+    if (subject.tenantId) {
+        whereClause.tenantId = subject.tenantId;
+    }
+
+    return prisma.employee.findMany({
+        where: whereClause,
+        select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            employeeCode: true,
+            department: true,
+            designation: true,
+            basicSalary: true,
+            housingAllowance: true,
+            transportAllowance: true,
+            otherAllowance: true,
+        },
+        orderBy: { firstName: "asc" },
+    });
+}
