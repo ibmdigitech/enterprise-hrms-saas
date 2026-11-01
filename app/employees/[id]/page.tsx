@@ -12,6 +12,7 @@ import {
     ShieldCheck,
     UserCircle,
     Users,
+    TrendingUp,
     Wallet,
 } from "lucide-react";
 
@@ -27,6 +28,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PROFILE_SELECT, FULL_SELECT } from "./employee-select";
 import { LIFECYCLE_STAGE, UNKNOWN_STAGE } from "./lifecycle-stage";
+import { PromotionDialog } from "./promotion-dialog";
+import { PromotionHistoryTable } from "./promotion-history-table";
 
 /**
  * /employees/[id] — the employee profile the master directory never had a link
@@ -235,6 +238,13 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
         currentStatus: employee.currentStatus,
         isActive: employee.isActive,
     });
+
+    const promotions = await prisma.employeePromotion.findMany({
+        where: { employeeId: id },
+        orderBy: { effectiveDate: "desc" },
+    });
+
+    const canRequestPromotion = permissions.has(PERMISSIONS.EMPLOYEE_PROMOTION_CREATE);
 
     const documents: { label: string; expiry: Date | null }[] = [
         { label: "Passport", expiry: employee.passportExpiry },
@@ -498,6 +508,47 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                     </p>
                 </Section>
             </div>
+
+            {/* ── Career & Employment (Promotions) ────────────────────── */}
+            <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5 sm:p-6 shadow-sm">
+                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h2 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-indigo-500">
+                            <TrendingUp className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                            Career Progression &amp; Promotion History
+                        </h2>
+                        <p className="mt-1 text-xs text-slate-500">
+                            Track and review official title advancements, compensation updates, and promotion letters.
+                        </p>
+                    </div>
+
+                    {canRequestPromotion && (
+                        <PromotionDialog
+                            employee={{
+                                id: employee.id,
+                                firstName: employee.firstName,
+                                lastName: employee.lastName,
+                                designation: employee.designation,
+                                department: employee.department,
+                                basicSalary: restricted ? restricted.basicSalary : null,
+                                housingAllowance: restricted ? restricted.housingAllowance : null,
+                                transportAllowance: restricted ? restricted.transportAllowance : null,
+                                otherAllowance: restricted ? restricted.otherAllowance : null,
+                            }}
+                        />
+                    )}
+                </div>
+
+                <PromotionHistoryTable
+                    promotions={promotions as any}
+                    employee={{
+                        firstName: employee.firstName,
+                        lastName: employee.lastName,
+                        designation: employee.designation,
+                        employeeCode: employee.employeeCode,
+                    }}
+                />
+            </section>
         </div>
     );
 }

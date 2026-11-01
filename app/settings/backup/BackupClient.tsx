@@ -1,7 +1,9 @@
 "use client";
-import { useState } from "react";
 
-interface BackupInfo {
+import { useState } from "react";
+import { runBackupAction, registerSchedulerAction } from "./backup-actions";
+
+export interface BackupInfo {
   lastBackup: string;
   sizeKB: number;
   ageHours: number;
@@ -13,19 +15,6 @@ interface BackupInfo {
 
 export function BackupClient({ initialBackup }: { initialBackup: BackupInfo }) {
   const [backup, setBackup] = useState<BackupInfo>(initialBackup);
-
-  // Placeholder server actions – replace with real API calls
-  async function runBackup() {
-    "use server";
-    console.log("Run backup triggered");
-    // TODO: invoke backup process and refresh UI
-  }
-
-  async function registerScheduler() {
-    "use server";
-    console.log("Register scheduler triggered");
-    // TODO: register scheduler and refresh UI
-  }
 
   return (
     <section className="p-6 space-y-6 bg-slate-900 text-slate-100 rounded-lg overflow-auto">
@@ -90,13 +79,13 @@ export function BackupClient({ initialBackup }: { initialBackup: BackupInfo }) {
 
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <form action={runBackup} className="flex-1">
+        <form action={runBackupAction} className="flex-1">
           <button type="submit" className="w-full px-4 py-2 bg-blue-800 hover:bg-blue-700 rounded text-white">
             Run backup now
           </button>
         </form>
         {!backup.schedulerRegistered && (
-          <form action={registerScheduler} className="flex-1">
+          <form action={registerSchedulerAction} className="flex-1">
             <button type="submit" className="w-full px-4 py-2 bg-indigo-800 hover:bg-indigo-700 rounded text-white">
               Register scheduler
             </button>

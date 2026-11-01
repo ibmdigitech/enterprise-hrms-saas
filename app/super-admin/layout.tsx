@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { requireSuperAdmin } from "@/lib/auth/guards";
 import prisma from "@/lib/prisma";
 import { SuperAdminLayoutClient } from "@/components/super-admin/SuperAdminLayoutClient";
 
@@ -14,6 +15,10 @@ interface SuperAdminLayoutProps {
 export default async function SuperAdminLayout({
   children,
 }: SuperAdminLayoutProps) {
+  // Ensure the user is a Super Admin before rendering any Super Admin UI
+  // This guard throws an AuthorizationError (403) if the role is insufficient,
+  // which Next.js will translate into an error page. It also logs the attempt.
+  await requireSuperAdmin('platform.dashboard.view');
   const session = await auth();
   const isLoggedIn = !!session?.user;
 

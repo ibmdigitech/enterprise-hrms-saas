@@ -641,8 +641,34 @@ export function DownloadPDFButton({ record }: Props) {
 
         const printWindow = window.open("", "_blank");
         if (printWindow) {
-            printWindow.document.write(html);
+            // Write HTML with proper head and style for printing
+            const fullHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Payslip - ${emp.firstName || ""} ${emp.lastName || ""} - ${monthName} ${record.year}</title>
+<style>
+${`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:#f8fafc;color:#1e293b; -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+@media print{body{background:white;} .no-print{display:none !important;} .payslip-container{box-shadow:none !important;margin:0 !important;}}
+.payslip-container{max-width:800px;margin:auto;background:white;padding:20px;box-shadow:0 0 10px rgba(0,0,0,0.1);}
+</style>`
+}
+${html}
+</head>
+<body>
+<div class="payslip-container">${html}</div>
+</body>
+</html>`;
+            printWindow.document.write(fullHtml);
             printWindow.document.close();
+            // Give the browser a moment to render before printing
+            setTimeout(() => {
+                printWindow.focus();
+                printWindow.print();
+                printWindow.close();
+            }, 500);
         }
         setLoading(false);
     };

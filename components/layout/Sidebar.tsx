@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { resolvePermissions, PERMISSIONS } from "@/lib/auth/permissions";
 import { signOut } from "next-auth/react";
 import { Progress } from "@/components/ui/progress";
-import { LayoutDashboard, Users, Calendar, CreditCard, Settings, LogOut, FileText, Building2, Briefcase, FileUp, Settings2, HeartHandshake, ChevronRight, Activity, CheckCircle2, ArrowRightLeft, Bell, UserPlus, CalendarClock, FileSignature, Target, UserRoundX } from "lucide-react";
+import { LayoutDashboard, Users, Calendar, CreditCard, Settings, LogOut, FileText, Building2, Briefcase, FileUp, Settings2, HeartHandshake, ChevronRight, Activity, CheckCircle2, ArrowRightLeft, Bell, UserPlus, CalendarClock, FileSignature, Target, UserRoundX, ShieldAlert } from "lucide-react";
 
 /**
  * Navigation is filtered by the same permission model the server enforces
@@ -37,7 +37,7 @@ export const sidebarItems = [
     { title: "Settings",          href: "/settings",                 icon: Settings,          permission: PERMISSIONS.SETTINGS_VIEW },
 ] as const;
 
-export const ADMIN_HREFS = ["/dashboard/admin/services", "/settings"] as const;
+export const ADMIN_HREFS = ["/dashboard/admin/services", "/settings", "/super-admin/dashboard"] as const;
 
 interface SidebarProps {
     user?: {

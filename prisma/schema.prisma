@@ -70,6 +70,10 @@ model User {
   trainingAssessmentsCreated TrainingAssessment[] @relation("TrainingAssessmentCreatedBy")
   trainingAssessmentsGraded  TrainingAssessmentAttempt[] @relation("TrainingAssessmentAttemptGradedBy")
   employeeSkillsAssessed     EmployeeTrainingSkill[] @relation("EmployeeTrainingSkillAssessedBy")
+
+  // --- Employee Promotion relations ---
+  promotionsRequested        EmployeePromotion[] @relation("PromotionRequestedBy")
+  promotionsApproved         EmployeePromotion[] @relation("PromotionApprovedBy")
 }
 
 model Account {
@@ -746,6 +750,7 @@ model Employee {
   reportees             Employee[]              @relation("ManagerToStaff")
   requestedJobs         JobRequisition[]        @relation("RequestedJobs")
   changeRequests        EmployeeChangeRequest[]
+  promotions            EmployeePromotion[]
   /// P1: the interviewer relation moved to `InterviewParticipant` so a panel
   /// can have many interviewers. This now points at the join.
   interviewPanel        InterviewParticipant[]
@@ -1309,6 +1314,7 @@ model LetterRecord {
   voidedAt         DateTime?
   voidReason       String?
   supersededById   String?
+  promotions       EmployeePromotion[]
 
   @@index([documentKey, version])
   @@index([employeeId, type])
@@ -2008,6 +2014,64 @@ model ChangeRequestDocument {
   createdAt    DateTime              @default(now())
 }
 
+// ─── EMPLOYEE PROMOTION & CAREER PROGRESSION ──────────────────────────
+model EmployeePromotion {
+  id                  String       @id @default(cuid())
+  tenantId            String
+  tenant              Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  employeeId          String
+  employee            Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  promotionType       String       @default("DESIGNATION_PROMOTION") // GRADE_PROMOTION, DESIGNATION_PROMOTION, CAREER_LEVEL_PROMOTION, MANAGEMENT_PROMOTION, INTERNAL_PROMOTION, PROMOTION_WITH_SALARY_REVISION
+  status              String       @default("PENDING_APPROVAL") // DRAFT, PENDING_APPROVAL, APPROVED, REJECTED, CANCELLED, APPLIED
+
+  // Snapshot of current values before promotion
+  previousDesignation String?
+  previousDepartment  String?
+  previousGrade       String?
+  previousBasicSalary Float?
+
+  // Proposed changes
+  proposedDesignation String
+  proposedDepartment  String?
+  proposedGrade       String?
+
+  // Salary revision (optional)
+  salaryRevision      Boolean      @default(false)
+  proposedBasicSalary Float?
+  proposedHousing     Float?
+  proposedTransport   Float?
+  proposedOther       Float?
+
+  effectiveDate       DateTime
+  reason              String
+  justificationNotes  String?
+
+  // Workflow tracking
+  requestedById       String
+  requestedBy         User         @relation("PromotionRequestedBy", fields: [requestedById], references: [id])
+  approvedById        String?
+  approvedBy          User?        @relation("PromotionApprovedBy", fields: [approvedById], references: [id])
+  approvedAt          DateTime?
+  rejectionReason     String?
+
+  // Application tracking
+  appliedAt           DateTime?
+  appliedById         String?
+
+  // Letter association
+  letterRecordId      String?
+  letterRecord        LetterRecord? @relation(fields: [letterRecordId], references: [id])
+
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@index([tenantId, status])
+  @@index([employeeId, effectiveDate])
+  @@index([status, effectiveDate])
+}
+
 // ─── BUSINESS TRAVEL & AIR TICKET ENTITLEMENT (UAE) ───────────────────────────
 /// One company-purpose trip outside the country, requested rather than booked
 /// ad hoc.
@@ -2263,6 +2327,7 @@ model Tenant {
   trainingSkills             TrainingSkill[]
   trainingCategories         TrainingCategory[]
   employeeTrainingSkills     EmployeeTrainingSkill[]
+  promotions                 EmployeePromotion[]
 
   @@index([slug])
   @@index([status])

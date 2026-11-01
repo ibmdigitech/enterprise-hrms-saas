@@ -18,7 +18,7 @@ export default async function BackupPage() {
     integrity: true,
     checksumMatch: true,
     schedulerRegistered: false,
-    status: "warning", // possible values: "healthy", "warning", "failed"
+    status: "warning" as const, // possible values: "healthy", "warning", "failed"
   };
 
   // Render the client component, passing the backup data as a JSON prop

@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader,  } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2, XCircle, Briefcase, Globe, HeartHandshake, AlertCircle, Zap, ScrollText, UserMinus, FilePen } from "lucide-react";
+import { CheckCircle2, XCircle, Briefcase, Globe, HeartHandshake, AlertCircle, Zap, ScrollText, UserMinus, FilePen, TrendingUp } from "lucide-react";
 import { approveLeaveManager, approveLeaveHR } from "@/app/lib/actions/leave";
 import { approveStaffRequest } from "@/app/lib/actions/staff-requests";
 import { updateVisaStatus } from "@/app/lib/actions/visa";
 import { ChangeRequestsTab } from "./change-requests-tab";
+import { PromotionsTab } from "./promotions-tab";
+import { getPendingPromotionsQueue } from "@/app/lib/actions/promotions";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { hasPermission, hasAnyPermission, PERMISSIONS } from "@/lib/auth/permissions";
@@ -234,6 +236,15 @@ export default async function ApprovalsPage() {
     //
     // `canManageEmployees` is kept for the separate concern of editing records
     // elsewhere on this page.
+    const canApprovePromotions = hasAnyPermission(userRole, [
+        PERMISSIONS.EMPLOYEE_PROMOTION_APPROVE,
+        PERMISSIONS.EMPLOYEES_APPROVE,
+    ]);
+    let pendingPromotions: any[] = [];
+    if (canApprovePromotions) {
+        pendingPromotions = await getPendingPromotionsQueue();
+    }
+
     const canApproveDataChanges = hasPermission(userRole, PERMISSIONS.EMPLOYEES_APPROVE);
     const canManageEmployees = hasAnyPermission(userRole, [PERMISSIONS.EMPLOYEES_CREATE, PERMISSIONS.EMPLOYEES_EDIT]);
     let pendingChangeRequests: any[] = [];
@@ -253,7 +264,8 @@ export default async function ApprovalsPage() {
         pendingVisaRequests.length +
         pendingLetters.length +
         pendingExitCases.length +
-        pendingChangeRequests.filter((r) => r.status === "PENDING").length;
+        pendingChangeRequests.filter((r) => r.status === "PENDING").length +
+        pendingPromotions.length;
 
     return (
         <div className="space-y-8 p-4 md:p-8 w-full max-w-7xl mx-auto">
