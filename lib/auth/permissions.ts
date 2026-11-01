@@ -441,11 +441,36 @@ const MANAGER_GRANTS: readonly Permission[] = DEPARTMENT_MANAGER_GRANTS;
 /** @deprecated Use HR_MANAGER_GRANTS */
 const HR_GRANTS: readonly Permission[] = HR_MANAGER_GRANTS;
 
-/** @deprecated Use COMPANY_ADMIN_GRANTS */
-const ADMIN_GRANTS: readonly Permission[] = COMPANY_ADMIN_GRANTS;
+/** Legacy Finance role (FINANCE) - has full tenant-level payroll and loan capabilities */
+const FINANCE_GRANTS: readonly Permission[] = [
+    ...BASE_GRANTS,
+    PERMISSIONS.PAYROLL_VIEW,
+    PERMISSIONS.PAYROLL_GENERATE,
+    PERMISSIONS.PAYROLL_STRUCTURE_MANAGE,
+    PERMISSIONS.PAYROLL_PAYSLIP_VIEW_ALL,
+    PERMISSIONS.PAYROLL_EXPORT,
+    PERMISSIONS.PAYROLL_OVERTIME_MANAGE,
+    PERMISSIONS.LOAN_VIEW,
+    PERMISSIONS.LOAN_APPROVE,
+    PERMISSIONS.LOAN_MANAGE,
+    PERMISSIONS.PAYROLL_LOCK,
+    PERMISSIONS.PAYROLL_SETTLE,
+    PERMISSIONS.RECRUITMENT_OFFER,
+    PERMISSIONS.EXIT_SETTLEMENT,
+];
 
-/** @deprecated Use PLATFORM_FINANCE_GRANTS */
-const FINANCE_GRANTS: readonly Permission[] = PLATFORM_FINANCE_GRANTS;
+/** Legacy Administrator role (ADMIN) - union of HR, FINANCE and system administration */
+const ADMIN_GRANTS: readonly Permission[] = [
+    ...HR_GRANTS,
+    ...FINANCE_GRANTS,
+    ...COMPANY_ADMIN_GRANTS,
+    PERMISSIONS.EMPLOYEES_DELETE,
+    PERMISSIONS.ACCESS_APPROVE,
+    PERMISSIONS.SYSTEM_USER_MANAGE,
+    PERMISSIONS.SYSTEM_AUDIT_VIEW,
+    PERMISSIONS.SYSTEM_BACKUP_VIEW,
+    PERMISSIONS.PAYROLL_UNLOCK,
+];
 
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     [ROLES.EMPLOYEE]: EMPLOYEE_GRANTS,
@@ -491,7 +516,11 @@ export function resolvePermissions(
     overrides?: PermissionOverrides | null
 ): EffectivePermissions {
     const role = toRole(roleInput);
-    const resolved = new Set<string>(ROLE_PERMISSIONS[role] ?? ROLE_PERMISSIONS[ROLES.EMPLOYEE]);
+    const resolved = new Set<string>(
+        role === ROLES.SUPER_ADMIN
+            ? (Object.values(PERMISSIONS) as string[])
+            : (ROLE_PERMISSIONS[role] ?? ROLE_PERMISSIONS[ROLES.EMPLOYEE])
+    );
 
     // ALLOW is applied first so that DENY can always override it below.
     for (const p of overrides?.allow ?? []) {

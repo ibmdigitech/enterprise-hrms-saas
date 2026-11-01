@@ -31,7 +31,8 @@ export default async function RootLayout({
 }>) {
   const reqHeaders = await headers();
   const pathname = reqHeaders.get("x-pathname") || "";
-  const isSuperAdminPortal = pathname.startsWith("/super-admin");
+  const isSuperAdminPortal = pathname.startsWith("/super-admin") || pathname.startsWith("/platform-admin");
+  const isLoginPage = pathname === "/login";
 
   const session = await auth();
   const isLoggedIn = !!session?.user;
@@ -104,7 +105,7 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-slate-50 dark:bg-slate-900`}
       >
         <Providers>
-          {isSuperAdminPortal ? (
+          {isSuperAdminPortal || isLoginPage ? (
             children
           ) : (
             <div className="flex h-screen overflow-hidden">

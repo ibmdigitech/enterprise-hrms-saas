@@ -86,10 +86,10 @@ export function isRole(value: unknown): value is Role {
  * so a corrupted or injected role value can never escalate privilege.
  */
 export function toRole(value: unknown): Role {
-    if (typeof value !== "string") return ROLES.EMPLOYEE;
+    if (typeof value !== "string") return ROLES.STAFF;
     const normalised = value.trim().toUpperCase();
     if (isRole(normalised)) return normalised;
-    return ROLES.EMPLOYEE;
+    return ROLES.STAFF;
 }
 
 export function hasAtLeastRole(actual: unknown, required: Role): boolean {
