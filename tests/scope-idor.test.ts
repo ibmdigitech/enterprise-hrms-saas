@@ -22,6 +22,8 @@ function subject(overrides: Partial<AuthorizationSubject> = {}): AuthorizationSu
         role: ROLES.STAFF,
         employeeId: "emp-self",
         department: "Operations",
+        tenantId: null,
+        companyId: null,
         ...overrides,
     };
 }

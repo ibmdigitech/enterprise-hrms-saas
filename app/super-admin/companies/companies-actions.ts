@@ -7,6 +7,11 @@ import { z } from "zod";
 
 const companySchema = z.object({
   name: z.string().min(1, "Company name is required").max(100),
+  slug: z.string().min(1, "Subdomain is required").regex(/^[a-z0-9-]+$/, "Only lowercase letters, numbers, and hyphens"),
+  adminEmail: z.string().email("Valid email required"),
+  contactEmail: z.string().email("Valid contact email required").optional(),
+  adminName: z.string().min(1, "Admin name required"),
+  planTier: z.enum(["STARTER", "GROWTH", "ENTERPRISE"]),
   tradeLicenseNumber: z.string().optional(),
   taxId: z.string().optional(),
   currency: z.string().default("AED"),
@@ -71,7 +76,7 @@ export async function getCompaniesAction(params: CompanyListParams = {}): Promis
             companies: true,
             employees: true,
             locations: true,
-            users: true,
+            memberships: true,
           },
         },
       },
@@ -123,7 +128,7 @@ export async function getCompanyAction(tenantId: string) {
           employees: true,
           locations: true,
           departments: true,
-          users: true,
+          memberships: true,
         },
       },
     },
@@ -134,7 +139,7 @@ export async function getCompanyAction(tenantId: string) {
   return tenant;
 }
 
-export async function createCompanyAction(input: z.infer<typeof companySchema> & { slug: string; contactEmail: string; planTier: string; adminEmail: string; adminName: string }) {
+export async function createCompanyAction(input: z.infer<typeof companySchema>) {
   await requireSuperAdmin("platform.tenants.create");
 
   const validated = companySchema.parse(input);
@@ -155,11 +160,13 @@ export async function createCompanyAction(input: z.infer<typeof companySchema> &
     throw new Error(`User with email '${input.adminEmail}' already exists.`);
   }
 
-  const planLimits = {
+  const planLimitsMap = {
     STARTER: { maxEmployees: 50, maxCompanies: 1, maxLocations: 2, hasRecruitment: false, hasCustomTheme: false, hasApiAccess: false },
     GROWTH: { maxEmployees: 250, maxCompanies: 3, maxLocations: 10, hasRecruitment: true, hasCustomTheme: false, hasApiAccess: false },
     ENTERPRISE: { maxEmployees: 1000, maxCompanies: 10, maxLocations: 25, hasRecruitment: true, hasCustomTheme: true, hasApiAccess: true },
-  }[input.planTier] || planLimits.STARTER;
+  } as const;
+
+  const planLimits = planLimitsMap[input.planTier as keyof typeof planLimitsMap] || planLimitsMap.STARTER;
 
   const plan = await prisma.subscriptionPlan.findUnique({
     where: { slug: input.planTier.toLowerCase() },
@@ -215,6 +222,7 @@ export async function createCompanyAction(input: z.infer<typeof companySchema> &
             lastName: input.adminName.split(" ").slice(1).join(" ") || "Admin",
             email: input.adminEmail.toLowerCase(),
             employeeCode: `EMP-${Date.now().toString().slice(-6)}`,
+            rollNumber: `ROLL-${Date.now().toString().slice(-6)}`,
             tenantId: newTenant.id,
             companyId: newTenant.companies[0]?.id,
             currentStatus: "ACTIVE",
@@ -316,15 +324,12 @@ export async function getCompanyStatsAction() {
       by: ["status"],
       _count: true,
     }),
-    prisma.tenant.groupBy({
-      by: ["subscription.planTier"],
+    prisma.tenantSubscription.groupBy({
+      by: ["planTier"],
       _count: true,
     }),
     prisma.tenant.aggregate({
       _count: true,
-      _sum: {
-        // Add any numeric aggregations
-      },
     }),
   ]);
 

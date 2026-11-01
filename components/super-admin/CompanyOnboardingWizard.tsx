@@ -123,13 +123,13 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
 
   const goNext = () => {
     if (wizard.step < 5 && canGoNext()) {
-      setWizard((prev) => ({ ...prev, step: prev.step + 1 }));
+      setWizard((prev) => ({ ...prev, step: (prev.step + 1) as WizardState["step"] }));
     }
   };
 
   const goPrev = () => {
     if (wizard.step > 1) {
-      setWizard((prev) => ({ ...prev, step: prev.step - 1 }));
+      setWizard((prev) => ({ ...prev, step: (prev.step - 1) as WizardState["step"] }));
     }
   };
 
@@ -495,7 +495,7 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
                             Up to {plan.maxEmployees} employees
                           </span>
                           <span className="text-xs text-slate-500 block mt-1">
-                            {plan.maxCompanies} company{"es" !== "" ? "ies" : ""} • {plan.maxLocations} locations
+                            {plan.maxCompanies} {plan.maxCompanies === 1 ? "company" : "companies"} • {plan.maxLocations} locations
                           </span>
                         </div>
                       </motion.div>
@@ -633,7 +633,7 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
               {wizard.step < 5 ? (
                 <Button
                   type="button"
-                  variant="primary"
+                  variant="default"
                   onClick={goNext}
                   disabled={!canGoNext() || isSubmitting}
                   className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500"
@@ -682,11 +682,11 @@ function FeatureRow({ feature, enabled }: { feature: string; enabled: boolean })
   );
 }
 
-function ReviewRow({ label, value, icon }: { label: string; value: string; icon?: React.ElementType }) {
+function ReviewRow({ label, value, icon: Icon }: { label: string; value: string; icon?: React.ElementType }) {
   return (
     <div className="flex items-center justify-between py-2 border-b border-slate-800/30 last:border-0">
       <div className="flex items-center gap-3">
-        {icon && <icon className="h-4 w-4 text-slate-500" />}
+        {Icon && <Icon className="h-4 w-4 text-slate-500" />}
         <span className="text-sm text-slate-400">{label}</span>
       </div>
       <span className="text-sm font-medium text-white max-w-xs truncate">{value}</span>

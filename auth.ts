@@ -75,7 +75,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // The Prisma adapter's inferred type is too deep for the compiler, so the
     // assertion is narrowed to `unknown` rather than `any`. A wider type here
     // would leak into every downstream consumer of `auth()`.
-    adapter: PrismaAdapter(prisma) as unknown as Adapter,
+    adapter: PrismaAdapter(prisma as any) as any,
     secret: process.env.AUTH_SECRET,
     trustHost: true,
     session: {

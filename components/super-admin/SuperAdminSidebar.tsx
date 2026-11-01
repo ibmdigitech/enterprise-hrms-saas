@@ -11,6 +11,7 @@ import {
   Package,
   Users,
   Shield,
+  UserCog,
   TicketCheck,
   Activity,
   Settings2,
@@ -112,6 +113,11 @@ export const superAdminNavigation: SuperAdminNavItem[] = [
     icon: Shield,
   },
   {
+    title: "Role Requests",
+    href: "/super-admin/role-requests",
+    icon: UserCog,
+  },
+  {
     title: "Support Tickets",
     href: "/super-admin/tickets",
     icon: TicketCheck,
@@ -145,6 +151,8 @@ interface SuperAdminSidebarProps {
     email?: string | null;
     image?: string | null;
   };
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
 export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: SuperAdminSidebarProps) {

@@ -62,7 +62,6 @@ import {
 } from "@/components/ui/dialog";
 import {
   Form,
-  FormField,
   FormItem,
   FormLabel,
   FormControl,
@@ -71,7 +70,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -92,7 +91,7 @@ const companySchema = z.object({
   planTier: z.enum(["STARTER", "GROWTH", "ENTERPRISE"]),
   tradeLicenseNumber: z.string().optional(),
   taxId: z.string().optional(),
-  currency: z.string().default("AED"),
+  currency: z.string(),
 });
 
 type CompanyFormData = z.infer<typeof companySchema>;
@@ -296,7 +295,7 @@ export function CompaniesClient({ initialData, initialParams }: CompaniesClientP
                   <DialogDescription>Basic information about the organization</DialogDescription>
                 </DialogHeader>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
+                  <Controller
                     control={form.control}
                     name="name"
                     render={({ field }) => (
@@ -309,7 +308,7 @@ export function CompaniesClient({ initialData, initialParams }: CompaniesClientP
                       </FormItem>
                     )}
                   />
-                  <FormField
+                  <Controller
                     control={form.control}
                     name="slug"
                     render={({ field }) => (
@@ -325,7 +324,7 @@ export function CompaniesClient({ initialData, initialParams }: CompaniesClientP
                   />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
+                  <Controller
                     control={form.control}
                     name="currency"
                     render={({ field }) => (
@@ -348,7 +347,7 @@ export function CompaniesClient({ initialData, initialParams }: CompaniesClientP
                       </FormItem>
                     )}
                   />
-                  <FormField
+                  <Controller
                     control={form.control}
                     name="planTier"
                     render={({ field }) => (
@@ -377,7 +376,7 @@ export function CompaniesClient({ initialData, initialParams }: CompaniesClientP
                   <DialogDescription>Create the initial company administrator</DialogDescription>
                 </DialogHeader>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
+                  <Controller
                     control={form.control}
                     name="adminName"
                     render={({ field }) => (
@@ -390,7 +389,7 @@ export function CompaniesClient({ initialData, initialParams }: CompaniesClientP
                       </FormItem>
                     )}
                   />
-                  <FormField
+                  <Controller
                     control={form.control}
                     name="adminEmail"
                     render={({ field }) => (
@@ -406,7 +405,7 @@ export function CompaniesClient({ initialData, initialParams }: CompaniesClientP
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-800">
-                  <FormField
+                  <Controller
                     control={form.control}
                     name="tradeLicenseNumber"
                     render={({ field }) => (
@@ -418,7 +417,7 @@ export function CompaniesClient({ initialData, initialParams }: CompaniesClientP
                       </FormItem>
                     )}
                   />
-                  <FormField
+                  <Controller
                     control={form.control}
                     name="taxId"
                     render={({ field }) => (

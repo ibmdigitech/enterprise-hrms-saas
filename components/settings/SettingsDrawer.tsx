@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel,  } from "@/components/ui/form";
+import { FormControl, FormDescription, FormItem, FormLabel } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 import Link from "next/link";
@@ -57,22 +57,22 @@ export function SettingsDrawer({ onOpenChange }: SettingsDrawerProps) {
 
             {/* General Settings */}
             <TabsContent value="general">
-              <Form>
-                <FormField>
+              <div className="space-y-4">
+                <FormItem>
                   <FormLabel>Company Name</FormLabel>
                   <FormControl>
                     <Input placeholder="IBM Digitech Enterprise" />
                   </FormControl>
-                </FormField>
+                </FormItem>
                 
-                <FormField>
+                <FormItem>
                   <FormLabel>System Name</FormLabel>
                   <FormControl>
                     <Input placeholder="HRMS" />
                   </FormControl>
-                </FormField>
+                </FormItem>
                 
-                <FormField>
+                <FormItem>
                   <FormLabel>Time Zone</FormLabel>
                   <FormControl>
                     <Select>
@@ -86,9 +86,9 @@ export function SettingsDrawer({ onOpenChange }: SettingsDrawerProps) {
                       </SelectContent>
                     </Select>
                   </FormControl>
-                </FormField>
+                </FormItem>
                 
-                <FormField>
+                <FormItem>
                   <FormLabel>Date Format</FormLabel>
                   <FormControl>
                     <Select>
@@ -102,9 +102,9 @@ export function SettingsDrawer({ onOpenChange }: SettingsDrawerProps) {
                       </SelectContent>
                     </Select>
                   </FormControl>
-                </FormField>
+                </FormItem>
                 
-                <FormField>
+                <FormItem>
                   <FormLabel>Currency</FormLabel>
                   <FormControl>
                     <Select>
@@ -118,9 +118,9 @@ export function SettingsDrawer({ onOpenChange }: SettingsDrawerProps) {
                       </SelectContent>
                     </Select>
                   </FormControl>
-                </FormField>
+                </FormItem>
                 
-                <FormField>
+                <FormItem>
                   <FormLabel>Language</FormLabel>
                   <FormControl>
                     <Select>
@@ -133,7 +133,7 @@ export function SettingsDrawer({ onOpenChange }: SettingsDrawerProps) {
                       </SelectContent>
                     </Select>
                   </FormControl>
-                </FormField>
+                </FormItem>
                 
                 <div className="flex justify-end gap-3 mt-8">
                   <Button variant="outline" onClick={() => {/* Reset logic */}}>
@@ -143,61 +143,61 @@ export function SettingsDrawer({ onOpenChange }: SettingsDrawerProps) {
                     Save Changes
                   </Button>
                 </div>
-              </Form>
+              </div>
             </TabsContent>
 
             {/* Company Settings */}
             <TabsContent value="company">
-              <Form>
-                <FormField>
+              <div className="space-y-4">
+                <FormItem>
                   <FormLabel>Company Logo</FormLabel>
                   <FormControl>
                     {/* Upload component would go here */}
                     <input type="file" accept="image/*" className="block w-full text-sm text-slate-500" />
                   </FormControl>
-                </FormField>
+                </FormItem>
                 
-                <FormField>
+                <FormItem>
                   <FormLabel>Company Name</FormLabel>
                   <FormControl>
                     <Input placeholder="IBM Digitech Enterprise LLC" />
                   </FormControl>
-                </FormField>
+                </FormItem>
                 
-                <FormField>
+                <FormItem>
                   <FormLabel>Trade License Number</FormLabel>
                   <FormControl>
                     <Input placeholder="TL-123456-789" />
                   </FormControl>
-                </FormField>
+                </FormItem>
                 
-                <FormField>
+                <FormItem>
                   <FormLabel>Address</FormLabel>
                   <FormControl>
                     <Textarea placeholder="Dubai, UAE" className="h-[80px]" />
                   </FormControl>
-                </FormField>
+                </FormItem>
                 
-                <FormField>
+                <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input type="email" placeholder="info@company.com" />
                   </FormControl>
-                </FormField>
+                </FormItem>
                 
-                <FormField>
+                <FormItem>
                   <FormLabel>Phone</FormLabel>
                   <FormControl>
                     <Input type="tel" placeholder="+971 4 123 4567" />
                   </FormControl>
-                </FormField>
+                </FormItem>
                 
-                <FormField>
+                <FormItem>
                   <FormLabel>Website</FormLabel>
                   <FormControl>
                     <Input placeholder="https://company.com" />
                   </FormControl>
-                </FormField>
+                </FormItem>
                 
                 <div className="flex justify-end gap-3 mt-8">
                   <Button variant="outline" onClick={() => {/* Reset logic */}}>
@@ -207,20 +207,20 @@ export function SettingsDrawer({ onOpenChange }: SettingsDrawerProps) {
                     Save Changes
                   </Button>
                 </div>
-              </Form>
+              </div>
             </TabsContent>
 
             {/* Employee Settings */}
             <TabsContent value="employee">
-              <Form>
-                <FormField>
+              <div className="space-y-4">
+                <FormItem>
                   <FormLabel>Employee ID Format</FormLabel>
                   <FormControl>
                     <Input placeholder="EMP-0001" />
                   </FormControl>
-                </FormField>
+                </FormItem>
                 
-                <FormField>
+                <FormItem>
                   <FormLabel>ID Generation Method</FormLabel>
                   <FormControl>
                     <Select>
@@ -233,9 +233,9 @@ export function SettingsDrawer({ onOpenChange }: SettingsDrawerProps) {
                       </SelectContent>
                     </Select>
                   </FormControl>
-                </FormField>
+                </FormItem>
                 
-                <FormField>
+                <FormItem>
                   <FormLabel>Default Employee Status</FormLabel>
                   <FormControl>
                     <Select>
@@ -248,7 +248,7 @@ export function SettingsDrawer({ onOpenChange }: SettingsDrawerProps) {
                       </SelectContent>
                     </Select>
                   </FormControl>
-                </FormField>
+                </FormItem>
                 
                 <div className="flex justify-end gap-3 mt-8">
                   <Button variant="outline" onClick={() => {/* Reset logic */}}>
@@ -258,41 +258,41 @@ export function SettingsDrawer({ onOpenChange }: SettingsDrawerProps) {
                     Save Changes
                   </Button>
                 </div>
-              </Form>
+              </div>
             </TabsContent>
 
             {/* Attendance Settings */}
             <TabsContent value="attendance">
-              <Form>
-                <FormField>
+              <div className="space-y-4">
+                <FormItem>
                   <FormLabel>Office Start Time</FormLabel>
                   <FormControl>
                     <Input type="time" value="09:00" />
                   </FormControl>
-                </FormField>
+                </FormItem>
                 
-                <FormField>
+                <FormItem>
                   <FormLabel>Office End Time</FormLabel>
                   <FormControl>
                     <Input type="time" value="18:00" />
                   </FormControl>
-                </FormField>
+                </FormItem>
                 
-                <FormField>
+                <FormItem>
                   <FormLabel>Grace Period (Minutes)</FormLabel>
                   <FormControl>
                     <Input type="number" value="15" min="0" />
                   </FormControl>
-                </FormField>
+                </FormItem>
                 
-                <FormField>
+                <FormItem>
                   <FormLabel>Overtime Enabled</FormLabel>
                   <FormControl>
                     <Switch checked={true} />
                   </FormControl>
-                </FormField>
+                </FormItem>
                 
-<FormField>
+<FormItem>
   <FormLabel>Weekend Configuration</FormLabel>
   <FormControl>
     <div className="space-y-2">
@@ -310,21 +310,21 @@ export function SettingsDrawer({ onOpenChange }: SettingsDrawerProps) {
       </div>
     </div>
   </FormControl>
-</FormField>
+</FormItem>
                 
-                <FormField>
+                <FormItem>
                   <FormLabel>Geo Location Attendance</FormLabel>
                   <FormControl>
                     <Switch checked={false} />
                   </FormControl>
-                </FormField>
+                </FormItem>
                 
-                <FormField>
+                <FormItem>
                   <FormLabel>Biometric Integration</FormLabel>
                   <FormControl>
                     <Switch checked={false} />
                   </FormControl>
-                </FormField>
+                </FormItem>
                 
                 <div className="flex justify-end gap-3 mt-8">
                   <Button variant="outline" onClick={() => {/* Reset logic */}}>
@@ -334,7 +334,7 @@ export function SettingsDrawer({ onOpenChange }: SettingsDrawerProps) {
                     Save Changes
                   </Button>
                 </div>
-              </Form>
+              </div>
             </TabsContent>
 
             {/* Placeholder tabs for brevity - in a real implementation, all tabs would be filled out */}
@@ -485,3 +485,5 @@ const Label = React.forwardRef<
   />
 ));
 Label.displayName = "Label";
+
+

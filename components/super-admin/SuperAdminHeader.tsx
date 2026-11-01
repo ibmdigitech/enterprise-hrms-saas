@@ -34,6 +34,7 @@ import {
   RefreshCw,
   ExternalLink,
   User,
+  UserCog,
 } from "lucide-react";
 import {
   Command,
@@ -97,6 +98,7 @@ export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
     { title: "Modules", href: "/super-admin/modules", icon: Package, description: "Feature entitlements" },
     { title: "Platform Users", href: "/super-admin/users", icon: Users, description: "Admin & support accounts" },
     { title: "Roles & Permissions", href: "/super-admin/roles", icon: Shield, description: "Access control matrix" },
+    { title: "Role Requests", href: "/super-admin/role-requests", icon: UserCog, description: "Review role access requests" },
     { title: "Support Tickets", href: "/super-admin/tickets", icon: TicketCheck, description: "Customer support" },
     { title: "Audit Logs", href: "/super-admin/audit", icon: Activity, description: "Security & admin events" },
     { title: "Integrations", href: "/super-admin/integrations", icon: PlugZap, description: "Third-party services" },
@@ -104,7 +106,7 @@ export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
     { title: "System Health", href: "/super-admin/health", icon: Database, description: "Monitoring & alerts" },
   ];
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === "k") {
       e.preventDefault();
       setSearchOpen(true);

@@ -131,8 +131,8 @@ export function ChartCard({
 
 interface AreaChartData {
   name: string;
-  value: number;
-  [key: string]: string | number;
+  value?: number;
+  [key: string]: string | number | undefined;
 }
 
 interface MultiAreaChartProps {
@@ -350,6 +350,7 @@ export function DonutChart({ data, height = 300, innerRadius = 60, outerRadius =
   return (
     <ResponsiveContainer width="100%" height={height}>
       <PieChart>
+        <Tooltip content={<CustomTooltip />} />
         <Pie
           data={data}
           cx="50%"
@@ -359,9 +360,8 @@ export function DonutChart({ data, height = 300, innerRadius = 60, outerRadius =
           paddingAngle={2}
           dataKey="value"
           nameKey="name"
-          label={showLabels ? ({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%` : false}
+          label={showLabels ? ({ name, percent = 0 }) => `${name} ${(percent * 100).toFixed(0)}%` : false}
           labelLine={showLabels}
-          tooltip={<CustomTooltip />}
         >
           {data.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={entry.color || COLORS[index]} />
@@ -387,11 +387,9 @@ interface RadialBarChartProps {
 export function RadialProgressChart({ data, height = 200, size = 120 }: RadialBarChartProps) {
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <RadialBarChart>
+      <RadialBarChart startAngle={-90} endAngle={90}>
         <RadialBar
           dataKey="value"
-          minAngle={-90}
-          maxAngle={90}
         >
           {data.map((entry, index) => (
             <motion.path
