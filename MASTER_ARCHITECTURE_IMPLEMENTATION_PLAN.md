@@ -127,3 +127,4 @@ flowchart TD
 | **2** | Deploy Floating Chat Widget (`components/ai/ai-chat-drawer.tsx`) | Gives users immediate AI interface |
 | **3** | Implement `/api/ai/chat` Route with Role-Scoped Tools | Connects AI to live, authorized HR data |
 | **4** | Setup Cron Worker for Expiry Notifications | Eliminates manual compliance audits |
+

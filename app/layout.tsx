@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import "./globals.css";
 import { Sidebar } from "@/components/layout/SidebarOptimized";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { AIChatDrawer } from "@/components/ai/ai-chat-drawer";
 import { Toaster } from "sonner";
 import { Providers } from "@/components/common/Providers";
 import { auth } from "@/auth";
@@ -123,6 +124,9 @@ export default async function RootLayout({
                 </main>
               </div>
             </div>
+          )}
+          {isLoggedIn && !isLoginPage && (
+            <AIChatDrawer userRole={userWithPhoto?.role} userName={userWithPhoto?.name} />
           )}
         </Providers>
         <Toaster position="top-right" richColors closeButton />

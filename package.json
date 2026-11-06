@@ -20,6 +20,9 @@
     "node": ">=20.x"
   },
   "dependencies": {
+    "@ai-sdk/google": "^4.0.112",
+    "@ai-sdk/openai": "^4.0.109",
+    "@ai-sdk/react": "^4.0.167",
     "@auth/prisma-adapter": "^2.11.2",
     "@hookform/resolvers": "^6.0.2",
     "@prisma/client": "^6.19.3",
@@ -38,6 +41,7 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.4.1",
     "@types/bcryptjs": "^2.4.6",
+    "ai": "^7.0.163",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -64,10 +68,12 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
+    "pg": "^8.23.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vite": "^8.3.1",
