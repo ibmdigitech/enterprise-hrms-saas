@@ -8,7 +8,7 @@ import {
   CheckCircle2, ChevronDown, CreditCard, FileSignature, FileText, FileUp,
   HeartHandshake, LayoutDashboard, Plane, Settings2, Target, UserPlus, Users,
   UserRoundX, Layers, Sparkles, Shield, ShieldCheck, UserCircle, KeyRound, BookOpen, Rocket,
-  FolderOpen, GraduationCap, type LucideIcon,
+  FolderOpen, GraduationCap, TrendingUp, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PERMISSIONS, resolvePermissions } from "@/lib/auth/permissions";
@@ -49,6 +49,7 @@ export const sidebarItems: NavItem[] = [
 
   /* ── PEOPLE ───────────────────────────────────────────── */
   { title: "Employees", href: "/employees", icon: Users, iconColor: "text-cyan-400", permission: PERMISSIONS.EMPLOYEES_VIEW },
+  { title: "Promotions", href: "/promotions", icon: TrendingUp, iconColor: "text-amber-400", permission: PERMISSIONS.EMPLOYEE_PROMOTION_VIEW },
   { title: "Resignation & Exit", href: "/exits", icon: UserRoundX, iconColor: "text-rose-400", permission: PERMISSIONS.RESIGNATION_CREATE },
   { title: "Attendance", href: "/attendance", icon: Calendar, iconColor: "text-sky-400", permission: PERMISSIONS.ATTENDANCE_VIEW },
   { title: "Leave", href: "/leaves", icon: Briefcase, iconColor: "text-emerald-400", permission: PERMISSIONS.LEAVE_VIEW },
@@ -63,7 +64,7 @@ export const sidebarItems: NavItem[] = [
   { title: "Requests", href: "/requests", icon: ArrowRightLeft, iconColor: "text-sky-400", permission: PERMISSIONS.REQUEST_VIEW },
   { title: "Notifications", href: "/notifications", icon: Bell, iconColor: "text-sky-400", permission: PERMISSIONS.NOTIFICATION_VIEW },
   { title: "Business Travel", href: "/travel", icon: Plane, iconColor: "text-orange-400", permission: PERMISSIONS.TRAVEL_VIEW },
-  { title: "Performance", href: "/performance", icon: Target, iconColor: "text-fuchsia-400", permission: PERMISSIONS.PERFORMANCE_VIEW },
+  { title: "Performance", href: "/performance", icon: Target, iconColor: "text-fuchsia-400" },
   { title: "Training & Certification", href: "/dashboard/training", icon: GraduationCap, iconColor: "text-blue-400", permission: PERMISSIONS.TRAINING_VIEW },
 
   /* ── TALENT ───────────────────────────────────────────── */
@@ -118,7 +119,7 @@ export const navigationGroups: NavGroupDef[] = [
     icon: Users,
     color: "text-sky-400",
     collapsible: true,
-    links: ["/employees", "/exits", "/attendance", "/leaves", "/dashboard/approvals"],
+    links: ["/employees", "/promotions", "/exits", "/attendance", "/leaves", "/dashboard/approvals"],
   },
   {
     title: "OPERATIONS",

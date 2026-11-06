@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 // ─── Leave type master config ──────────────────────────────────────────────────
-export const LEAVE_TYPES: Record<string, {
+const LEAVE_TYPES: Record<string, {
     label: string; emoji: string;
     badge: string; icon: React.ElementType;
 }> = {
