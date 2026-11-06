@@ -9,13 +9,38 @@ import prisma from "../prisma";
 import { getTenantDatabaseClient } from "./database-pool";
 
 export const TENANT_SCOPED_MODELS = [
+    // Core HR & Identity
     "Employee",
+    "Attendance",
+    "LeaveRequest",
+    "SalaryRecord",
+    "EmployeePromotion",
+    "RoleRequest",
+    // Organization & Structure
     "Company",
     "Location",
     "Department",
     "TenantMembership",
+    // Billing & Subscriptions
+    "TenantSubscription",
     "SubscriptionInvoice",
     "PaymentTransaction",
+    "CompanyModule",
+    // Training & Certifications
+    "TrainingCourse",
+    "TrainingSession",
+    "TrainingEnrollment",
+    "TrainingCertificate",
+    "TrainingCertificateTemplate",
+    "TrainingAssessment",
+    "TrainingSkill",
+    "EmployeeTrainingSkill",
+    "TrainingCategory",
+    // Support & Ops
+    "SupportTicket",
+    "Integration",
+    "BackgroundJob",
+    "IntegrationHealth",
 ] as const;
 
 export type TenantScopedModel = (typeof TENANT_SCOPED_MODELS)[number];
