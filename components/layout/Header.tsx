@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Bell, Settings, LogOut, User, Search } from "lucide-react";
+import { Bell, Settings, LogOut, User, Search, ShieldCheck } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { signOut } from "next-auth/react";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -170,6 +170,14 @@ export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
 
                 {/* Settings stays reachable from the account popover below, so
                     the duplicate icon is the first thing to go on small screens. */}
+                {user?.role === "SUPER_ADMIN" && (
+                    <Button asChild variant="ghost" className="hidden sm:inline-flex items-center gap-1.5 h-10 px-3 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-300 font-bold text-xs hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200/50 dark:border-indigo-800/50 shadow-sm">
+                        <Link href="/super-admin/dashboard" aria-label="Super Admin Portal" title="Super Admin Portal">
+                            <ShieldCheck className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                            <span>Super Admin</span>
+                        </Link>
+                    </Button>
+                )}
                 <Button asChild variant="ghost" size="icon" className={cn(ICON_BUTTON, "hidden sm:inline-flex")}>
                     <Link href="/settings" aria-label="Settings" title="Settings">
                         <Settings className="h-5 w-5" />
@@ -214,6 +222,14 @@ export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
                             </div>
                         </div>
                         <div className="flex flex-col gap-1">
+                            {user?.role === "SUPER_ADMIN" && (
+                                <Button asChild variant="ghost" className="h-10 w-full justify-start rounded-xl text-xs font-black text-indigo-600 bg-indigo-50/70 hover:bg-indigo-100 hover:text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 dark:hover:bg-indigo-900/50">
+                                    <Link href="/super-admin/dashboard">
+                                        <ShieldCheck className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                                        Super Admin Portal
+                                    </Link>
+                                </Button>
+                            )}
                             <Button asChild variant="ghost" className="h-10 w-full justify-start rounded-xl text-xs font-bold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 dark:text-slate-300 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-400">
                                 <Link href="/settings">
                                     <User className="mr-2 h-4 w-4" />

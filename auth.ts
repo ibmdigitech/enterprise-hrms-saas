@@ -306,15 +306,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 });
 
                 if (dbUser) {
+                    // The User.role column is the authoritative source of truth.
+                    // A SUPER_ADMIN must never be downgraded to a membership role;
+                    // membership provides tenant context only.
+                    token.role = dbUser.role;
+
                     const activeMembership = dbUser.memberships?.[0];
                     if (activeMembership) {
                         token.tenantId = activeMembership.tenantId;
                         token.tenantSlug = activeMembership.tenant.slug;
-                        token.role = activeMembership.role;
+                        // Only adopt the membership role when the user is NOT a platform-level role
+                        const platformRoles = ['SUPER_ADMIN', 'PLATFORM_SUPPORT', 'PLATFORM_OPS', 'PLATFORM_FINANCE'];
+                        if (!platformRoles.includes(dbUser.role)) {
+                            token.role = activeMembership.role;
+                        }
                     } else if (dbUser.employee?.tenantId) {
                         token.tenantId = dbUser.employee.tenantId;
                         token.tenantSlug = dbUser.employee.tenant?.slug ?? null;
-                        token.role = dbUser.role;
                     }
                     if (dbUser.employee?.companyId) {
                         token.companyId = dbUser.employee.companyId;

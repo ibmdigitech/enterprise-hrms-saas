@@ -1,11 +1,37 @@
-import { requirePagePermission } from "@/lib/auth/page-guard";
-import { PERMISSIONS } from "@/lib/auth/permissions";
-// Granting and revoking access is the most sensitive surface in the product.
-// Requires access.approve (ADMIN and above).
+import { auth } from "@/auth";
+import prisma from "@/lib/prisma";
+import { redirect } from "next/navigation";
+import { RequestAccessPageClient } from "./page-client";
 
-import { RequestAccessPage } from "./page-client";
+export const dynamic = "force-dynamic";
 
 export default async function Page() {
-    await requirePagePermission(PERMISSIONS.ACCESS_APPROVE);
-    return <RequestAccessPage />;
+    const session = await auth();
+    if (!session?.user?.email) redirect("/login");
+
+    const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+    });
+    if (!user) redirect("/login");
+
+    // Load this user's own access requests (most recent first)
+    const ownRequests = await prisma.roleRequest.findMany({
+        where:   { userId: user.id },
+        orderBy: { createdAt: "desc" },
+        take:    20,
+        select: {
+            id:            true,
+            status:        true,
+            requestedRole: true,
+            createdAt:     true,
+        },
+    });
+
+    return (
+        <RequestAccessPageClient
+            currentRole={user.role}
+            currentUserEmail={user.email}
+            ownRequests={ownRequests}
+        />
+    );
 }

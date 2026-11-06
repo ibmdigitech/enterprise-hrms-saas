@@ -30,8 +30,8 @@ const EDGE_ROUTE_RULES: { prefix: string; roles: string[] }[] = [
     { prefix: '/dashboard/admin', roles: ['SUPER_ADMIN', 'ADMIN'] },
     { prefix: '/settings', roles: ['SUPER_ADMIN', 'ADMIN'] },
     // Access control: granting and revoking roles.
-    { prefix: '/dashboard/request-access', roles: ['SUPER_ADMIN', 'ADMIN'] },
-    { prefix: '/dashboard/approvals/roles', roles: ['SUPER_ADMIN', 'ADMIN'] },
+    // /dashboard/request-access is open to all authenticated users (ACCESS_REQUEST permission)
+    { prefix: '/dashboard/approvals/roles', roles: ['SUPER_ADMIN', 'ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'HR'] },
     // Employee master data.
     { prefix: '/employees', roles: ['SUPER_ADMIN', 'ADMIN', 'HR'] },
     // Compensation.

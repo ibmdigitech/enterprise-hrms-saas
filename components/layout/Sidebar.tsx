@@ -36,6 +36,7 @@ export const sidebarItems = [
     { title: "Notifications",     href: "/notifications",            icon: Bell,              permission: PERMISSIONS.NOTIFICATION_VIEW },
     { title: "Service Config",    href: "/dashboard/admin/services", icon: Settings2,          permission: PERMISSIONS.SERVICE_CONFIG_MANAGE },
     { title: "Settings",          href: "/settings",                 icon: Settings,          permission: PERMISSIONS.SETTINGS_VIEW },
+    { title: "Super Admin Portal", href: "/super-admin/dashboard",    icon: ShieldAlert,       permission: PERMISSIONS.SYSTEM_CONFIG },
 ] as const;
 
 export const ADMIN_HREFS = ["/dashboard/admin/services", "/settings", "/super-admin/dashboard"] as const;

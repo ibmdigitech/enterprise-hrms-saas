@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity, ArrowRightLeft, Bell, Briefcase, Building2, Calendar, CalendarClock,
-  CheckCircle2, ChevronDown, CreditCard, FileSignature, FileText, FileUp,
+  CheckCircle2, ChevronDown, CreditCard, Eye, FileSignature, FileText, FileUp,
   HeartHandshake, LayoutDashboard, Plane, Settings2, Target, UserPlus, Users,
   UserRoundX, Layers, Sparkles, Shield, ShieldCheck, UserCircle, KeyRound, BookOpen, Rocket,
   FolderOpen, GraduationCap, TrendingUp, type LucideIcon,
@@ -75,7 +75,8 @@ export const sidebarItems: NavItem[] = [
   /* ── ADMINISTRATION ───────────────────────────────────── */
   { title: "Users", href: "/settings", icon: UserCircle, iconColor: "text-indigo-400", permission: PERMISSIONS.SETTINGS_VIEW },
   { title: "Roles & Permissions", href: "/dashboard/approvals/roles", icon: Shield, iconColor: "text-indigo-400", permission: PERMISSIONS.ACCESS_APPROVE },
-  { title: "Access Requests", href: "/dashboard/request-access", icon: KeyRound, iconColor: "text-indigo-400", permission: PERMISSIONS.ACCESS_APPROVE },
+  { title: "Access Requests", href: "/dashboard/request-access", icon: KeyRound, iconColor: "text-indigo-400", permission: PERMISSIONS.ACCESS_REQUEST },
+  { title: "Access Review", href: "/dashboard/approvals/roles", icon: Eye, iconColor: "text-violet-400", permission: PERMISSIONS.ACCESS_APPROVE },
   { title: "Letter Templates", href: "/dashboard/settings/templates", icon: BookOpen, iconColor: "text-pink-400", permission: PERMISSIONS.LETTER_TEMPLATE_MANAGE },
   { title: "Company Documents", href: "/company/documents", icon: FolderOpen, iconColor: "text-teal-400", permission: PERMISSIONS.SETTINGS_VIEW },
   { title: "Organization & Structure", href: "/company/organization", icon: Building2, iconColor: "text-blue-400", permission: PERMISSIONS.SETTINGS_VIEW },
@@ -148,7 +149,7 @@ export const navigationGroups: NavGroupDef[] = [
         title: "Access Control",
         icon: ShieldCheck,
         color: "text-indigo-400",
-        links: ["/settings", "/dashboard/approvals/roles", "/dashboard/request-access"],
+        links: ["/settings", "/dashboard/request-access", "/dashboard/approvals/roles"],
       },
       {
         title: "Documents",
