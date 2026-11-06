@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import {
-    Sparkles, X, Send, Bot, User, Minimize2,
+    MessageSquareText, MessageCircle, Sparkles, X, Send, Bot, User, Minimize2,
     Maximize2, ShieldAlert, RefreshCw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -106,18 +106,25 @@ export function AIChatDrawer({ userRole, userName }: Props) {
 
     return (
         <>
-            {/* Floating Action Button */}
+            {/* Floating Chatbot Button */}
             {!isOpen && (
                 <button
                     onClick={() => setIsOpen(true)}
-                    className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-teal-500 via-indigo-600 to-indigo-700 text-white font-black text-sm shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 border border-white/20 group cursor-pointer"
-                    aria-label="Open iBoo AI Assistant"
+                    className="fixed bottom-6 right-6 z-50 flex items-center gap-3 p-3.5 sm:px-5 sm:py-3.5 rounded-full bg-gradient-to-r from-teal-500 via-indigo-600 to-indigo-700 text-white font-black text-sm shadow-[0_10px_30px_rgba(79,70,229,0.4)] hover:shadow-[0_15px_35px_rgba(13,148,136,0.5)] hover:scale-105 active:scale-95 transition-all duration-300 border-2 border-white/30 group cursor-pointer"
+                    aria-label="Open iBoo HR Chatbot"
                 >
-                    <div className="relative flex items-center justify-center">
-                        <Sparkles className="h-5 w-5 text-amber-300 animate-pulse" />
-                        <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-emerald-400"></span>
+                    {/* Chatbot Icon with animated online pulse dot */}
+                    <div className="relative flex items-center justify-center h-8 w-8 rounded-xl bg-white/20 backdrop-blur-md group-hover:bg-white/30 transition-colors shadow-inner">
+                        <MessageSquareText className="h-5 w-5 text-white transition-transform group-hover:scale-110" />
+                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-[#0f172a]"></span>
+                        </span>
                     </div>
-                    <span className="tracking-wide">iBoo AI</span>
+                    <div className="hidden sm:flex flex-col text-left leading-none pr-1">
+                        <span className="font-black text-[13px] tracking-wide text-white">iBoo AI</span>
+                        <span className="text-[10px] font-bold text-teal-200 mt-0.5">HR Chatbot</span>
+                    </div>
                 </button>
             )}
 
