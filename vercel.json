@@ -5,6 +5,10 @@
     {
       "path": "/api/cron/invoice-notifications",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/maintenance",
+      "schedule": "0 2 * * *"
     }
   ]
 }

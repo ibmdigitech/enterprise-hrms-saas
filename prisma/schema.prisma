@@ -74,6 +74,10 @@ model User {
   // --- Employee Promotion relations ---
   promotionsRequested        EmployeePromotion[] @relation("PromotionRequestedBy")
   promotionsApproved         EmployeePromotion[] @relation("PromotionApprovedBy")
+
+  // --- Temporary Role Assignment back-relations (P1) ---
+  tempRoleAssignmentsReceived TemporaryRoleAssignment[] @relation("TempRoleAssignedUser")
+  tempRoleAssignmentsGranted  TemporaryRoleAssignment[] @relation("TempRoleAssignedBy")
 }
 
 model Account {
@@ -3213,3 +3217,38 @@ model ApplicationError {
   @@index([type, status])
 }
 
+
+
+/// Temporary role elevation / acting assignment (P1 — Reliability).
+/// Tracks time-bound role grants (e.g. acting HR Manager while covering leave).
+/// Auto-revoked by the cron at /api/cron/maintenance when endDate is reached.
+model TemporaryRoleAssignment {
+  id          String   @id @default(cuid())
+
+  /// User receiving the temporary role elevation
+  userId      String
+  user        User     @relation("TempRoleAssignedUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  /// The role name being temporarily granted (e.g. "HR_MANAGER", "ADMIN")
+  roleName    String
+
+  /// Validity period (enforced by cron job)
+  startDate   DateTime
+  endDate     DateTime
+
+  /// Whether this assignment is still active; set to false by cron on expiry
+  isActive    Boolean  @default(true)
+
+  /// Free-text reason e.g. "Covering maternity leave for 6 weeks"
+  reason      String?
+
+  /// HR admin / manager who authorised the grant
+  assignedById String?
+  assignedBy   User?   @relation("TempRoleAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, isActive])
+  @@index([endDate, isActive])
+}
