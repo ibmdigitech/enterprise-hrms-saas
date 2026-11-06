@@ -461,3 +461,23 @@ export async function verifyCertificate(verificationCode: string) {
         metadata: certificate.metadata,
     };
 }
+
+export async function getEmployeesForTraining() {
+    const user = await requireUser();
+    const tenantId = user.tenantId as string;
+    if (!tenantId) return [];
+
+    return prisma.employee.findMany({
+        where: { tenantId, isActive: true },
+        select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            employeeCode: true,
+            department: true,
+            designation: true,
+            photo: true,
+        },
+        orderBy: { firstName: "asc" },
+    });
+}
