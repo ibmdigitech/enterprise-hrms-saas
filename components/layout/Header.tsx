@@ -177,7 +177,7 @@ export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
                         title={isNotificationsActive ? "Current Page: Notifications" : "View Notifications"}
                         className="relative flex items-center justify-center w-full h-full"
                     >
-                        <Bell className={cn("h-5 w-5 transition-transform group-hover:scale-105", isNotificationsActive ? "text-white" : "text-slate-600 dark:text-slate-300")} />
+                        <Bell className={cn("h-6 w-6 transition-transform group-hover:scale-105", isNotificationsActive ? "text-white" : "text-slate-600 dark:text-slate-300")} />
                         
                         {/* Active Notification Indicator Pinpoint Badge */}
                         <span className="absolute top-2 right-2 flex h-2.5 w-2.5 pointer-events-none">
