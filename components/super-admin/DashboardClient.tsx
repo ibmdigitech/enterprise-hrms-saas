@@ -488,9 +488,9 @@ export function DashboardClient({ metrics, totalTenants, activeTenants }: Dashbo
             </div>
 
             {/* Gauge + Metrics - proper spacing */}
-            <div className="flex min-h-0 flex-1 flex-col items-center justify-start gap-1 pt-1">
+            <div className="flex min-h-0 flex-1 -translate-x-[20px] flex-col items-center justify-start gap-1 pt-1">
               <GaugeChart value={92} label="Health Index" size={170} showLabel={true} />
-              <div className="-mt-1 grid w-full grid-cols-4 gap-2 pb-2 translate-y-[-4px]">
+              <div className="-mt-1 grid w-[calc(100%+20px)] grid-cols-4 gap-2 pb-2 translate-y-[-4px]">
                 <div className="flex min-h-[52px] flex-col items-center justify-center gap-0.5 rounded-md border border-border bg-muted/80 px-1.5 py-1.5 text-center">
                   <p className="truncate text-[11px] font-black leading-none text-foreground">{metrics.activeTenants.toLocaleString()}</p>
                   <p className="text-[7px] uppercase tracking-[0.12em] text-muted-foreground">Active</p>

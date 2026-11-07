@@ -821,18 +821,35 @@ export default function EmployeeList({ initialEmployees,  }: { initialEmployees:
                                     className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white dark:bg-slate-950"
                                 >
                                     <DialogHeader className="shrink-0 px-5 sm:px-8 lg:px-10 py-4 sm:py-5 pb-3 bg-slate-50/50 dark:bg-slate-900/50">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-9 w-9 shrink-0 rounded-xl bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-600/20">
-                                                <UserCircle className="h-5 w-5 text-white" />
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="h-9 w-9 shrink-0 rounded-xl bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-600/20">
+                                                    <UserCircle className="h-5 w-5 text-white" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <DialogTitle className="text-lg sm:text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight truncate">
+                                                        {selectedEmployee ? 'Update Profile' : 'New Master Entry'}
+                                                    </DialogTitle>
+                                                    <DialogDescription className="font-semibold text-xs uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                                                        Official workforce documentation
+                                                    </DialogDescription>
+                                                </div>
                                             </div>
-                                            <div className="min-w-0">
-                                                <DialogTitle className="text-lg sm:text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight truncate">
-                                                    {selectedEmployee ? 'Update Profile' : 'New Master Entry'}
-                                                </DialogTitle>
-                                                <DialogDescription className="font-semibold text-xs uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                                                    Official workforce documentation
-                                                </DialogDescription>
-                                            </div>
+
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() => {
+                                                    setOpen(false);
+                                                    setSelectedEmployee(null);
+                                                    setSaveAsProvisional(false);
+                                                    setActiveTab("personal");
+                                                }}
+                                                className="shrink-0 rounded-xl border-slate-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 transition-all duration-200 hover:bg-slate-100 hover:border-slate-300 hover:text-slate-900 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:border-slate-600 dark:hover:text-white"
+                                            >
+                                                <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+                                                Go Back
+                                            </Button>
                                         </div>
                                     </DialogHeader>
 
