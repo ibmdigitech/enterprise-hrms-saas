@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Building2, Mail, Phone, Globe, MapPin, Signature, FileImage, Save, Loader2 } from "lucide-react";
+import { Building2, Mail, Phone, Globe, MapPin, Signature, Stamp, FileImage, Save, Loader2 } from "lucide-react";
 
 interface CompanySettingsFormProps {
     initialSettings: CompanySettings;
@@ -21,7 +21,7 @@ export function CompanySettingsForm({ initialSettings }: CompanySettingsFormProp
         setSettings((prev) => ({ ...prev, [name]: value }));
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: "logo" | "signature" | "letterhead") => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: "logo" | "signature" | "stamp" | "letterhead") => {
         const file = e.target.files?.[0];
         if (!file) return;
 
@@ -145,13 +145,13 @@ export function CompanySettingsForm({ initialSettings }: CompanySettingsFormProp
                     </div>
 
                     <div className="grid grid-cols-1 gap-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-3 gap-3">
                             {/* Logo Upload */}
-                            <div className="p-4 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 flex flex-col items-center justify-center text-center">
-                                <FileImage className="h-6 w-6 text-slate-400 mb-2" />
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Company Logo</span>
+                            <div className="p-3 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 flex flex-col items-center justify-center text-center">
+                                <FileImage className="h-5 w-5 text-slate-400 mb-1.5" />
+                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">Company Logo</span>
                                 {settings.logo ? (
-                                    <div className="relative mb-2 w-16 h-16 rounded border border-slate-100 dark:border-slate-800 overflow-hidden flex items-center justify-center bg-white">
+                                    <div className="relative mb-2 w-14 h-14 rounded border border-slate-100 dark:border-slate-800 overflow-hidden flex items-center justify-center bg-white">
                                         <img src={settings.logo} alt="Logo Preview" className="max-w-full max-h-full object-contain" />
                                         <button
                                             type="button"
@@ -162,7 +162,7 @@ export function CompanySettingsForm({ initialSettings }: CompanySettingsFormProp
                                         </button>
                                     </div>
                                 ) : (
-                                    <label className="cursor-pointer bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50">
+                                    <label className="cursor-pointer bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50">
                                         Upload
                                         <input type="file" accept="image/png,image/jpeg" onChange={(e) => handleFileChange(e, "logo")} className="hidden" />
                                     </label>
@@ -170,11 +170,11 @@ export function CompanySettingsForm({ initialSettings }: CompanySettingsFormProp
                             </div>
 
                             {/* Signature Upload */}
-                            <div className="p-4 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 flex flex-col items-center justify-center text-center">
-                                <Signature className="h-6 w-6 text-slate-400 mb-2" />
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">HR Signature</span>
+                            <div className="p-3 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 flex flex-col items-center justify-center text-center">
+                                <Signature className="h-5 w-5 text-slate-400 mb-1.5" />
+                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">HR Signature</span>
                                 {settings.signature ? (
-                                    <div className="relative mb-2 w-16 h-16 rounded border border-slate-100 dark:border-slate-800 overflow-hidden flex items-center justify-center bg-white">
+                                    <div className="relative mb-2 w-14 h-14 rounded border border-slate-100 dark:border-slate-800 overflow-hidden flex items-center justify-center bg-white">
                                         <img src={settings.signature} alt="Signature Preview" className="max-w-full max-h-full object-contain" />
                                         <button
                                             type="button"
@@ -185,9 +185,32 @@ export function CompanySettingsForm({ initialSettings }: CompanySettingsFormProp
                                         </button>
                                     </div>
                                 ) : (
-                                    <label className="cursor-pointer bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50">
+                                    <label className="cursor-pointer bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50">
                                         Upload
                                         <input type="file" accept="image/png,image/jpeg" onChange={(e) => handleFileChange(e, "signature")} className="hidden" />
+                                    </label>
+                                )}
+                            </div>
+
+                            {/* Stamp Upload */}
+                            <div className="p-3 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 flex flex-col items-center justify-center text-center">
+                                <Stamp className="h-5 w-5 text-indigo-500 mb-1.5" />
+                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">Company Stamp</span>
+                                {settings.stamp ? (
+                                    <div className="relative mb-2 w-14 h-14 rounded border border-slate-100 dark:border-slate-800 overflow-hidden flex items-center justify-center bg-white">
+                                        <img src={settings.stamp} alt="Stamp Preview" className="max-w-full max-h-full object-contain" />
+                                        <button
+                                            type="button"
+                                            onClick={() => setSettings(prev => ({ ...prev, stamp: "" }))}
+                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 text-[8px] w-4 h-4 flex items-center justify-center font-bold"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <label className="cursor-pointer bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50">
+                                        Upload
+                                        <input type="file" accept="image/png,image/jpeg" onChange={(e) => handleFileChange(e, "stamp")} className="hidden" />
                                     </label>
                                 )}
                             </div>

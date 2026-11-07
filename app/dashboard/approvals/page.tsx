@@ -294,7 +294,7 @@ export default async function ApprovalsPage() {
             </div>
 
             {/* Stats Row */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
                 <Card className="group bg-white dark:bg-slate-900/60 backdrop-blur-xl border-slate-200 dark:border-slate-800 shadow-lg rounded-[2rem] overflow-hidden hover:shadow-indigo-500/10 transition-all duration-300">
                     <CardContent className="p-6 flex items-center gap-4">
                         <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl group-hover:scale-110 transition-transform">
@@ -367,6 +367,19 @@ export default async function ApprovalsPage() {
                             <div>
                                 <p className="text-3xl font-black text-slate-900 dark:text-white">{pendingExitCases.length}</p>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Exit Cases</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+                {canApprovePromotions && (
+                    <Card className="group bg-white dark:bg-slate-900/60 backdrop-blur-xl border-slate-200 dark:border-slate-800 shadow-lg rounded-[2rem] overflow-hidden hover:shadow-fuchsia-500/10 transition-all duration-300">
+                        <CardContent className="p-6 flex items-center gap-4">
+                            <div className="p-3 bg-fuchsia-50 dark:bg-fuchsia-900/30 rounded-xl group-hover:scale-110 transition-transform">
+                                <TrendingUp className="h-6 w-6 text-fuchsia-600 dark:text-fuchsia-400" />
+                            </div>
+                            <div>
+                                <p className="text-3xl font-black text-slate-900 dark:text-white">{pendingPromotions.length}</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Promotions</p>
                             </div>
                         </CardContent>
                     </Card>
@@ -448,6 +461,15 @@ export default async function ApprovalsPage() {
                                         <Badge className="ml-1 bg-orange-600/20 text-orange-700 dark:text-orange-300 border-0 text-[10px]">
                                             {pendingChangeRequests.filter((r) => r.status === "PENDING").length}
                                         </Badge>
+                                    )}
+                                </TabsTrigger>
+                            )}
+                            {canApprovePromotions && (
+                                <TabsTrigger value="promotions" className="shrink-0 rounded-xl px-6 font-bold text-xs data-[state=active]:bg-fuchsia-600 data-[state=active]:text-white transition-all gap-2">
+                                    <TrendingUp className="h-4 w-4" />
+                                    Promotions
+                                    {pendingPromotions.length > 0 && (
+                                        <Badge className="ml-1 bg-fuchsia-600/20 text-fuchsia-700 dark:text-fuchsia-300 border-0 text-[10px]">{pendingPromotions.length}</Badge>
                                     )}
                                 </TabsTrigger>
                             )}
@@ -895,6 +917,13 @@ export default async function ApprovalsPage() {
                         <TabsContent value="data-changes" className="m-0">
                             <CardContent className="p-6">
                                 <ChangeRequestsTab requests={pendingChangeRequests as any} />
+                            </CardContent>
+                        </TabsContent>
+                    )}
+                    {canApprovePromotions && (
+                        <TabsContent value="promotions" className="m-0">
+                            <CardContent className="p-6">
+                                <PromotionsTab requests={pendingPromotions as any} />
                             </CardContent>
                         </TabsContent>
                     )}

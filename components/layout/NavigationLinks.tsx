@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Activity, ArrowRightLeft, Bell, Briefcase, Building2, Calendar, CalendarClock,
   CheckCircle2, ChevronDown, CreditCard, Eye, FileSignature, FileText, FileUp,
-  HeartHandshake, LayoutDashboard, Plane, Settings2, Target, UserPlus, Users,
+  Headphones, HeartHandshake, LayoutDashboard, Plane, Settings2, Target, UserPlus, Users,
   UserRoundX, Layers, Sparkles, Shield, ShieldCheck, UserCircle, KeyRound, BookOpen, Rocket,
   FolderOpen, GraduationCap, TrendingUp, type LucideIcon,
 } from "lucide-react";
@@ -61,6 +61,7 @@ export const sidebarItems: NavItem[] = [
   { title: "Letters", href: "/letters", icon: FileText, iconColor: "text-pink-400", permission: PERMISSIONS.LETTER_VIEW },
   { title: "Visa & Compliance", href: "/visa", icon: FileUp, iconColor: "text-orange-400", permission: PERMISSIONS.VISA_VIEW },
   { title: "Staff Services", href: "/staff-services", icon: HeartHandshake, iconColor: "text-teal-400", permission: PERMISSIONS.SERVICE_VIEW },
+  { title: "Support Desk", href: "/support", icon: Headphones, iconColor: "text-indigo-400", permission: PERMISSIONS.SUPPORT_TICKETS_VIEW },
   { title: "Requests", href: "/requests", icon: ArrowRightLeft, iconColor: "text-sky-400", permission: PERMISSIONS.REQUEST_VIEW },
   { title: "Notifications", href: "/notifications", icon: Bell, iconColor: "text-sky-400", permission: PERMISSIONS.NOTIFICATION_VIEW },
   { title: "Business Travel", href: "/travel", icon: Plane, iconColor: "text-orange-400", permission: PERMISSIONS.TRAVEL_VIEW },
@@ -76,7 +77,6 @@ export const sidebarItems: NavItem[] = [
   { title: "Users", href: "/settings", icon: UserCircle, iconColor: "text-indigo-400", permission: PERMISSIONS.SETTINGS_VIEW },
   { title: "Roles & Permissions", href: "/dashboard/approvals/roles", icon: Shield, iconColor: "text-indigo-400", permission: PERMISSIONS.ACCESS_APPROVE },
   { title: "Access Requests", href: "/dashboard/request-access", icon: KeyRound, iconColor: "text-indigo-400", permission: PERMISSIONS.ACCESS_REQUEST },
-  { title: "Access Review", href: "/dashboard/approvals/roles", icon: Eye, iconColor: "text-violet-400", permission: PERMISSIONS.ACCESS_APPROVE },
   { title: "Letter Templates", href: "/dashboard/settings/templates", icon: BookOpen, iconColor: "text-pink-400", permission: PERMISSIONS.LETTER_TEMPLATE_MANAGE },
   { title: "Company Documents", href: "/company/documents", icon: FolderOpen, iconColor: "text-teal-400", permission: PERMISSIONS.SETTINGS_VIEW },
   { title: "Organization & Structure", href: "/company/organization", icon: Building2, iconColor: "text-blue-400", permission: PERMISSIONS.SETTINGS_VIEW },

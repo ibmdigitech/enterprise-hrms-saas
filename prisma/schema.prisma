@@ -1055,6 +1055,8 @@ model SalaryRecord {
   status             String    @default("DRAFT") // DRAFT, LOCKED, PAID, CANCELLED
   paymentMethod      String    @default("BANK_TRANSFER")
   paidAt             DateTime?
+  /** URL (or path) of the generated payslip PDF */
+  pdfUrl             String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -1331,12 +1333,20 @@ model LetterRequest {
   employee        Employee         @relation(fields: [employeeId], references: [id])
   templateId      String
   template        LetterTemplate   @relation(fields: [templateId], references: [id])
-  reason          String?
+  letterType      String?          // e.g. SALARY_CERTIFICATE, EMPLOYMENT, EXPERIENCE, NOC, BANK_ACCOUNT, VISA_SUPPORT
+  purpose         String?          // Purpose of the letter
+  reason          String?          // Legacy / additional details
+  remarks         String?          // Additional notes from employee
+  requiredDate    DateTime?        // When the letter is needed by
+  attachmentUrl   String?          // Optional attachment (e.g. embassy form, bank doc)
   status          String           @default("PENDING") // PENDING, MANAGER_APPROVED, HR_APPROVED, COMPLETED, REJECTED
   approvals       LetterApproval[]
   generatedLetter Letter?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+
+  @@index([employeeId, status])
+  @@index([status])
 }
 
 model LetterApproval {
@@ -1344,10 +1354,13 @@ model LetterApproval {
   letterRequestId String
   letterRequest   LetterRequest @relation(fields: [letterRequestId], references: [id], onDelete: Cascade)
   approverId      String?
-  level           String // MANAGER, HR
-  action          String // APPROVED, REJECTED
+  approverName    String?
+  level           String        // MANAGER, HR
+  action          String        // APPROVED, REJECTED
   comments        String?
   createdAt       DateTime      @default(now())
+
+  @@index([letterRequestId])
 }
 
 model LetterTemplate {
@@ -2068,6 +2081,9 @@ model EmployeePromotion {
   letterRecordId      String?
   letterRecord        LetterRecord? @relation(fields: [letterRecordId], references: [id])
 
+  /** URL (or path) of the generated promotion letter PDF */
+  pdfUrl              String?
+
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
 
@@ -2320,6 +2336,8 @@ model Tenant {
   backgroundJobs      BackgroundJob[]
   integrationHealth   IntegrationHealth[]
   applicationErrors   ApplicationError[]
+  aiUsageLogs         AIUsageLog[]
+  aiBudget            AICompanyBudget?
 
   // Training relations
   trainingCourses            TrainingCourse[]
@@ -2556,21 +2574,30 @@ model PaymentTransaction {
 
 /// Represents an available SaaS module/feature in the platform.
 model Module {
-  id          String   @id @default(cuid())
-  key         String   @unique // e.g., "payroll", "recruitment", "attendance"
-  name        String
-  description String?
-  category    String   @default("CORE") // CORE, HR, FINANCE, COMPLIANCE, TALENT, OPERATIONS
-  isActive    Boolean  @default(true)
-  isCore      Boolean  @default(false) // Core modules cannot be disabled
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(cuid())
+  key            String   @unique // e.g., "payroll", "recruitment", "attendance"
+  name           String
+  description    String?
+  category       String   @default("CORE") // CORE, WORKFORCE, PAYROLL, LIFECYCLE, TALENT, COMPLIANCE, SERVICES, BI, ENTERPRISE, AI
+  version        String   @default("1.0.0")
+  priceMonthly   Float    @default(0)
+  priceAnnual    Float    @default(0)
+  currency       String   @default("AED")
+  trialDays      Int      @default(14)
+  features       String[] @default([])
+  dependencies   String[] @default([]) // Array of module keys required before activating
+  isPublished    Boolean  @default(true)
+  isActive       Boolean  @default(true)
+  isCore         Boolean  @default(false) // Core modules cannot be disabled
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   companyModules CompanyModule[]
 
   @@index([category, isActive])
   @@index([key])
+  @@index([isPublished])
 }
 
 /// Company-specific module entitlement (links Tenant/Company to Module with config).
@@ -3005,6 +3032,7 @@ model TrainingCertificate {
   templateId      String?
   /// Generated PDF/document URL
   documentUrl     String?
+  pdfUrl          String?
   /// Employee photo at time of issuance (for certificate personalization)
   employeePhoto   String?
   /// Additional metadata (instructor, venue, etc.)
@@ -3251,4 +3279,63 @@ model TemporaryRoleAssignment {
 
   @@index([userId, isActive])
   @@index([endDate, isActive])
+}
+
+// ─── AI SERVICES MARKETPLACE & USAGE GOVERNANCE ─────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// AI Modules published in the AI Marketplace (e.g. AI HR Assistant, AI CV Parser)
+model AIModule {
+  id          String   @id @default(cuid())
+  key         String   @unique // ai_hr_assistant, ai_cv_parser, ai_doc_intel, ai_payroll, etc.
+  name        String
+  description String?
+  category    String   @default("PRODUCTIVITY") // PRODUCTIVITY, RECRUITMENT, DOCUMENT, PAYROLL, ANALYTICS, VOICE
+  provider    String   @default("OPENAI") // OPENAI, GOOGLE, ANTHROPIC
+  defaultModel String  @default("gpt-4o")
+  priceMonthly Float   @default(0)
+  tokenAllowance Int   @default(500000) // Base tokens included per month
+  isPublished Boolean  @default(true)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  usageLogs   AIUsageLog[]
+
+  @@index([category, isActive])
+  @@index([key])
+}
+
+/// AI Usage tracking per tenant, company, and user
+model AIUsageLog {
+  id          String    @id @default(cuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  companyId   String?
+  userId      String?
+  aiModuleKey String
+  aiModule    AIModule? @relation(fields: [aiModuleKey], references: [key], onDelete: SetNull)
+  provider    String
+  model       String
+  promptTokens     Int   @default(0)
+  completionTokens Int   @default(0)
+  totalTokens      Int   @default(0)
+  estimatedCostAed Float @default(0)
+  actionName       String?
+  createdAt        DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([aiModuleKey, createdAt])
+}
+
+/// Tenant-level AI monthly budget limits & safety controls
+model AICompanyBudget {
+  id            String   @id @default(cuid())
+  tenantId      String   @unique
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  monthlyBudgetAed Float @default(500)
+  currentSpendAed  Float @default(0)
+  hardStopEnabled Boolean @default(true)
+  warningThresholdPercent Int @default(80)
+  updatedAt     DateTime @updatedAt
 }

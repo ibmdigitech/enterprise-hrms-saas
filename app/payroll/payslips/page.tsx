@@ -10,6 +10,7 @@ import Link from "next/link";
 
 import { DownloadPDFButton } from "@/components/payroll/DownloadPDFButton";
 import { PayrollStatusDropdown } from "@/components/payroll/PayrollStatusDropdown";
+import { PayrollExportButtons } from "@/components/payroll/PayrollExportButtons";
 
 export default async function PayslipPage() {
     const session = await auth();
@@ -107,6 +108,11 @@ export default async function PayslipPage() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Export Bar */}
+            {isAdmin && (
+                <PayrollExportButtons />
+            )}
 
             {/* Table */}
             <Card className="border-slate-200 dark:border-slate-800 shadow-sm">

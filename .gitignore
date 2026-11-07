@@ -83,3 +83,7 @@ next-env.d.ts
 /lib/generated/prisma
 
 .vercel
+
+# Generated PDFs
+generated/
+public/generated/

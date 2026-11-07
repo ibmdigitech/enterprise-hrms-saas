@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { auth } from "@/auth";
+import { authorizePermission } from "@/lib/auth/guards";
+import { PERMISSIONS } from "@/lib/auth/permissions";
 import type { SalaryRecord, Employee } from "@/prisma/generated/client";
+import { generateBatchPaySlipsBuffer, type PaySlipData } from "@/lib/pdf/generate";
 
 /**
  * The row shape the export query actually returns: a SalaryRecord joined to
@@ -12,17 +14,9 @@ type SALARY_EXPORT_ROW = SalaryRecord & { employee: Employee };
 
 export async function GET(request: NextRequest) {
     try {
-        const session = await auth();
-        if (!session?.user?.email) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        // Verify admin/HR role
-        const user = await prisma.user.findUnique({
-            where: { email: session.user.email },
-        });
-        if (!user || (user.role !== "ADMIN" && user.role !== "HR")) {
-            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        const authResult = await authorizePermission(PERMISSIONS.PAYROLL_EXPORT);
+        if (!authResult.ok) {
+            return NextResponse.json({ error: authResult.error }, { status: authResult.status });
         }
 
         const { searchParams } = new URL(request.url);
@@ -63,9 +57,11 @@ export async function GET(request: NextRequest) {
                 return generateExcel(salaryRecords, monthName, year);
             case "wps":
                 return generateWPS(salaryRecords, monthName, year, month);
+            case "pdf":
+                return await generatePDF(salaryRecords, monthName, year, month);
             default:
                 return NextResponse.json(
-                    { error: "Invalid format. Use csv, excel, or wps" },
+                    { error: "Invalid format. Use csv, excel, wps, or pdf" },
                     { status: 400 }
                 );
         }
@@ -348,4 +344,71 @@ function getBankCode(bankName: string): string {
 
     const normalizedName = bankName.trim();
     return bankMap[normalizedName] || normalizedName.substring(0, 4).toUpperCase() || "UNKN";
+}
+
+
+async function generatePDF(
+    records: SALARY_EXPORT_ROW[],
+    monthName: string,
+    year: number,
+    month: number
+) {
+    const period = `${month}/${year}`;
+    const payslipItems: PaySlipData[] = records.map((record) => {
+        const otherAllowances =
+            record.medicalAllowance +
+            record.foodAllowance +
+            record.travelAllowance +
+            record.commission +
+            record.otherAllowances;
+
+        const gross =
+            record.basic +
+            record.housingAllowance +
+            record.transportAllowance +
+            otherAllowances +
+            record.overtimePay +
+            record.bonus;
+
+        const latePenaltyTotal = record.latePenalty + record.penalty;
+        const otherDeductionsTotal = record.advanceSalary + record.otherDeductions;
+        const deductions =
+            latePenaltyTotal +
+            record.leaveDeduction +
+            record.loanDeduction +
+            otherDeductionsTotal;
+
+        return {
+            employeeName: `${record.employee.firstName} ${record.employee.lastName}`,
+            employeeId: record.employeeId,
+            employeeCode: record.employee.employeeCode ?? undefined,
+            designation: record.employee.designation ?? undefined,
+            department: record.employee.department ?? undefined,
+            period,
+            basic: record.basic,
+            housing: record.housingAllowance,
+            transport: record.transportAllowance,
+            overtime: record.overtimePay,
+            bonus: record.bonus,
+            otherAllowances,
+            gross,
+            latePenalty: latePenaltyTotal,
+            leaveDeductions: record.leaveDeduction,
+            loanDeduction: record.loanDeduction,
+            otherDeductions: otherDeductionsTotal,
+            deductions,
+            net: record.netSalary,
+        };
+    });
+
+    const pdfBytes = await generateBatchPaySlipsBuffer(payslipItems);
+    const filename = `payroll_payslips_${monthName}_${year}.pdf`;
+
+    return new NextResponse(Buffer.from(pdfBytes), {
+        headers: {
+            "Content-Type": "application/pdf",
+            "Content-Disposition": `attachment; filename="${filename}"`,
+            "Content-Length": pdfBytes.length.toString(),
+        },
+    });
 }

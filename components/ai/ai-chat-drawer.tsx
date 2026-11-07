@@ -115,7 +115,7 @@ export function AIChatDrawer({ userRole, userName }: Props) {
                 >
                     {/* Chatbot Icon with animated online pulse dot */}
                     <div className="relative flex items-center justify-center h-8 w-8 rounded-xl bg-white/20 backdrop-blur-md group-hover:bg-white/30 transition-colors shadow-inner">
-                        <MessageSquareText className="h-5 w-5 text-white transition-transform group-hover:scale-110" />
+                        <Bot className="h-5 w-5 text-white transition-transform group-hover:scale-110" />
                         <span className="absolute -top-1 -right-1 flex h-3 w-3">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-[#0f172a]"></span>

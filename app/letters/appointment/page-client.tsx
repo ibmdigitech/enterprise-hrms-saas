@@ -32,6 +32,7 @@ export function AppointmentLetterPage () {
         email: "hr@ibmdigitech.com",
         website: "https://ibmdigitech.com",
         signature: "",
+        stamp: "",
         letterhead: "",
     });
 

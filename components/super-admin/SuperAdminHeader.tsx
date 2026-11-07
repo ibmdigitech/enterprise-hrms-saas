@@ -76,6 +76,7 @@ interface SuperAdminHeaderProps {
 
 export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
   const pathname = usePathname();
+  const isNotificationsActive = pathname === "/notifications";
   const [searchOpen, setSearchOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { data: session } = useSession();
@@ -276,21 +277,30 @@ export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
+                asChild
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10 rounded-xl bg-slate-100/50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all relative"
+                className={cn(
+                  "h-10 w-10 rounded-xl transition-all relative",
+                  isNotificationsActive
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 ring-2 ring-indigo-500"
+                    : "bg-slate-100/50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
+                )}
                 aria-label="Notifications"
               >
-                <Bell className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                <motion.span
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                  className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500"
-                />
+                <Link href="/notifications" className="relative flex items-center justify-center w-full h-full">
+                  <Bell className={cn("h-5 w-5", isNotificationsActive ? "text-white" : "text-slate-600 dark:text-slate-400")} />
+                  <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5 pointer-events-none">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
+                  </span>
+                </Link>
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom" align="end">
-              <span className="text-sm font-medium text-slate-900 bg-white px-3 py-1.5 rounded-lg shadow-lg">Notifications</span>
+              <span className="text-sm font-medium text-slate-900 bg-white px-3 py-1.5 rounded-lg shadow-lg">
+                {isNotificationsActive ? "Current Page: Notifications" : "Notifications"}
+              </span>
             </TooltipContent>
           </Tooltip>
 

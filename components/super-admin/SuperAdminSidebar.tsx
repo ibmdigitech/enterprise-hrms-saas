@@ -9,6 +9,7 @@ import {
   CreditCard,
   Layers,
   Package,
+  Sparkles,
   Users,
   Shield,
   UserCog,
@@ -23,19 +24,16 @@ import {
   ShieldAlert,
   UserPlus,
   FileText,
-  Sun,
-  Moon,
   LogOut,
-  Menu,
   X,
   Bell,
-  Search,
-  HelpCircle,
-  ChevronUp,
+  ArrowRightLeft,
+  Briefcase,
+  Calendar,
+  CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { signOut, useSession } from "next-auth/react";
-import { Button } from "@/components/ui/button";
+import { signOut } from "next-auth/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,7 +51,6 @@ import {
 import {
   Collapsible,
   CollapsibleTrigger,
-  CollapsibleContent,
 } from "@/components/ui/collapsible";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
@@ -69,7 +66,22 @@ export interface SuperAdminNavItem {
 
 export const superAdminNavigation: SuperAdminNavItem[] = [
   {
-    title: "Dashboard",
+    title: "Normal Dashboard",
+    href: "/dashboard",
+    icon: Building2,
+    badge: "HRMS",
+    children: [
+      { title: "Main Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { title: "Employees", href: "/employees", icon: Users },
+      { title: "Payroll Center", href: "/payroll", icon: CreditCard },
+      { title: "Attendance & Shifts", href: "/attendance", icon: Calendar },
+      { title: "Leaves Management", href: "/leaves", icon: Briefcase },
+      { title: "Approvals Queue", href: "/dashboard/approvals", icon: CheckCircle2 },
+      { title: "Workforce Settings", href: "/settings", icon: Settings2 },
+    ],
+  },
+  {
+    title: "Super Admin Dashboard",
     href: "/super-admin/dashboard",
     icon: LayoutDashboard,
   },
@@ -98,9 +110,14 @@ export const superAdminNavigation: SuperAdminNavItem[] = [
     icon: FileText,
   },
   {
-    title: "Modules",
+    title: "Module Marketplace",
     href: "/super-admin/modules",
     icon: Package,
+  },
+  {
+    title: "AI Services & Models",
+    href: "/super-admin/ai-services",
+    icon: Sparkles,
   },
   {
     title: "Platform Users",
@@ -158,10 +175,8 @@ interface SuperAdminSidebarProps {
 export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: SuperAdminSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
-// mobileOpen managed via props
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [mounted, setMounted] = useState(false);
-  const { data: session } = useSession();
 
   useEffect(() => {
     setMounted(true);
@@ -180,7 +195,7 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
     : "SA";
 
   const isActive = (href: string) => {
-    if (href === "/super-admin/dashboard" || href === "/super-admin/companies") {
+    if (href === "/dashboard" || href === "/super-admin/dashboard" || href === "/super-admin/companies") {
       return pathname === href;
     }
     return pathname === href || pathname.startsWith(`${href}/`);
@@ -200,8 +215,6 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
     return hasActiveChild(item.children);
   };
 
-  // Render consistently on SSR and client to eliminate blank flash and layout shift
-
   const NavLink = ({ item, level = 0, isChild = false }: { item: SuperAdminNavItem; level?: number; isChild?: boolean }) => {
     const active = isActive(item.href);
     const hasChildren = item.children && item.children.length > 0;
@@ -209,7 +222,7 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
 
     if (hasChildren && !isChild) {
       return (
-        <Collapsible open={groupExpanded} onOpenChange={(open) => toggleGroup(item.title)}>
+        <Collapsible open={groupExpanded} onOpenChange={() => toggleGroup(item.title)}>
           <CollapsibleTrigger
             className={cn(
               "flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/50 cursor-pointer",
@@ -235,7 +248,7 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
                   {item.title}
                 </span>
                 {item.badge && (
-                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 px-1.5 text-[10px] font-bold text-white shadow-sm shadow-indigo-500/20">
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-1.5 text-[10px] font-bold text-white shadow-sm shadow-emerald-500/20">
                     {item.badge}
                   </span>
                 )}
@@ -298,7 +311,7 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
             </span>
             {item.badge && (
               <span
-                className="flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 px-1.5 text-[10px] font-bold text-white shadow-sm shadow-indigo-500/20 ml-auto"
+                className="flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-1.5 text-[10px] font-bold text-white shadow-sm shadow-emerald-500/20 ml-auto"
               >
                 {item.badge}
               </span>
@@ -365,6 +378,27 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
                   <X className="h-5 w-5" />
                 </button>
               </div>
+
+              {/* Mobile Switcher to Normal Dashboard */}
+              <div className="px-3 pt-3 pb-1">
+                <Link
+                  href="/dashboard"
+                  onClick={onMobileClose}
+                  className="group flex items-center justify-between gap-2.5 rounded-xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-indigo-500/15 p-2.5 text-emerald-300 ring-1 ring-emerald-500/30 transition-all hover:ring-emerald-400 hover:bg-emerald-500/20 hover:text-white shadow-sm"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/20 ring-1 ring-emerald-500/30 text-emerald-400">
+                      <Building2 className="h-4 w-4" />
+                    </div>
+                    <div className="text-left min-w-0">
+                      <div className="text-xs font-bold text-white truncate">Normal Dashboard</div>
+                      <div className="text-[10px] text-emerald-400/80 truncate">Open HRMS Workspace</div>
+                    </div>
+                  </div>
+                  <ArrowRightLeft className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                </Link>
+              </div>
+
               <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
                 {superAdminNavigation.map((item) => (
                   <div key={item.title} onClick={onMobileClose}>
@@ -424,14 +458,51 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
             </AnimatePresence>
           </motion.div>
 
+          {/* Prominent Switcher to Normal Dashboard */}
+          {!collapsed ? (
+            <div className="px-3 pt-3 pb-1">
+              <Link
+                href="/dashboard"
+                className="group flex items-center justify-between gap-2.5 rounded-xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-indigo-500/15 p-2.5 text-emerald-300 ring-1 ring-emerald-500/30 transition-all hover:ring-emerald-400 hover:bg-emerald-500/20 hover:text-white shadow-sm"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/20 ring-1 ring-emerald-500/30 text-emerald-400 group-hover:scale-105 transition-transform">
+                    <Building2 className="h-4 w-4" />
+                  </div>
+                  <div className="text-left min-w-0">
+                    <div className="text-xs font-bold text-white truncate group-hover:text-emerald-300 transition-colors">Normal Dashboard</div>
+                    <div className="text-[10px] text-emerald-400/80 truncate">Open HRMS Workspace</div>
+                  </div>
+                </div>
+                <ArrowRightLeft className="h-3.5 w-3.5 text-emerald-400 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </div>
+          ) : (
+            <div className="flex justify-center pt-3 pb-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    href="/dashboard"
+                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/30 hover:bg-emerald-500/25 hover:text-white transition-all"
+                  >
+                    <Building2 className="h-4 w-4" />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="right" align="center" className="z-50">
+                  <span className="text-xs font-bold text-slate-900 bg-white px-2.5 py-1 rounded shadow">Normal Dashboard</span>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          )}
+
           {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1" aria-label="Main navigation">
+          <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1" aria-label="Main navigation">
             {superAdminNavigation.map((group, index) => (
               <motion.div
                 key={group.title}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 * index, duration: 0.3 }}
+                transition={{ delay: 0.04 * index, duration: 0.25 }}
               >
                 <NavLink item={group} />
               </motion.div>
@@ -443,8 +514,23 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className={cn("border-t border-slate-800/50 p-3 space-y-3", collapsed && "items-center")}
+            className={cn("border-t border-slate-800/50 p-3 space-y-2", collapsed && "items-center")}
           >
+            {/* Quick Switch to Normal Dashboard Pill */}
+            <Link
+              href="/dashboard"
+              className={cn(
+                "flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-emerald-950/80 to-teal-950/80 px-3 py-2 text-emerald-300 ring-1 ring-emerald-500/30 transition-all hover:ring-emerald-500/60 hover:text-white",
+                collapsed && "justify-center px-2"
+              )}
+              title="Go to Normal Dashboard"
+            >
+              <Building2 className="h-4 w-4 text-emerald-400 shrink-0" />
+              {!collapsed && (
+                <span className="text-[11px] font-bold tracking-wide truncate">Go to Normal Dashboard</span>
+              )}
+            </Link>
+
             {/* User Section */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -500,6 +586,11 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
                       <DropdownMenuContent className="w-56 bg-slate-900 border-slate-800 shadow-2xl" sideOffset={5}>
                         <DropdownMenuLabel className="text-xs font-semibold text-slate-400 px-2 py-1">Account</DropdownMenuLabel>
                         <DropdownMenuSeparator className="border-slate-800" />
+                        <Link href="/dashboard">
+                          <DropdownMenuItem className="text-emerald-300 hover:bg-emerald-500/10 hover:text-white cursor-pointer font-medium">
+                            <Building2 className="h-4 w-4 mr-2" /> Normal Dashboard
+                          </DropdownMenuItem>
+                        </Link>
                         <DropdownMenuItem className="text-slate-300 hover:bg-indigo-500/10 hover:text-white">
                           <Settings2 className="h-4 w-4 mr-2" /> Profile
                         </DropdownMenuItem>

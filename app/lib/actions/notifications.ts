@@ -74,3 +74,32 @@ export async function markAllRead() {
         return { success: false, message: (e instanceof Error ? e.message : "Unknown error") };
     }
 }
+
+
+export async function getUnreadNotificationsData() {
+    const session = await auth();
+    if (!session?.user?.email) return { count: 0, notifications: [] };
+
+    try {
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email },
+            include: { employee: true }
+        });
+        if (!user?.employee) return { count: 0, notifications: [] };
+
+        const [count, recent] = await Promise.all([
+            prisma.notification.count({
+                where: { employeeId: user.employee.id, isRead: false }
+            }),
+            prisma.notification.findMany({
+                where: { employeeId: user.employee.id },
+                orderBy: { createdAt: "desc" },
+                take: 5
+            })
+        ]);
+
+        return { count, notifications: JSON.parse(JSON.stringify(recent)) };
+    } catch {
+        return { count: 0, notifications: [] };
+    }
+}

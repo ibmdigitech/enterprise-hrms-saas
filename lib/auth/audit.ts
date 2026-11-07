@@ -32,6 +32,8 @@ export const SECURITY_ACTION = {
     LETTER_REJECTED: "LETTER_REJECTED",
     // Scheduled cron maintenance
     CRON_MAINTENANCE: "CRON_MAINTENANCE",
+    // PDF Generation
+    PDF_GENERATED: "PDF_GENERATED",
 } as const;
 
 export type SecurityAction = (typeof SECURITY_ACTION)[keyof typeof SECURITY_ACTION];

@@ -1,14 +1,13 @@
 import { requireSuperAdmin } from "@/lib/auth/guards";
-import { getModulesOverviewAction } from "./modules-actions";
-import { ModulesClient } from "./modules-client";
+import { getMarketplaceModulesAction } from "./modules-actions";
+import { ModulesMarketplaceClient } from "./modules-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function ModulesPage() {
   await requireSuperAdmin("platform.modules.view");
 
-  const overview = await getModulesOverviewAction();
+  const overview = await getMarketplaceModulesAction();
 
-  return <ModulesClient data={overview} />;
+  return <ModulesMarketplaceClient data={overview} />;
 }
-

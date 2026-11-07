@@ -1,9 +1,7 @@
-import { requirePageUser } from "@/lib/auth/page-guard";
-// Dashboard letter list: any authenticated employee may view their own letters.
+import { redirect } from "next/navigation";
 
-import { LetterGeneratorPage } from "./page-client";
-
-export default async function Page() {
-    await requirePageUser();
-    return <LetterGeneratorPage />;
+// Canonical letter management has been consolidated into /letters with full
+// template governance, approvals workflow, and official branding.
+export default function Page() {
+    redirect("/letters");
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Bell, Settings, LogOut, User, Search, ShieldCheck } from "lucide-react";
@@ -44,6 +45,8 @@ const ICON_BUTTON =
     "h-11 w-11 shrink-0 rounded-2xl bg-slate-100/50 text-slate-600 shadow-sm ring-1 ring-inset ring-slate-200/70 transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-600 hover:shadow-md hover:ring-indigo-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 motion-reduce:transition-none motion-reduce:transform-none dark:bg-slate-900/50 dark:text-slate-400 dark:ring-slate-800 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-300 dark:hover:ring-indigo-500/40";
 
 export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
+    const pathname = usePathname();
+    const isNotificationsActive = pathname === "/notifications";
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     // Below `md` there is no room for a 448px field next to three 44px controls,
     // so search collapses to an icon that expands the field over the row.
@@ -157,14 +160,30 @@ export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
             </div>
 
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-                {/* `asChild` puts the button classes on the anchor itself. The
-                    previous markup nested a `<button>` inside an `<a>`, which is
-                    invalid HTML, gave the control two tab stops, and made the
-                    visible focus ring land on the wrong element. */}
-                <Button asChild variant="ghost" size="icon" className={ICON_BUTTON}>
-                    <Link href="/notifications" aria-label="Notifications" title="Notifications">
-                        <Bell className="h-5 w-5" />
-                        <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-rose-500 ring-4 ring-white animate-pulse motion-reduce:animate-none dark:ring-slate-950" />
+                {/* Notification Bell Button with Active Route Highlight & Pinpoint Pulse Badge */}
+                <Button 
+                    asChild 
+                    variant="ghost" 
+                    size="icon" 
+                    className={cn(
+                        ICON_BUTTON,
+                        "relative",
+                        isNotificationsActive && "bg-indigo-600 text-white ring-2 ring-indigo-500 shadow-md shadow-indigo-600/30 hover:bg-indigo-700 hover:text-white dark:bg-indigo-600 dark:text-white dark:ring-indigo-400"
+                    )}
+                >
+                    <Link 
+                        href="/notifications" 
+                        aria-label="Notifications" 
+                        title={isNotificationsActive ? "Current Page: Notifications" : "View Notifications"}
+                        className="relative flex items-center justify-center w-full h-full"
+                    >
+                        <Bell className={cn("h-5 w-5 transition-transform group-hover:scale-105", isNotificationsActive ? "text-white" : "text-slate-600 dark:text-slate-300")} />
+                        
+                        {/* Active Notification Indicator Pinpoint Badge */}
+                        <span className="absolute top-2 right-2 flex h-2.5 w-2.5 pointer-events-none">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
+                        </span>
                     </Link>
                 </Button>
 
