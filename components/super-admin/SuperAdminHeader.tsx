@@ -19,8 +19,6 @@ import {
   ShieldAlert,
   Search,
   Bell,
-  Sun,
-  Moon,
   LogOut,
   Menu,
   X,
@@ -44,7 +42,6 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command";
-import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { signOut, useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -64,6 +61,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
+import { ThemeSelector } from "@/components/layout/ThemeSelector";
 
 interface SuperAdminHeaderProps {
   user: {
@@ -80,12 +78,6 @@ export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { data: session } = useSession();
-  const { theme, resolvedTheme, setTheme } = useTheme();
-
-  const isDark = (resolvedTheme || theme) === "dark";
-  const toggleTheme = () => {
-    setTheme(isDark ? "light" : "dark");
-  };
 
   useEffect(() => {
     setMounted(true);
@@ -132,14 +124,14 @@ export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
       <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative z-50 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-slate-200/50 bg-white/70 px-3 backdrop-blur-xl dark:bg-slate-950/70 dark:border-slate-800/50 md:h-20 md:gap-4 md:px-8"
+        className="relative z-50 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-background/75 px-3 backdrop-blur-xl md:h-20 md:gap-4 md:px-8"
         aria-busy="true"
         aria-label="Loading header"
       >
-        <div className="h-9 w-full max-w-md animate-pulse rounded-xl bg-slate-100 dark:bg-slate-900" />
+        <div className="h-9 w-full max-w-md animate-pulse rounded-xl bg-muted bg-card" />
         <div className="flex shrink-0 gap-2">
-          <span className="h-9 w-9 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-900" />
-          <span className="h-9 w-9 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-900" />
+          <span className="h-9 w-9 animate-pulse rounded-xl bg-muted bg-card" />
+          <span className="h-9 w-9 animate-pulse rounded-xl bg-muted bg-card" />
         </div>
       </motion.header>
     );
@@ -151,7 +143,7 @@ export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="relative z-50 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-slate-200/50 bg-white/70 px-3 backdrop-blur-xl dark:bg-slate-950/70 dark:border-slate-800/50 md:h-20 md:gap-4 md:px-8"
+        className="relative z-50 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-background/75 px-3 backdrop-blur-xl md:h-20 md:gap-4 md:px-8"
       >
         {/* Mobile Menu Button */}
         <Tooltip>
@@ -163,11 +155,11 @@ export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
               onClick={onMenuClick}
               aria-label="Open navigation menu"
             >
-              <Menu className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+              <Menu className="h-4 w-4 text-muted-foreground" />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom" align="start">
-            <span className="text-xs font-medium text-slate-900 bg-white px-2.5 py-1 rounded-lg shadow-lg">Open menu</span>
+            <span className="rounded-lg border border-border bg-popover px-2.5 py-1 text-xs font-medium text-foreground shadow-lg">Open menu</span>
           </TooltipContent>
         </Tooltip>
 
@@ -176,19 +168,19 @@ export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
-              className="hidden sm:flex h-9 max-w-[280px] min-w-[190px] items-center gap-2 rounded-xl bg-slate-100/70 px-3 py-1.5 text-slate-500 placeholder:text-slate-400 dark:bg-slate-800/60 dark:text-slate-400 hover:bg-slate-200/70 dark:hover:bg-slate-700/60 transition-all text-xs"
+              className="hidden sm:flex h-9 max-w-[280px] min-w-[190px] items-center gap-2 rounded-xl bg-muted/70 px-3 py-1.5 text-muted-foreground placeholder:text-muted-foreground transition-all text-xs hover:bg-muted"
               onClick={() => setSearchOpen(true)}
               aria-label="Global search (⌘K)"
             >
-              <Search className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-              <span className="hidden sm:block truncate text-xs font-medium">Search commands...</span>
-              <kbd className="hidden sm:inline-flex items-center gap-1 rounded bg-slate-200/60 px-1.5 py-0.5 text-[9px] font-mono text-slate-500 dark:bg-slate-700/60 dark:text-slate-400 ml-auto">
+              <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <span className="hidden sm:block truncate text-xs font-medium text-muted-foreground">Search commands...</span>
+              <kbd className="ml-auto hidden items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[9px] font-mono text-muted-foreground sm:inline-flex">
                 <span>⌘</span>K
               </kbd>
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom" align="start">
-            <span className="text-xs font-medium text-slate-900 bg-white px-2.5 py-1 rounded-lg shadow-lg">Global search (⌘K)</span>
+            <span className="rounded-lg border border-border bg-popover px-2.5 py-1 text-xs font-medium text-foreground shadow-lg">Global search (⌘K)</span>
           </TooltipContent>
         </Tooltip>
 
@@ -210,40 +202,40 @@ export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
                 className="w-full max-w-2xl mx-4"
                 onClick={(e) => e.stopPropagation()}
               >
-                <Command className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden">
-                  <CommandInput placeholder="Type a command or search..." className="px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700" />
+                <Command className="overflow-hidden rounded-xl border border-border bg-popover shadow-2xl">
+                  <CommandInput placeholder="Type a command or search..." className="border-b border-border bg-muted/50 px-4 py-3" />
                   <CommandList className="max-h-96 overflow-auto">
-                    <CommandEmpty className="py-8 text-center text-slate-500">No results found.</CommandEmpty>
+                    <CommandEmpty className="py-8 text-center text-muted-foreground">No results found.</CommandEmpty>
                     <CommandGroup heading="Navigation">
                       {navItems.map((item) => (
                         <CommandItem
                           key={item.href}
                           onSelect={() => { setSearchOpen(false); window.location.href = item.href; }}
-                          className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                          className="px-4 py-3 hover:bg-muted/70"
                         >
-                          <item.icon className="h-4 w-4 mr-3 text-slate-400 shrink-0" />
+                          <item.icon className="mr-3 h-4 w-4 shrink-0 text-muted-foreground" />
                           <div>
-                            <div className="font-medium text-slate-900 dark:text-white">{item.title}</div>
-                            <div className="text-xs text-slate-500">{item.description}</div>
+                            <div className="font-medium text-foreground">{item.title}</div>
+                            <div className="text-xs text-muted-foreground">{item.description}</div>
                           </div>
                         </CommandItem>
                       ))}
                     </CommandGroup>
                     <CommandGroup heading="Quick Actions">
                       <CommandItem onSelect={() => { setSearchOpen(false); window.location.href = "/super-admin/companies/new"; }}>
-                        <User className="h-4 w-4 mr-3 text-slate-400" />
+                        <User className="h-4 w-4 mr-3 text-muted-foreground" />
                         <span>Add New Company</span>
                       </CommandItem>
                       <CommandItem onSelect={() => { setSearchOpen(false); window.location.href = "/super-admin/plans"; }}>
-                        <Layers className="h-4 w-4 mr-3 text-slate-400" />
+                        <Layers className="h-4 w-4 mr-3 text-muted-foreground" />
                         <span>Manage Plans</span>
                       </CommandItem>
                       <CommandItem onSelect={() => { setSearchOpen(false); window.location.href = "/super-admin/tickets"; }}>
-                        <TicketCheck className="h-4 w-4 mr-3 text-slate-400" />
+                        <TicketCheck className="h-4 w-4 mr-3 text-muted-foreground" />
                         <span>View Support Tickets</span>
                       </CommandItem>
                       <CommandItem onSelect={() => { setSearchOpen(false); window.location.href = "/super-admin/audit"; }}>
-                        <Activity className="h-4 w-4 mr-3 text-slate-400" />
+                        <Activity className="h-4 w-4 mr-3 text-muted-foreground" />
                         <span>View Audit Logs</span>
                       </CommandItem>
                     </CommandGroup>
@@ -256,25 +248,14 @@ export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
 
         {/* Right Section */}
         <div className="flex items-center gap-1.5">
-          {/* Theme Toggle with working toggleTheme and reduced icon size */}
+          {/* Theme Selector — Light / Dark / System */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleTheme}
-                className="h-9 w-9 rounded-xl bg-slate-100/70 dark:bg-slate-800/60 hover:bg-slate-200/70 dark:hover:bg-slate-700/60 transition-all text-slate-600 dark:text-slate-300"
-                aria-label="Toggle theme"
-              >
-                <div className="relative h-4 w-4 flex items-center justify-center">
-                  <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-amber-500" />
-                  <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-indigo-400" />
-                </div>
-              </Button>
+              <ThemeSelector variant="compact" />
             </TooltipTrigger>
             <TooltipContent side="bottom" align="end">
-              <span className="text-xs font-medium text-slate-900 bg-white px-2.5 py-1 rounded-lg shadow-lg">
-                Switch to {isDark ? "Light" : "Dark"} Mode
+              <span className="rounded-lg border border-border bg-popover px-2.5 py-1 text-xs font-medium text-foreground shadow-lg">
+                Change appearance
               </span>
             </TooltipContent>
           </Tooltip>
@@ -287,15 +268,15 @@ export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "h-9 w-9 rounded-xl transition-all relative",
+                  "relative h-9 w-9 rounded-xl transition-all",
                   isNotificationsActive
-                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 ring-2 ring-indigo-500"
-                    : "bg-slate-100/70 dark:bg-slate-800/60 hover:bg-slate-200/70 dark:hover:bg-slate-700/60 text-slate-600 dark:text-slate-400"
+                    ? "bg-indigo-600 text-foreground shadow-md shadow-indigo-600/30 ring-2 ring-indigo-500"
+                    : "bg-muted/70 text-muted-foreground hover:bg-muted"
                 )}
                 aria-label="Notifications"
               >
                 <Link href="/notifications" className="relative flex items-center justify-center w-full h-full">
-                  <Bell className={cn("h-4 w-4", isNotificationsActive ? "text-white" : "text-slate-600 dark:text-slate-400")} />
+                  <Bell className={cn("h-4 w-4", isNotificationsActive ? "text-foreground" : "text-muted-foreground text-muted-foreground")} />
                   <span className="absolute top-1.5 right-1.5 flex h-2 w-2 pointer-events-none">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500 ring-1.5 ring-white dark:ring-slate-900" />
@@ -304,7 +285,7 @@ export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom" align="end">
-              <span className="text-xs font-medium text-slate-900 bg-white px-2.5 py-1 rounded-lg shadow-lg">
+              <span className="rounded-lg border border-border bg-popover px-2.5 py-1 text-xs font-medium text-foreground shadow-lg">
                 {isNotificationsActive ? "Current Page: Notifications" : "Notifications"}
               </span>
             </TooltipContent>
@@ -315,42 +296,42 @@ export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="h-9 w-9 p-0 rounded-xl bg-slate-100/70 dark:bg-slate-800/60 hover:bg-slate-200/70 dark:hover:bg-slate-700/60 transition-all"
+                className="h-9 w-9 rounded-xl bg-muted/70 p-0 transition-all hover:bg-muted"
                 aria-label="User menu"
               >
                 <Avatar className="h-7 w-7">
                   <AvatarImage src={user?.image || undefined} alt={user?.name || "Super Admin"} />
-                  <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-violet-500 text-[10px] font-black text-white">
+                  <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-violet-500 text-[10px] font-black text-foreground">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-2xl" sideOffset={5} align="end">
-              <DropdownMenuLabel className="text-xs font-semibold text-slate-400 px-2 py-1">
+            <DropdownMenuContent className="w-56 border border-border bg-popover shadow-2xl" sideOffset={5} align="end">
+              <DropdownMenuLabel className="px-2 py-1 text-xs font-semibold text-muted-foreground">
                 {session?.user?.role === "SUPER_ADMIN" ? "Super Administrator" : "Platform User"}
               </DropdownMenuLabel>
-              <DropdownMenuSeparator className="border-slate-200 dark:border-slate-800" />
-              <DropdownMenuItem className="text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10">
-                <User className="h-4 w-4 mr-2" /> Profile
+              <DropdownMenuSeparator className="border-border" />
+              <DropdownMenuItem className="text-foreground hover:bg-muted/80">
+                <User className="mr-2 h-4 w-4" /> Profile
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10">
-                <Shield className="h-4 w-4 mr-2" /> Security & MFA
+              <DropdownMenuItem className="text-foreground hover:bg-muted/80">
+                <Shield className="mr-2 h-4 w-4" /> Security & MFA
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10">
-                <Bell className="h-4 w-4 mr-2" /> Notifications
+              <DropdownMenuItem className="text-foreground hover:bg-muted/80">
+                <Bell className="mr-2 h-4 w-4" /> Notifications
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10">
-                <Key className="h-4 w-4 mr-2" /> API Keys
+              <DropdownMenuItem className="text-foreground hover:bg-muted/80">
+                <Key className="mr-2 h-4 w-4" /> API Keys
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="border-slate-200 dark:border-slate-800" />
-              <DropdownMenuItem className="text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10">
-                <HelpCircle className="h-4 w-4 mr-2" /> Documentation
+              <DropdownMenuSeparator className="border-border" />
+              <DropdownMenuItem className="text-foreground hover:bg-muted/80">
+                <HelpCircle className="mr-2 h-4 w-4" /> Documentation
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10">
-                <Globe className="h-4 w-4 mr-2" /> Status Page
+              <DropdownMenuItem className="text-foreground hover:bg-muted/80">
+                <Globe className="mr-2 h-4 w-4" /> Status Page
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="border-slate-200 dark:border-slate-800" />
+              <DropdownMenuSeparator className="border-border" />
               <DropdownMenuItem
                 onClick={() => signOut({ callbackUrl: "/login" })}
                 className="text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 focus:bg-rose-50 dark:focus:bg-rose-500/10"

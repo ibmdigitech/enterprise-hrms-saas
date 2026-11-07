@@ -45,7 +45,7 @@ export interface NavItem {
 
 export const sidebarItems: NavItem[] = [
   /* ── OVERVIEW ─────────────────────────────────────────── */
-  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, iconColor: "text-indigo-400", exact: true },
+  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, iconColor: "text-sidebar-primary", exact: true },
 
   /* ── PEOPLE ───────────────────────────────────────────── */
   { title: "Employees", href: "/employees", icon: Users, iconColor: "text-cyan-400", permission: PERMISSIONS.EMPLOYEES_VIEW },
@@ -83,7 +83,7 @@ export const sidebarItems: NavItem[] = [
   { title: "Subscription & Billing", href: "/settings/billing", icon: CreditCard, iconColor: "text-emerald-400", permission: PERMISSIONS.SETTINGS_MANAGE },
   { title: "Service Configuration", href: "/dashboard/admin/services", icon: Settings2, iconColor: "text-sky-400", permission: PERMISSIONS.SERVICE_CONFIG_MANAGE },
   { title: "Shift & Roster Settings", href: "/settings/shifts", icon: Settings2, iconColor: "text-emerald-400", permission: PERMISSIONS.ATTENDANCE_SHIFT_MANAGE },
-  { title: "Audit Log", href: "/system/logs", icon: Activity, iconColor: "text-slate-400", permission: PERMISSIONS.SYSTEM_AUDIT_VIEW },
+  { title: "Audit Log", href: "/system/logs", icon: Activity, iconColor: "text-muted-foreground", permission: PERMISSIONS.SYSTEM_AUDIT_VIEW },
   // SYSTEM_CONFIG is only held by SUPER_ADMIN — this link is never rendered for any company user.
   // The label is intentionally generic so that if the sidebar ever leaks it cannot reveal platform details.
   { title: "Super Admin Portal", href: "/super-admin/dashboard", icon: ShieldCheck, iconColor: "text-blue-400", permission: PERMISSIONS.SYSTEM_CONFIG },
@@ -111,7 +111,7 @@ export const navigationGroups: NavGroupDef[] = [
   {
     title: "OVERVIEW",
     icon: LayoutDashboard,
-    color: "text-indigo-400",
+    color: "text-sidebar-primary",
     collapsible: false,
     links: ["/dashboard"],
   },
@@ -166,13 +166,13 @@ export const navigationGroups: NavGroupDef[] = [
       {
         title: "Workforce Configuration",
         icon: Settings2,
-        color: "text-slate-400",
+        color: "text-muted-foreground",
         links: ["/dashboard/admin/services", "/settings/shifts"],
       },
       {
         title: "Configuration",
         icon: Activity,
-        color: "text-slate-400",
+        color: "text-muted-foreground",
         links: ["/super-admin/dashboard", "/system/logs", "/system/backup", "/system/deployment"],
       },
     ],
@@ -346,23 +346,23 @@ export function NavigationLinks({ role, onNavigate }: NavigationLinksProps) {
         aria-current={active ? "page" : undefined}
         className={cn(
           "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-150",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
           "border-l-2",
           active
-            ? "bg-indigo-600 text-white border-indigo-300 shadow-lg shadow-indigo-900/30"
-            : "text-slate-400 hover:bg-white/5 hover:text-slate-200 border-transparent"
+            ? "bg-sidebar-primary text-sidebar-primary-foreground border-sidebar-primary shadow-lg shadow-sidebar-primary/30"
+            : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground border-transparent"
         )}
       >
         <span
           className={cn(
             "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-150",
-            active ? "bg-white/20" : "bg-white/5 group-hover:bg-white/8"
+            active ? "bg-sidebar-primary/20" : "bg-sidebar-accent/50 group-hover:bg-sidebar-accent"
           )}
         >
           <Icon
             className={cn(
               "h-[15px] w-[15px] transition-transform duration-150 group-hover:scale-110",
-              active ? "text-white" : item.iconColor
+              active ? "text-sidebar-primary-foreground" : item.iconColor
             )}
           />
         </span>
@@ -392,47 +392,44 @@ export function NavigationLinks({ role, onNavigate }: NavigationLinksProps) {
                 onClick={() => toggle(group.title)}
                 className={cn(
                   "group mb-1 flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left transition-all duration-200",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400",
-                  // The open section gets a faint wash as well as the rotated
-                  // chevron. Rotating the chevron alone meant a user scanning the
-                  // rail had to look closely at a 14px glyph to know what was open.
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
                   isGroupExpanded(group)
-                    ? "bg-white/[0.04]"
-                    : "hover:bg-white/5"
+                    ? "bg-sidebar-accent/50"
+                    : "hover:bg-sidebar-accent/30"
                 )}
               >
                 <div className="flex items-center gap-2.5">
                   <span
                     className={cn(
                       "flex h-6 w-6 items-center justify-center rounded-lg transition-all duration-200",
-                      "bg-white/5 ring-1 ring-white/10 group-hover:ring-white/20",
-                      isGroupExpanded(group) && "ring-white/25"
+                      "bg-sidebar-accent/50 ring-1 ring-sidebar-border group-hover:ring-sidebar-ring/50",
+                      isGroupExpanded(group) && "ring-sidebar-ring/30 bg-sidebar-primary/10"
                     )}
                   >
                     <group.icon className={cn("h-3.5 w-3.5 transition-transform duration-200 group-hover:scale-110", group.color)} />
                   </span>
-                  <span className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-400 group-hover:text-slate-200 transition-colors">
+                  <span className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-muted-foreground group-hover:text-sidebar-foreground transition-colors">
                     {group.title}
                   </span>
                 </div>
                 <ChevronDown
                   className={cn(
-                    "h-3.5 w-3.5 text-slate-600 transition-all duration-200 group-hover:text-slate-400",
-                    isGroupExpanded(group) && "rotate-180 text-slate-400"
+                    "h-3.5 w-3.5 text-muted-foreground transition-all duration-200 group-hover:text-sidebar-foreground",
+                    isGroupExpanded(group) && "rotate-180 text-sidebar-primary"
                   )}
                 />
               </button>
             ) : (
               <div className="mb-1 flex items-center gap-2.5 px-3 py-2">
                 <span
- className={cn(
+                  className={cn(
                     "flex h-6 w-6 items-center justify-center rounded-lg",
-                    "bg-white/5 ring-1 ring-white/10"
+                    "bg-sidebar-accent/50 ring-1 ring-sidebar-border"
                   )}
                 >
                   <group.icon className={cn("h-3.5 w-3.5", group.color)} />
                 </span>
-                <span className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
+                <span className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-muted-foreground">
                   {group.title}
                 </span>
               </div>
@@ -468,8 +465,8 @@ export function NavigationLinks({ role, onNavigate }: NavigationLinksProps) {
                             aria-controls={regionId("cat", cat.title)}
                             onClick={() => toggle(cat.title)}
                             className={cn(
-                              "group mb-0.5 flex w-full items-center justify-between rounded-xl px-3 py-1.5 text-left text-slate-300 transition-all duration-200 hover:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400",
-                              isCategoryExpanded(cat) ? "bg-white/[0.04] text-slate-100" : "hover:bg-white/5"
+                              "group mb-0.5 flex w-full items-center justify-between rounded-xl px-3 py-1.5 text-left text-muted-foreground transition-all duration-200 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                              isCategoryExpanded(cat) ? "bg-sidebar-accent/50 text-sidebar-foreground" : "hover:bg-sidebar-accent/30"
                             )}
                           >
                             <div className="flex items-center gap-2">
@@ -480,8 +477,8 @@ export function NavigationLinks({ role, onNavigate }: NavigationLinksProps) {
                               <span
                                 className={cn(
                                   "flex h-5 w-5 items-center justify-center rounded-md transition-all duration-200",
-                                  "bg-white/5 ring-1 ring-white/10 group-hover:ring-white/20",
-                                  isCategoryExpanded(cat) && "ring-white/25"
+                                  "bg-sidebar-accent/50 ring-1 ring-sidebar-border group-hover:ring-sidebar-ring/50",
+                                  isCategoryExpanded(cat) && "ring-sidebar-ring/30 bg-sidebar-primary/10"
                                 )}
                               >
                                 <cat.icon className={cn("h-3 w-3 transition-transform duration-200 group-hover:scale-110", cat.color)} />
@@ -492,8 +489,8 @@ export function NavigationLinks({ role, onNavigate }: NavigationLinksProps) {
                             </div>
                             <ChevronDown
                               className={cn(
-                                "h-3 w-3 text-slate-600 transition-all duration-200 group-hover:text-slate-400",
-                                isCategoryExpanded(cat) && "rotate-180 text-slate-400"
+                                "h-3 w-3 text-muted-foreground transition-all duration-200 group-hover:text-sidebar-foreground",
+                                isCategoryExpanded(cat) && "rotate-180 text-sidebar-primary"
                               )}
                             />
                           </button>

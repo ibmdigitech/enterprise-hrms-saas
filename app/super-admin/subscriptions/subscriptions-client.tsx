@@ -44,33 +44,33 @@ export function SubscriptionsClient({ initialData, initialParams }: Subscription
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
             <CreditCard className="h-7 w-7 text-indigo-400" /> Active Subscriptions
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Real-time subscriber state, billing periods, usage consumption against plan quotas, and renewal lifecycle.
           </p>
         </div>
       </div>
 
       {/* Filter Bar */}
-      <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-wrap gap-3 items-center">
+      <div className="p-4 rounded-xl bg-card/90 border border-border flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search tenant name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && applyFilters()}
-            className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-indigo-500"
           />
         </div>
 
         <select
           value={planTier}
           onChange={(e) => setPlanTier(e.target.value)}
-          className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+          className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-indigo-500"
         >
           <option value="">All Tiers</option>
           <option value="STARTER">STARTER</option>
@@ -82,7 +82,7 @@ export function SubscriptionsClient({ initialData, initialParams }: Subscription
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+          className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-indigo-500"
         >
           <option value="">All Statuses</option>
           <option value="ACTIVE">ACTIVE</option>
@@ -94,17 +94,17 @@ export function SubscriptionsClient({ initialData, initialParams }: Subscription
         <button
           onClick={() => applyFilters(1)}
           disabled={isPending}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors"
+          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-foreground rounded-lg text-sm font-medium transition-colors"
         >
           Filter
         </button>
       </div>
 
       {/* Subscriptions Table */}
-      <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/40">
+      <div className="rounded-xl border border-border overflow-hidden bg-card">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead className="bg-slate-900/90 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
+          <table className="w-full text-left text-sm text-muted-foreground">
+            <thead className="bg-card/90 text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
               <tr>
                 <th className="py-3 px-4">Organization</th>
                 <th className="py-3 px-4">Tier / Plan</th>
@@ -115,29 +115,29 @@ export function SubscriptionsClient({ initialData, initialParams }: Subscription
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 text-xs">
+            <tbody className="divide-y divide-border/80 text-xs">
               {initialData.subscriptions.map((sub: any) => {
                 const currentStaff = sub.tenant?._count?.employees || 0;
                 const maxStaff = sub.maxEmployees || 50;
                 const percent = Math.min(100, Math.round((currentStaff / maxStaff) * 100));
 
                 return (
-                  <tr key={sub.id} className="hover:bg-slate-800/30 transition-colors">
+                  <tr key={sub.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4">
-                      <div className="font-semibold text-white">{sub.tenant?.name || "Unnamed Tenant"}</div>
-                      <div className="text-[11px] text-slate-400 font-mono">{sub.tenant?.slug}.hrms-saas.com</div>
+                      <div className="font-semibold text-foreground">{sub.tenant?.name || "Unnamed Tenant"}</div>
+                      <div className="text-[11px] text-muted-foreground font-mono">{sub.tenant?.slug}.hrms-saas.com</div>
                     </td>
                     <td className="py-3 px-4">
                       <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-semibold font-mono text-[11px]">
                         {sub.planTier}
                       </span>
                     </td>
-                    <td className="py-3 px-4 font-mono text-slate-300">
+                    <td className="py-3 px-4 font-mono text-muted-foreground">
                       {sub.billingCycle || "MONTHLY"}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
-                        <div className="w-20 bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                        <div className="w-20 bg-muted rounded-full h-1.5 overflow-hidden">
                           <div
                             className={`h-full ${
                               percent > 90 ? "bg-rose-500" : percent > 70 ? "bg-amber-500" : "bg-emerald-500"
@@ -145,12 +145,12 @@ export function SubscriptionsClient({ initialData, initialParams }: Subscription
                             style={{ width: `${percent}%` }}
                           />
                         </div>
-                        <span className="font-mono text-slate-400 text-[11px]">
+                        <span className="font-mono text-muted-foreground text-[11px]">
                           {currentStaff} / {maxStaff} ({percent}%)
                         </span>
                       </div>
                     </td>
-                    <td className="py-3 px-4 font-mono text-slate-400">
+                    <td className="py-3 px-4 font-mono text-muted-foreground">
                       {sub.currentPeriodEnd
                         ? format(new Date(sub.currentPeriodEnd), "yyyy-MM-dd")
                         : "Ongoing"}
@@ -173,7 +173,7 @@ export function SubscriptionsClient({ initialData, initialParams }: Subscription
                         value={sub.status}
                         disabled={isPending}
                         onChange={(e) => handleStatusChange(sub.id, e.target.value)}
-                        className="bg-slate-950 border border-slate-700/80 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none"
+                        className="bg-background border border-border/80 rounded px-2 py-1 text-xs text-foreground focus:outline-none"
                       >
                         <option value="ACTIVE">ACTIVE</option>
                         <option value="TRIAL">TRIAL</option>
@@ -186,7 +186,7 @@ export function SubscriptionsClient({ initialData, initialParams }: Subscription
               })}
               {initialData.subscriptions.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-slate-500">
+                  <td colSpan={7} className="text-center py-8 text-muted-foreground">
                     No subscriptions match current criteria.
                   </td>
                 </tr>
@@ -197,7 +197,7 @@ export function SubscriptionsClient({ initialData, initialParams }: Subscription
 
         {/* Pagination */}
         {initialData.totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 bg-slate-900/60 border-t border-slate-800 text-xs text-slate-400">
+          <div className="flex items-center justify-between px-4 py-3 bg-card/90 border-t border-border text-xs text-muted-foreground">
             <div>
               Page {initialData.page} of {initialData.totalPages} ({initialData.total} records)
             </div>
@@ -205,14 +205,14 @@ export function SubscriptionsClient({ initialData, initialParams }: Subscription
               <button
                 disabled={initialData.page <= 1 || isPending}
                 onClick={() => applyFilters(initialData.page - 1)}
-                className="p-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40"
+                className="p-1 rounded bg-muted hover:bg-slate-700 disabled:opacity-40"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <button
                 disabled={initialData.page >= initialData.totalPages || isPending}
                 onClick={() => applyFilters(initialData.page + 1)}
-                className="p-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40"
+                className="p-1 rounded bg-muted hover:bg-slate-700 disabled:opacity-40"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>

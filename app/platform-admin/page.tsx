@@ -46,7 +46,7 @@ export default async function PlatformAdminPage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+        <div className="min-h-screen bg-background text-foreground flex flex-col">
             {/* Platform Sub-Navigation Header */}
             <PlatformHeader totalTenants={tenants.length} activeTenants={activeCount} />
 
@@ -54,8 +54,8 @@ export default async function PlatformAdminPage() {
                 {/* Actions & Metrics Banner */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <h2 className="text-xl font-bold text-white">Infrastructure & Subscriber Registry</h2>
-                        <p className="text-xs text-slate-400 mt-0.5">
+                        <h2 className="text-xl font-bold text-foreground">Infrastructure & Subscriber Registry</h2>
+                        <p className="text-xs text-muted-foreground mt-0.5">
                             Real-time platform telemetry across logical row-level and dedicated physical database instances.
                         </p>
                     </div>
@@ -64,47 +64,47 @@ export default async function PlatformAdminPage() {
 
                 {/* Metrics Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-4">
-                        <div className="p-3 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20">
+                    <div className="bg-card border border-border p-5 rounded-2xl flex items-center gap-4 shadow-sm">
+                        <div className="p-3 bg-blue-500/10 text-blue-600 rounded-xl border border-blue-500/20 dark:text-blue-400">
                             <Building2 className="w-6 h-6" />
                         </div>
                         <div>
-                            <div className="text-xs font-medium text-slate-400 uppercase tracking-wider">Active Organizations</div>
-                            <div className="text-2xl font-bold text-white mt-0.5">{activeCount} / {tenants.length}</div>
+                            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Active Organizations</div>
+                            <div className="text-2xl font-bold text-foreground mt-0.5">{activeCount} / {tenants.length}</div>
                         </div>
                     </div>
 
-                    <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-4">
-                        <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
+                    <div className="bg-card border border-border p-5 rounded-2xl flex items-center gap-4 shadow-sm">
+                        <div className="p-3 bg-emerald-500/10 text-emerald-600 rounded-xl border border-emerald-500/20 dark:text-emerald-400">
                             <DollarSign className="w-6 h-6" />
                         </div>
                         <div>
-                            <div className="text-xs font-medium text-slate-400 uppercase tracking-wider">Platform Run Rate</div>
-                            <div className="text-2xl font-bold text-emerald-400 mt-0.5">
-                                {calculatedMRR.toLocaleString()} <span className="text-xs font-normal text-slate-400">AED/mo</span>
+                            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Platform Run Rate</div>
+                            <div className="text-2xl font-bold text-emerald-600 mt-0.5 dark:text-emerald-400">
+                                {calculatedMRR.toLocaleString()} <span className="text-xs font-normal text-muted-foreground">AED/mo</span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-4">
-                        <div className="p-3 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20">
+                    <div className="bg-card border border-border p-5 rounded-2xl flex items-center gap-4 shadow-sm">
+                        <div className="p-3 bg-indigo-500/10 text-indigo-600 rounded-xl border border-indigo-500/20 dark:text-indigo-400">
                             <Database className="w-6 h-6" />
                         </div>
                         <div>
-                            <div className="text-xs font-medium text-slate-400 uppercase tracking-wider">Database Isolation</div>
-                            <div className="text-2xl font-bold text-white mt-0.5">
-                                {dedicatedDbCount} <span className="text-xs font-normal text-slate-400">Isolated</span> / {tenants.length - dedicatedDbCount} <span className="text-xs font-normal text-slate-400">Shared</span>
+                            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Database Isolation</div>
+                            <div className="text-2xl font-bold text-foreground mt-0.5">
+                                {dedicatedDbCount} <span className="text-xs font-normal text-muted-foreground">Isolated</span> / {tenants.length - dedicatedDbCount} <span className="text-xs font-normal text-muted-foreground">Shared</span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-4">
-                        <div className="p-3 bg-purple-500/10 text-purple-400 rounded-xl border border-purple-500/20">
+                    <div className="bg-card border border-border p-5 rounded-2xl flex items-center gap-4 shadow-sm">
+                        <div className="p-3 bg-purple-500/10 text-purple-600 rounded-xl border border-purple-500/20 dark:text-purple-400">
                             <Users className="w-6 h-6" />
                         </div>
                         <div>
-                            <div className="text-xs font-medium text-slate-400 uppercase tracking-wider">Managed Workforces</div>
-                            <div className="text-2xl font-bold text-white mt-0.5">{totalEmployees} <span className="text-xs font-normal text-slate-400">staff</span></div>
+                            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Managed Workforces</div>
+                            <div className="text-2xl font-bold text-foreground mt-0.5">{totalEmployees} <span className="text-xs font-normal text-muted-foreground">staff</span></div>
                         </div>
                     </div>
                 </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { motion } from "framer-motion";
 import { PlatformDashboardMetrics } from "./dashboard-actions";
 import { cn } from "@/lib/utils";
 import {
@@ -18,6 +19,7 @@ import {
     FileText,
     Briefcase,
     Shield,
+    LayoutDashboard,
     ArrowUpRight,
     ArrowDownRight,
     RefreshCw,
@@ -81,7 +83,12 @@ export function DashboardClient({ metrics }: DashboardClientProps) {
     return (
         <div className="space-y-6">
             {/* Tab Navigation */}
-            <div className="flex items-center gap-1 overflow-x-auto scrollbar-none pb-2 border-b border-slate-800">
+            <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="flex items-center gap-1 overflow-x-auto scrollbar-none pb-2 border-b border-slate-800"
+            >
                 {tabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
@@ -101,11 +108,179 @@ export function DashboardClient({ metrics }: DashboardClientProps) {
                         </button>
                     );
                 })}
-            </div>
+            </motion.div>
 
             {/* Tab Content */}
             {activeTab === "overview" && (
                 <div className="space-y-6 animate-fade-in">
+                    <motion.div
+                        initial={{ opacity: 0, y: 24 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.45, ease: "easeOut" }}
+                        className="space-y-6"
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.98 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.4, ease: "easeOut" }}
+                            className="rounded-[28px] border border-slate-700/80 bg-[#12324a] p-5 shadow-[0_18px_40px_rgba(1,13,25,0.45)] sm:p-6"
+                        >
+                            <div className="mb-6 flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/30">
+                                    <Activity className="h-5 w-5" />
+                                </div>
+                                <h3 className="text-3xl font-bold tracking-tight text-white">Health Index</h3>
+                            </div>
+
+                            <div className="flex flex-col items-center justify-center pb-4 pt-3">
+                                <div className="relative flex items-center justify-center">
+                                    <svg viewBox="0 0 220 120" className="h-28 w-44 overflow-visible" aria-label="Health score 92 percent">
+                                        <path d="M 20 90 A 90 90 0 0 1 200 90" fill="none" stroke="rgba(148,163,184,0.22)" strokeWidth="16" strokeLinecap="round" />
+                                        <motion.path
+                                            d="M 20 90 A 90 90 0 0 1 200 90"
+                                            fill="none"
+                                            stroke="url(#healthGauge)"
+                                            strokeWidth="16"
+                                            strokeLinecap="round"
+                                            strokeDasharray="230 440"
+                                            initial={{ pathLength: 0 }}
+                                            animate={{ pathLength: 1 }}
+                                            transition={{ duration: 1.2, ease: "easeOut" }}
+                                        />
+                                        <defs>
+                                            <linearGradient id="healthGauge" x1="0%" x2="100%" y1="0%" y2="0%">
+                                                <stop offset="0%" stopColor="#34d399" />
+                                                <stop offset="100%" stopColor="#6ee7b7" />
+                                            </linearGradient>
+                                        </defs>
+                                    </svg>
+                                </div>
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.4, delay: 0.2 }}
+                                    className="mt-2 text-center"
+                                >
+                                    <div className="text-6xl font-black leading-none tracking-tight text-white">92%</div>
+                                    <div className="mt-2 text-xs font-semibold uppercase tracking-[0.28em] text-slate-200/90">Health Index</div>
+                                </motion.div>
+                            </div>
+
+                            <div className="mt-5 grid grid-cols-2 gap-3">
+                                <div className="rounded-2xl border border-slate-700/80 bg-slate-900/40 p-4 text-center">
+                                    <div className="text-4xl font-black text-white">1</div>
+                                    <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-300">Active</div>
+                                </div>
+                                <div className="rounded-2xl border border-slate-700/80 bg-slate-900/40 p-4 text-center">
+                                    <div className="text-4xl font-black text-white">0</div>
+                                    <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-300">Suspended</div>
+                                </div>
+                                <div className="rounded-2xl border border-slate-700/80 bg-slate-900/40 p-4 text-center">
+                                    <div className="text-4xl font-black text-white">&lt; 2h</div>
+                                    <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-300">Response</div>
+                                </div>
+                                <div className="rounded-2xl border border-slate-700/80 bg-slate-900/40 p-4 text-center">
+                                    <div className="text-4xl font-black text-white">99.97%</div>
+                                    <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-300">Uptime</div>
+                                </div>
+                            </div>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.45, delay: 0.1, ease: "easeOut" }}
+                            className="rounded-[28px] border border-slate-700/80 bg-[#12324a] p-5 shadow-[0_18px_40px_rgba(1,13,25,0.45)] sm:p-6"
+                        >
+                            <div className="mb-5 flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/30">
+                                    <Users className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-3xl font-bold tracking-tight text-white">Workforce Growth</h3>
+                                    <p className="text-sm text-slate-300">Engagement & trends</p>
+                                </div>
+                            </div>
+
+                            <div className="relative overflow-hidden rounded-2xl bg-slate-900/25 p-3">
+                                <svg viewBox="0 0 900 260" className="h-[260px] w-full">
+                                    <defs>
+                                        <linearGradient id="workforceArea" x1="0" x2="0" y1="0" y2="1">
+                                            <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.35" />
+                                            <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
+                                        </linearGradient>
+                                        <linearGradient id="workforceArea2" x1="0" x2="0" y1="0" y2="1">
+                                            <stop offset="0%" stopColor="#34d399" stopOpacity="0.28" />
+                                            <stop offset="100%" stopColor="#34d399" stopOpacity="0" />
+                                        </linearGradient>
+                                    </defs>
+                                    {[0, 25, 50, 75, 100].map((line) => (
+                                        <line key={line} x1="0" x2="900" y1={30 + line * 1.8} y2={30 + line * 1.8} stroke="rgba(148,163,184,0.18)" strokeDasharray="4 8" />
+                                    ))}
+                                    <path d="M 0 180 C 90 160, 150 120, 220 100 S 360 70, 420 90 S 560 100, 650 80 S 800 40, 900 20 L 900 240 L 0 240 Z" fill="url(#workforceArea2)" />
+                                    <path d="M 0 190 C 120 150, 170 120, 240 110 S 360 100, 440 125 S 560 150, 620 135 S 760 110, 900 80" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" />
+                                    <path d="M 0 210 C 100 180, 170 140, 230 120 S 360 100, 420 95 S 560 110, 610 90 S 760 60, 900 50" fill="none" stroke="#facc15" strokeWidth="3" strokeLinecap="round" />
+                                    <path d="M 0 160 C 130 120, 210 110, 290 90 S 430 68, 500 72 S 630 85, 730 60 S 840 35, 900 30" fill="none" stroke="#60a5fa" strokeWidth="3" strokeLinecap="round" />
+                                    {[2020, 2021, 2022, 2023, 2024, 2025, 2026].map((year, index) => (
+                                        <text key={year} x={60 + index * 120} y="238" fill="rgba(226,232,240,0.8)" fontSize="13" textAnchor="middle">{year}</text>
+                                    ))}
+                                </svg>
+                            </div>
+
+                            <div className="mt-5 flex flex-wrap items-center justify-center gap-6 text-lg font-semibold">
+                                <div className="flex items-center gap-2 text-emerald-300"><span className="h-3.5 w-3.5 rounded-full bg-emerald-400" /> Engaged</div>
+                                <div className="flex items-center gap-2 text-amber-300"><span className="h-3.5 w-3.5 rounded-full bg-amber-300" /> New Hires</div>
+                                <div className="flex items-center gap-2 text-sky-300"><span className="h-3.5 w-3.5 rounded-full bg-sky-400" /> Total</div>
+                            </div>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.45, delay: 0.2, ease: "easeOut" }}
+                            className="rounded-[28px] border border-slate-700/80 bg-[#12324a] p-5 shadow-[0_18px_40px_rgba(1,13,25,0.45)] sm:p-6"
+                        >
+                            <div className="mb-5 flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/30">
+                                    <DollarSign className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-3xl font-bold tracking-tight text-white">Revenue Analytics</h3>
+                                    <p className="text-sm text-slate-300">MRR composition &amp; drivers</p>
+                                </div>
+                            </div>
+
+                            <div className="rounded-2xl bg-slate-900/25 p-3">
+                                <svg viewBox="0 0 900 260" className="h-[240px] w-full">
+                                    {[0, 1, 2, 3, 4].map((row) => (
+                                        <line key={row} x1="60" x2="860" y1={30 + row * 55} y2={30 + row * 55} stroke="rgba(148,163,184,0.18)" strokeDasharray="3 12" />
+                                    ))}
+                                    {Array.from({ length: 12 }).map((_, index) => {
+                                        const month = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][index];
+                                        const value = [1.4, 1.7, 1.1, 2.2, 0.9, 1.6, 2.0, 1.9, 2.3, 2.1, 2.4, 2.6][index];
+                                        const x = 90 + index * 65;
+                                        return (
+                                            <g key={month}>
+                                                <rect x={x} y={170 - value * 52} width="26" height={value * 52} fill="#2dd4bf" opacity="0.9" rx="3" />
+                                                <rect x={x + 30} y={170 - (value * 0.7) * 52} width="26" height={(value * 0.7) * 52} fill="#facc15" opacity="0.9" rx="3" />
+                                                <rect x={x + 60} y={170 - (value * 0.5) * 52} width="26" height={(value * 0.5) * 52} fill="#f87171" opacity="0.85" rx="3" />
+                                                <rect x={x + 90} y={170 - (value * 0.35) * 52} width="26" height={(value * 0.35) * 52} fill="#34d399" opacity="0.9" rx="3" />
+                                                <text x={x + 38} y="230" fill="rgba(226,232,240,0.8)" fontSize="12" textAnchor="middle">{month.slice(0, 3)}</text>
+                                            </g>
+                                        );
+                                    })}
+                                </svg>
+                            </div>
+
+                            <div className="mt-5 flex flex-wrap items-center justify-center gap-5 text-lg font-semibold">
+                                <div className="flex items-center gap-2 text-emerald-300"><span className="h-3.5 w-3.5 rounded-full bg-emerald-400" /> Base</div>
+                                <div className="flex items-center gap-2 text-rose-300"><span className="h-3.5 w-3.5 rounded-full bg-rose-400" /> Churn</div>
+                                <div className="flex items-center gap-2 text-amber-300"><span className="h-3.5 w-3.5 rounded-full bg-amber-300" /> Expansion</div>
+                                <div className="flex items-center gap-2 text-sky-300"><span className="h-3.5 w-3.5 rounded-full bg-sky-400" /> New</div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+
                     {/* Key Metrics Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
                         <MetricCard
@@ -779,6 +954,3 @@ function HRMetricCard({ icon: Icon, label, total, pending, color }: {
         </div>
     );
 }
-
-// Import LayoutDashboard for the tab
-import { LayoutDashboard } from "lucide-react";

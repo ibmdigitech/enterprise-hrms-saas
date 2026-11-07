@@ -139,7 +139,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
   ACTIVE: { label: "Active", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", icon: CheckCircle },
   TRIAL: { label: "Trial", color: "bg-amber-500/10 text-amber-400 border-amber-500/20", icon: AlertTriangle },
   SUSPENDED: { label: "Suspended", color: "bg-rose-500/10 text-rose-400 border-rose-500/20", icon: PauseCircle },
-  ARCHIVED: { label: "Archived", color: "bg-slate-500/10 text-slate-400 border-slate-500/20", icon: Archive },
+  ARCHIVED: { label: "Archived", color: "bg-slate-500/10 text-muted-foreground border-border", icon: Archive },
   CANCELLED: { label: "Cancelled", color: "bg-rose-500/10 text-rose-400 border-rose-500/20", icon: XCircle },
 };
 
@@ -269,8 +269,8 @@ export function CompaniesClient({ initialData, initialParams }: CompaniesClientP
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
         <div>
-          <h1 className="text-2xl font-bold text-white">Companies</h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Companies</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Manage tenant organizations: view, create, suspend, reactivate, and archive companies.
           </p>
         </div>
@@ -404,7 +404,7 @@ export function CompaniesClient({ initialData, initialParams }: CompaniesClientP
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-800">
+                <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 md:grid-cols-2">
                   <Controller
                     control={form.control}
                     name="tradeLicenseNumber"
@@ -454,16 +454,16 @@ export function CompaniesClient({ initialData, initialParams }: CompaniesClientP
       >
         <div className="flex flex-col sm:flex-row gap-3 flex-1">
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search companies..."
               value={params.search}
               onChange={(e) => handleSearch(e.target.value)}
-              className="pl-10 bg-slate-900/50 border-slate-700/50"
+              className="border-border bg-card pl-10"
             />
           </div>
           <Select value={params.status} onValueChange={handleStatusFilter}>
-            <SelectTrigger className="w-full sm:w-48 bg-slate-900/50 border-slate-700/50">
+            <SelectTrigger className="w-full border-border bg-card sm:w-48">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
@@ -475,7 +475,7 @@ export function CompaniesClient({ initialData, initialParams }: CompaniesClientP
             </SelectContent>
           </Select>
         </div>
-        <div className="flex items-center gap-2 text-sm text-slate-400">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>Showing {data.companies.length} of {data.total} companies</span>
         </div>
       </motion.div>
@@ -485,10 +485,10 @@ export function CompaniesClient({ initialData, initialParams }: CompaniesClientP
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="rounded-2xl border border-slate-800/50 bg-slate-900/50 backdrop-blur-xl overflow-hidden"
+        className="overflow-hidden rounded-2xl border border-border bg-card/95 backdrop-blur-xl"
       >
         <Table>
-          <TableHeader className="bg-slate-950/50">
+          <TableHeader className="bg-muted/80">
             <TableRow>
               <TableHead className="w-8">Status</TableHead>
               <TableHead>Company</TableHead>
@@ -504,7 +504,7 @@ export function CompaniesClient({ initialData, initialParams }: CompaniesClientP
             {data.companies.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="py-12 text-center">
-                  <div className="flex flex-col items-center gap-3 text-slate-500">
+                  <div className="flex flex-col items-center gap-3 text-muted-foreground">
                     <Building2 className="h-12 w-12 opacity-50" />
                     <p className="text-lg font-medium">No companies found</p>
                     <p className="text-sm">Try adjusting your search or filters</p>
@@ -518,12 +518,12 @@ export function CompaniesClient({ initialData, initialParams }: CompaniesClientP
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.05 * index }}
-                  className="hover:bg-slate-800/30 transition-colors"
+                  className="hover:bg-muted/30 transition-colors"
                 >
                   <TableCell className="flex items-center justify-center">
                     <span className={cn(
                       "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border",
-                      statusConfig[company.status]?.color || "bg-slate-500/10 text-slate-400 border-slate-500/20"
+                      statusConfig[company.status]?.color || "bg-slate-500/10 text-muted-foreground border-border"
                     )}>
                       {(() => {
                         const Icon = statusConfig[company.status]?.icon;
@@ -535,11 +535,11 @@ export function CompaniesClient({ initialData, initialParams }: CompaniesClientP
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600">
-                        <Building2 className="h-5 w-5 text-white" />
+                        <Building2 className="h-5 w-5 text-foreground" />
                       </div>
                       <div>
-                        <p className="font-medium text-white truncate max-w-[200px]">{company.name}</p>
-                        <p className="text-xs text-slate-400 font-mono">{company.slug}.hrms-saas.com</p>
+                        <p className="font-medium text-foreground truncate max-w-[200px]">{company.name}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{company.slug}.hrms-saas.com</p>
                       </div>
                     </div>
                   </TableCell>
@@ -558,19 +558,19 @@ export function CompaniesClient({ initialData, initialParams }: CompaniesClientP
                     )}
                   </TableCell>
                   <TableCell className="hidden lg:table-cell">
-                    <span className="font-mono text-white">{company._count.employees}</span>
+                    <span className="font-mono text-foreground">{company._count.employees}</span>
                   </TableCell>
                   <TableCell className="hidden lg:table-cell">
-                    <span className="font-mono text-white">{company._count.locations}</span>
+                    <span className="font-mono text-foreground">{company._count.locations}</span>
                   </TableCell>
-                  <TableCell className="hidden xl:table-cell text-slate-400">
+                  <TableCell className="hidden xl:table-cell text-muted-foreground">
                     {new Date(company.createdAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreVertical className="h-4 w-4 text-slate-400 hover:text-white" />
+                          <MoreVertical className="h-4 w-4 text-muted-foreground hover:text-foreground" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-52">
@@ -592,7 +592,7 @@ export function CompaniesClient({ initialData, initialParams }: CompaniesClientP
                           </DropdownMenuItem>
                         )}
                         {company.status !== "ARCHIVED" && company.status !== "CANCELLED" && (
-                          <DropdownMenuItem onClick={() => handleAction("archive", company.id, company.name)} className="flex items-center gap-2 text-slate-400" disabled={actionLoading === company.id}>
+                          <DropdownMenuItem onClick={() => handleAction("archive", company.id, company.name)} className="flex items-center gap-2 text-muted-foreground" disabled={actionLoading === company.id}>
                             <Archive className="h-4 w-4" /> Archive
                           </DropdownMenuItem>
                         )}
@@ -611,8 +611,8 @@ export function CompaniesClient({ initialData, initialParams }: CompaniesClientP
 
         {/* Pagination */}
         {data.totalPages > 1 && (
-          <div className="flex items-center justify-between p-4 border-t border-slate-800/50">
-            <div className="text-sm text-slate-400">
+          <div className="flex items-center justify-between p-4 border-t border-border/50">
+            <div className="text-sm text-muted-foreground">
               Page {data.page} of {data.totalPages} ({data.total} total)
             </div>
             <div className="flex items-center gap-2">

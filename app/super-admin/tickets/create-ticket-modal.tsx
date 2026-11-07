@@ -47,19 +47,19 @@ export function CreateTicketModal({ onClose, onCreated }: CreateTicketModalProps
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+      <div className="bg-card border border-border rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5">
+        <div className="flex items-center justify-between pb-3 border-b border-border">
+          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <Plus className="h-5 w-5 text-indigo-400" /> Create Platform Support Ticket
           </h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white font-bold p-1">
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground font-bold p-1">
             ✕
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1.5">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-1.5">
               Subject / Inquiry Title
             </label>
             <input
@@ -68,19 +68,19 @@ export function CreateTicketModal({ onClose, onCreated }: CreateTicketModalProps
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="e.g. Payroll WPS Export validation error"
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+              className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:border-indigo-500"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1.5">
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-1.5">
                 Category
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:border-indigo-500"
               >
                 <option value="GENERAL">General Inquiry</option>
                 <option value="TECHNICAL">Technical Issue</option>
@@ -92,13 +92,13 @@ export function CreateTicketModal({ onClose, onCreated }: CreateTicketModalProps
             </div>
 
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1.5">
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-1.5">
                 Priority (SLA)
               </label>
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:border-indigo-500"
               >
                 <option value="LOW">LOW (72h SLA)</option>
                 <option value="NORMAL">NORMAL (48h SLA)</option>
@@ -110,7 +110,7 @@ export function CreateTicketModal({ onClose, onCreated }: CreateTicketModalProps
           </div>
 
           <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1.5">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-1.5">
               Description & Steps to Reproduce
             </label>
             <textarea
@@ -119,22 +119,22 @@ export function CreateTicketModal({ onClose, onCreated }: CreateTicketModalProps
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Provide exact details of the request or problem..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-indigo-500 resize-none"
+              className="w-full bg-background border border-border rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-indigo-500 resize-none"
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+          <div className="flex justify-end gap-3 pt-3 border-t border-border">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-800"
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground bg-muted/60 hover:bg-muted"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 flex items-center gap-1.5 shadow-lg shadow-indigo-600/20"
+              className="px-5 py-2 rounded-xl text-xs font-bold text-foreground bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 flex items-center gap-1.5 shadow-lg shadow-indigo-600/20"
             >
               {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Submit Ticket

@@ -225,30 +225,30 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
         <Collapsible open={groupExpanded} onOpenChange={() => toggleGroup(item.title)}>
           <CollapsibleTrigger
             className={cn(
-              "flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/50 cursor-pointer",
+              "flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/50 cursor-pointer",
               collapsed ? "justify-center" : "",
               active || groupExpanded
-                ? "bg-gradient-to-r from-indigo-500/10 to-violet-500/10 text-indigo-900 dark:text-white border border-indigo-500/20 shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-slate-100 hover:border-slate-200 dark:hover:border-white/10"
+                ? "bg-sidebar-primary/10 text-sidebar-primary border border-sidebar-primary/20 shadow-xs"
+                : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground hover:border-sidebar-border"
             )}
           >
             <span
               className={cn(
                 "flex h-6 w-6 items-center justify-center rounded-lg transition-all duration-200 relative overflow-hidden",
-                "bg-slate-100 dark:bg-white/5 ring-1 ring-slate-200 dark:ring-white/10 group-hover:ring-slate-300 dark:group-hover:ring-white/20",
-                (active || groupExpanded) && "ring-indigo-500/30 bg-indigo-500/10"
+                "bg-sidebar-accent/50 ring-1 ring-sidebar-border group-hover:ring-sidebar-ring/50",
+                (active || groupExpanded) && "ring-sidebar-ring/30 bg-sidebar-primary/10"
               )}
             >
-              <item.icon className={cn("h-3.5 w-3.5 transition-all duration-200 group-hover:scale-110", (active || groupExpanded) ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500 dark:text-slate-400")} />
-              <span className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-violet-500 opacity-0 transition-opacity group-hover:opacity-10" />
+              <item.icon className={cn("h-3.5 w-3.5 transition-all duration-200 group-hover:scale-110", (active || groupExpanded) ? "text-sidebar-primary" : "text-muted-foreground")} />
+              <span className="absolute inset-0 bg-gradient-to-r from-primary to-teal-600 opacity-0 transition-opacity group-hover:opacity-10" />
             </span>
             {!collapsed && (
               <>
-                <span className="text-[11px] font-extrabold uppercase tracking-[0.16em] truncate">
+                <span className="text-[11px] font-extrabold uppercase tracking-[0.16em] truncate text-sidebar-foreground">
                   {item.title}
                 </span>
                 {item.badge && (
-                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-1.5 text-[10px] font-bold text-white shadow-sm shadow-emerald-500/20">
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-1.5 text-[10px] font-bold text-primary-foreground shadow-sm shadow-emerald-500/20">
                     {item.badge}
                   </span>
                 )}
@@ -257,8 +257,8 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
             {!collapsed && (
               <div
                 className={cn(
-                  "h-3.5 w-3.5 text-slate-400 dark:text-slate-600 transition-all duration-300 group-hover:text-slate-600 dark:group-hover:text-slate-400 flex-shrink-0",
-                  groupExpanded && "text-indigo-600 dark:text-indigo-400 rotate-180"
+                  "h-3.5 w-3.5 text-muted-foreground transition-all duration-300 group-hover:text-sidebar-foreground flex-shrink-0",
+                  groupExpanded && "text-sidebar-primary rotate-180"
                 )}
               >
                 <ChevronDown />
@@ -288,30 +288,30 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
       <Link
         href={item.href}
         className={cn(
-          "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/50 border-l-2",
+          "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/50 border-l-2",
           collapsed ? "justify-center" : "",
           isChild ? "pl-7 py-2 text-xs" : "",
           active
-            ? "bg-indigo-600/15 text-indigo-700 dark:text-white border-indigo-500 font-semibold shadow-xs"
-            : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/8 hover:text-slate-900 dark:hover:text-white border-transparent"
+            ? "bg-sidebar-primary/15 text-sidebar-primary border-sidebar-primary font-semibold shadow-xs"
+            : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground border-transparent"
         )}
       >
         <span
           className={cn(
             "flex h-6 w-6 items-center justify-center rounded-lg transition-all duration-200 relative overflow-hidden shrink-0",
-            active ? "bg-indigo-500/20 ring-1 ring-indigo-500/40 text-indigo-600 dark:text-indigo-400" : "bg-slate-100 dark:bg-white/5 ring-1 ring-slate-200 dark:ring-white/10 group-hover:ring-slate-300 dark:group-hover:ring-white/20 text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white"
+            active ? "bg-sidebar-primary/20 ring-1 ring-sidebar-primary/40 text-sidebar-primary" : "bg-sidebar-accent/50 ring-1 ring-sidebar-border group-hover:ring-sidebar-ring/50 text-muted-foreground group-hover:text-sidebar-foreground"
           )}
         >
           <item.icon className="h-3.5 w-3.5 transition-all duration-200 group-hover:scale-110" />
         </span>
         {!collapsed && (
           <>
-            <span className={cn("truncate transition-colors", active ? "text-indigo-950 dark:text-white font-bold" : "text-slate-700 dark:text-slate-300 group-hover:text-slate-950 dark:group-hover:text-white")}>
+            <span className={cn("truncate transition-colors", active ? "text-sidebar-primary font-bold" : "text-muted-foreground group-hover:text-sidebar-foreground")}>
               {item.title}
             </span>
             {item.badge && (
               <span
-                className="flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-1.5 text-[10px] font-bold text-white shadow-sm shadow-emerald-500/20 ml-auto"
+                className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-1.5 text-[10px] font-bold text-primary-foreground shadow-sm shadow-emerald-500/20"
               >
                 {item.badge}
               </span>
@@ -328,7 +328,7 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
             {linkElement}
           </TooltipTrigger>
           <TooltipContent side="right" align="center" className="z-50">
-            <span className="text-sm font-medium text-slate-900 bg-white px-3 py-1.5 rounded-lg shadow-lg">{item.title}</span>
+            <span className="text-sm font-medium text-sidebar-foreground bg-sidebar-background px-3 py-1.5 rounded-lg shadow-lg">{item.title}</span>
           </TooltipContent>
         </Tooltip>
       );
@@ -356,23 +356,23 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 shadow-2xl lg:hidden text-slate-900 dark:text-slate-100"
+              className="fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col bg-sidebar-background border-r border-sidebar-border shadow-2xl lg:hidden text-sidebar-foreground"
               aria-label="Mobile Navigation Drawer"
             >
-              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80 p-4">
+              <div className="flex items-center justify-between border-b border-sidebar-border p-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md">
-                    <ShieldAlert className="h-5 w-5 text-white" />
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-teal-600 shadow-md">
+                    <ShieldAlert className="h-5 w-5 text-primary-foreground" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-900 dark:text-white">Super Admin</p>
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Platform Control</p>
+                    <p className="text-sm font-bold text-sidebar-foreground">Super Admin</p>
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-sidebar-primary">Platform Control</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={onMobileClose}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
                   aria-label="Close menu"
                 >
                   <X className="h-5 w-5" />
@@ -384,14 +384,14 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
                 <Link
                   href="/dashboard"
                   onClick={onMobileClose}
-                  className="group flex items-center justify-between gap-2.5 rounded-xl bg-emerald-500/10 dark:bg-gradient-to-r dark:from-emerald-500/15 dark:via-teal-500/10 dark:to-indigo-500/15 p-2.5 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/30 transition-all hover:ring-emerald-500 hover:bg-emerald-500/20 shadow-sm"
+                  className="group flex items-center justify-between gap-2.5 rounded-xl bg-emerald-500/10 p-2.5 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/30 transition-all hover:ring-emerald-500 hover:bg-emerald-500/20 shadow-sm"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/20 ring-1 ring-emerald-500/30 text-emerald-600 dark:text-emerald-400">
                       <Building2 className="h-4 w-4" />
                     </div>
                     <div className="text-left min-w-0">
-                      <div className="text-xs font-bold text-slate-900 dark:text-white truncate">Normal Dashboard</div>
+                      <div className="text-xs font-bold text-sidebar-foreground truncate">Normal Dashboard</div>
                       <div className="text-[10px] text-emerald-600 dark:text-emerald-400/80 truncate">Open HRMS Workspace</div>
                     </div>
                   </div>
@@ -418,7 +418,7 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3 }}
           className={cn(
-            "relative z-30 hidden lg:flex flex-col shrink-0 h-screen bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800/60 transition-all duration-300 text-slate-900 dark:text-slate-100",
+            "relative z-30 hidden lg:flex flex-col shrink-0 h-screen bg-sidebar-background border-r border-sidebar-border transition-all duration-300 text-sidebar-foreground",
             collapsed ? "w-16" : "w-[260px]"
           )}
           aria-label="Super Admin Navigation"
@@ -427,19 +427,19 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className={cn("relative flex items-center gap-3 border-b border-slate-200 dark:border-slate-800/50 p-4", collapsed && "justify-center")}
+            className={cn("relative flex items-center gap-3 border-b border-sidebar-border p-4", collapsed && "justify-center")}
           >
             <motion.div
               initial={{ scale: 0, rotate: -90 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: "spring", stiffness: 260, damping: 20 }}
-              className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/30"
+              className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-teal-600 shadow-lg shadow-primary/30"
             >
-              <ShieldAlert className="h-5 w-5 text-white" />
+              <ShieldAlert className="h-5 w-5 text-primary-foreground" />
               <motion.span
                 animate={{ scale: [1, 1.2, 1] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
-                className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white dark:border-slate-950 bg-emerald-500"
+                className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-sidebar-background bg-emerald-500"
               />
             </motion.div>
             <AnimatePresence mode="wait">
@@ -451,8 +451,8 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
                   exit={{ opacity: 0, x: -20 }}
                   className="min-w-0"
                 >
-                  <p className="truncate text-sm font-bold text-slate-900 dark:text-white dark:bg-gradient-to-r dark:from-white dark:to-slate-300 dark:bg-clip-text dark:text-transparent">Super Admin</p>
-                  <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.22em] text-indigo-600 dark:text-indigo-400">Platform Control</p>
+                  <p className="truncate text-sm font-bold text-sidebar-foreground">Super Admin</p>
+                  <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.22em] text-sidebar-primary">Platform Control</p>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -463,14 +463,14 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
             <div className="px-3 pt-3 pb-1">
               <Link
                 href="/dashboard"
-                className="group flex items-center justify-between gap-2.5 rounded-xl bg-emerald-500/10 dark:bg-gradient-to-r dark:from-emerald-500/15 dark:via-teal-500/10 dark:to-indigo-500/15 p-2.5 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/30 transition-all hover:ring-emerald-500 hover:bg-emerald-500/20 shadow-sm"
+                className="group flex items-center justify-between gap-2.5 rounded-xl bg-emerald-500/10 p-2.5 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/30 transition-all hover:ring-emerald-500 hover:bg-emerald-500/20 shadow-sm"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/20 ring-1 ring-emerald-500/30 text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform">
                     <Building2 className="h-4 w-4" />
                   </div>
                   <div className="text-left min-w-0">
-                    <div className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors">Normal Dashboard</div>
+                    <div className="text-xs font-bold text-sidebar-foreground truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors">Normal Dashboard</div>
                     <div className="text-[10px] text-emerald-600 dark:text-emerald-400/80 truncate">Open HRMS Workspace</div>
                   </div>
                 </div>
@@ -489,7 +489,7 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent side="right" align="center" className="z-50">
-                  <span className="text-xs font-bold text-slate-900 bg-white px-2.5 py-1 rounded shadow">Normal Dashboard</span>
+                  <span className="text-xs font-bold text-sidebar-foreground bg-sidebar-background px-2.5 py-1 rounded shadow">Normal Dashboard</span>
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -514,13 +514,13 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className={cn("border-t border-slate-200 dark:border-slate-800/50 p-3 space-y-2", collapsed && "items-center")}
+            className={cn("border-t border-sidebar-border p-3 space-y-2", collapsed && "items-center")}
           >
             {/* Quick Switch to Normal Dashboard Pill */}
             <Link
               href="/dashboard"
               className={cn(
-                "flex items-center gap-2.5 rounded-xl bg-emerald-50 dark:bg-gradient-to-r dark:from-emerald-950/80 dark:to-teal-950/80 px-3 py-2 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/30 transition-all hover:ring-emerald-500/60 hover:text-emerald-900 dark:hover:text-white",
+                "flex items-center gap-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/80 px-3 py-2 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/30 transition-all hover:ring-emerald-500/60 hover:text-emerald-900 dark:hover:text-foreground",
                 collapsed && "justify-center px-2"
               )}
               title="Go to Normal Dashboard"
@@ -545,7 +545,7 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200 hover:bg-slate-100 dark:hover:bg-white/5",
+                      "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200 hover:bg-sidebar-accent",
                       collapsed && "justify-center px-2"
                     )}
                     aria-expanded={false}
@@ -554,7 +554,7 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
                     <motion.div whileHover={{ scale: 1.1 }} className="relative">
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={user?.image || undefined} alt={user?.name || "Super Admin"} />
-                        <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-violet-500 text-[11px] font-black text-white">
+                        <AvatarFallback className="bg-gradient-to-br from-primary to-teal-600 text-[11px] font-black text-primary-foreground">
                           {initials}
                         </AvatarFallback>
                       </Avatar>
@@ -568,8 +568,8 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
                           exit={{ opacity: 0, x: -20, width: 0 }}
                           className="min-w-0 flex-1 text-left overflow-hidden"
                         >
-                          <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100 leading-tight">{user?.name ?? "Super Admin"}</p>
-                          <p className="truncate text-[11px] text-slate-500 dark:text-slate-400 leading-tight">{user?.email ?? "admin@platform.com"}</p>
+                          <p className="truncate text-sm font-semibold text-sidebar-foreground leading-tight">{user?.name ?? "Super Admin"}</p>
+                          <p className="truncate text-[11px] text-muted-foreground leading-tight">{user?.email ?? "admin@platform.com"}</p>
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -583,27 +583,27 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 10 }}
                     >
-                      <DropdownMenuContent className="w-56 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-2xl" sideOffset={5}>
-                        <DropdownMenuLabel className="text-xs font-semibold text-slate-500 dark:text-slate-400 px-2 py-1">Account</DropdownMenuLabel>
-                        <DropdownMenuSeparator className="border-slate-100 dark:border-slate-800" />
+                      <DropdownMenuContent className="w-56 bg-popover border-border shadow-2xl" sideOffset={5}>
+                        <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1">Account</DropdownMenuLabel>
+                        <DropdownMenuSeparator className="border-border" />
                         <Link href="/dashboard">
                           <DropdownMenuItem className="text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 cursor-pointer font-medium">
                             <Building2 className="h-4 w-4 mr-2" /> Normal Dashboard
                           </DropdownMenuItem>
                         </Link>
-                        <DropdownMenuItem className="text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-indigo-500/10 hover:text-slate-900 dark:hover:text-white">
+                        <DropdownMenuItem className="text-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground">
                           <Settings2 className="h-4 w-4 mr-2" /> Profile
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-indigo-500/10 hover:text-slate-900 dark:hover:text-white">
+                        <DropdownMenuItem className="text-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground">
                           <Shield className="h-4 w-4 mr-2" /> Security
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-indigo-500/10 hover:text-slate-900 dark:hover:text-white">
+                        <DropdownMenuItem className="text-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground">
                           <Bell className="h-4 w-4 mr-2" /> Notifications
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator className="border-slate-100 dark:border-slate-800" />
+                        <DropdownMenuSeparator className="border-border" />
                         <DropdownMenuItem
                           onClick={() => signOut({ callbackUrl: "/login" })}
-                          className="text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 focus:bg-rose-50 dark:focus:bg-rose-500/10"
+                          className="text-destructive hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10"
                         >
                           <LogOut className="h-4 w-4 mr-2" /> Sign Out
                         </DropdownMenuItem>
@@ -622,7 +622,7 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
                   whileTap={{ scale: 0.9 }}
                   onClick={() => setCollapsed(!collapsed)}
                   className={cn(
-                    "h-8 w-8 rounded-lg text-slate-400 dark:text-slate-500 transition-all hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-700 dark:hover:text-slate-200",
+                    "h-8 w-8 rounded-lg text-muted-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-foreground",
                     collapsed ? "ml-auto" : "mx-auto"
                   )}
                   aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -638,7 +638,7 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
                 </motion.button>
               </TooltipTrigger>
               <TooltipContent side={collapsed ? "right" : "left"} align="center">
-                <span className="text-sm font-medium text-slate-900 bg-white px-3 py-1.5 rounded-lg shadow-lg">
+                <span className="text-sm font-medium text-sidebar-foreground bg-sidebar-background px-3 py-1.5 rounded-lg shadow-lg">
                   {collapsed ? "Expand sidebar" : "Collapse sidebar"}
                 </span>
               </TooltipContent>

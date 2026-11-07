@@ -64,28 +64,28 @@ export function TicketsClient({ initialData, initialParams }: TicketsClientProps
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
             <TicketCheck className="h-7 w-7 text-indigo-400" /> Support Desk & Tickets
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Customer inquiries, technical issues, service requests, and SLA response tracking across organizations.
           </p>
         </div>
 
         <button
           onClick={() => setIsCreateOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-indigo-600/20"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-foreground rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-indigo-600/20"
         >
           <Plus className="h-4 w-4" /> Create Ticket
         </button>
       </div>
 
       {/* Filter Bar */}
-      <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-wrap gap-3 items-center">
+      <div className="p-4 rounded-xl bg-card/90 border border-border flex flex-wrap gap-3 items-center">
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 font-medium"
+          className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-indigo-500 font-medium"
         >
           <option value="">All Statuses</option>
           <option value="OPEN">OPEN</option>
@@ -98,7 +98,7 @@ export function TicketsClient({ initialData, initialParams }: TicketsClientProps
         <select
           value={priority}
           onChange={(e) => setPriority(e.target.value)}
-          className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 font-medium"
+          className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-indigo-500 font-medium"
         >
           <option value="">All Priorities</option>
           <option value="LOW">LOW (72h SLA)</option>
@@ -111,17 +111,17 @@ export function TicketsClient({ initialData, initialParams }: TicketsClientProps
         <button
           onClick={() => applyFilters(1)}
           disabled={isPending}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors"
+          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-foreground rounded-lg text-sm font-medium transition-colors"
         >
           Filter
         </button>
       </div>
 
       {/* Tickets Table */}
-      <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/40">
+      <div className="rounded-xl border border-border overflow-hidden bg-card">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead className="bg-slate-900/90 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
+          <table className="w-full text-left text-sm text-muted-foreground">
+            <thead className="bg-card/90 text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
               <tr>
                 <th className="py-3 px-4">Subject & Details</th>
                 <th className="py-3 px-4">Organization</th>
@@ -132,31 +132,31 @@ export function TicketsClient({ initialData, initialParams }: TicketsClientProps
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 text-xs">
+            <tbody className="divide-y divide-border/80 text-xs">
               {initialData.tickets.map((t: any) => {
                 const sla = getSlaStatus(t.slaDeadline, t.status);
                 return (
-                  <tr key={t.id} className="hover:bg-slate-800/30 transition-colors">
+                  <tr key={t.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3.5 px-4 cursor-pointer" onClick={() => handleOpenDetail(t.id)}>
-                      <div className="font-semibold text-white hover:text-indigo-400 transition-colors flex items-center gap-2">
+                      <div className="font-semibold text-foreground hover:text-indigo-400 transition-colors flex items-center gap-2">
                         <span>{t.subject}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono">
                           {t.category}
                         </span>
                       </div>
-                      <div className="text-[11px] text-slate-400 truncate max-w-sm mt-0.5">
+                      <div className="text-[11px] text-muted-foreground truncate max-w-sm mt-0.5">
                         {t.description}
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-1.5 text-slate-300">
-                        <Building2 className="h-3.5 w-3.5 text-slate-500" />
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
                         <span>{t.tenant?.name || "Global"}</span>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 text-slate-300">
+                    <td className="py-3.5 px-4 text-muted-foreground">
                       <div>{t.createdBy?.name || "User"}</div>
-                      <div className="text-[10px] text-slate-500 font-mono">{t.createdBy?.email}</div>
+                      <div className="text-[10px] text-muted-foreground font-mono">{t.createdBy?.email}</div>
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="space-y-1">
@@ -166,7 +166,7 @@ export function TicketsClient({ initialData, initialParams }: TicketsClientProps
                               ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
                               : t.priority === "HIGH" || t.priority === "URGENT"
                               ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                              : "bg-slate-800 text-slate-300"
+                              : "bg-muted text-muted-foreground"
                           }`}
                         >
                           {t.priority}
@@ -177,7 +177,7 @@ export function TicketsClient({ initialData, initialParams }: TicketsClientProps
                               ? "text-rose-400"
                               : sla.isWarning
                               ? "text-amber-400"
-                              : "text-slate-400"
+                              : "text-muted-foreground"
                           }`}
                         >
                           <Clock className="h-3 w-3" />
@@ -194,14 +194,14 @@ export function TicketsClient({ initialData, initialParams }: TicketsClientProps
                             ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
                             : t.status === "IN_PROGRESS"
                             ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
-                            : "bg-slate-800 text-slate-300 border border-slate-700"
+                            : "bg-muted text-muted-foreground border border-border"
                         }`}
                       >
                         {t.status}
                       </span>
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-1 text-slate-400">
+                      <div className="flex items-center gap-1 text-muted-foreground">
                         <MessageSquare className="h-3.5 w-3.5" />
                         <span>{t._count?.messages || 0}</span>
                       </div>
@@ -210,7 +210,7 @@ export function TicketsClient({ initialData, initialParams }: TicketsClientProps
                       <button
                         onClick={() => handleOpenDetail(t.id)}
                         disabled={loadingDetailId === t.id}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-500/20 transition-all font-semibold text-xs"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-foreground border border-indigo-500/20 transition-all font-semibold text-xs"
                       >
                         <Eye className="h-3.5 w-3.5" />
                         <span>View & Reply</span>
@@ -221,7 +221,7 @@ export function TicketsClient({ initialData, initialParams }: TicketsClientProps
               })}
               {initialData.tickets.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-slate-500">
+                  <td colSpan={7} className="text-center py-12 text-muted-foreground">
                     No support tickets found for this query.
                   </td>
                 </tr>
@@ -232,7 +232,7 @@ export function TicketsClient({ initialData, initialParams }: TicketsClientProps
 
         {/* Pagination */}
         {initialData.totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 bg-slate-900/60 border-t border-slate-800 text-xs text-slate-400">
+          <div className="flex items-center justify-between px-4 py-3 bg-card/90 border-t border-border text-xs text-muted-foreground">
             <div>
               Page {initialData.page} of {initialData.totalPages} ({initialData.total} tickets)
             </div>
@@ -240,14 +240,14 @@ export function TicketsClient({ initialData, initialParams }: TicketsClientProps
               <button
                 disabled={initialData.page <= 1 || isPending}
                 onClick={() => applyFilters(initialData.page - 1)}
-                className="p-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40"
+                className="p-1 rounded bg-muted hover:bg-slate-700 disabled:opacity-40"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <button
                 disabled={initialData.page >= initialData.totalPages || isPending}
                 onClick={() => applyFilters(initialData.page + 1)}
-                className="p-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40"
+                className="p-1 rounded bg-muted hover:bg-slate-700 disabled:opacity-40"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>

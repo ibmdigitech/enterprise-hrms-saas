@@ -62,13 +62,13 @@ export function TicketDetailModal({ ticket, onClose, onRefresh }: TicketDetailMo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div className="bg-card border border-border rounded-2xl w-full max-w-4xl h-[90vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="p-6 border-b border-slate-800 flex items-start justify-between bg-slate-950/40">
+        <div className="p-6 border-b border-border flex items-start justify-between bg-background/40">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="font-mono text-xs text-indigo-400">#{ticket.id.slice(-8).toUpperCase()}</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-semibold">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-semibold">
                 {ticket.category}
               </span>
               <span
@@ -77,7 +77,7 @@ export function TicketDetailModal({ ticket, onClose, onRefresh }: TicketDetailMo
                     ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
                     : ticket.priority === "HIGH"
                     ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                    : "bg-slate-800 text-slate-300"
+                    : "bg-muted text-muted-foreground"
                 }`}
               >
                 {ticket.priority}
@@ -88,22 +88,22 @@ export function TicketDetailModal({ ticket, onClose, onRefresh }: TicketDetailMo
                     ? "bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse"
                     : sla.isWarning
                     ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                    : "bg-slate-800/80 text-slate-300"
+                    : "bg-muted/80 text-muted-foreground"
                 }`}
               >
                 <Clock className="h-3 w-3" />
                 {sla.label}
               </span>
             </div>
-            <h2 className="text-xl font-bold text-white mt-1">{ticket.subject}</h2>
-            <p className="text-xs text-slate-400">
-              Submitted by <span className="text-slate-200 font-medium">{ticket.createdBy?.name || "Customer"}</span> ({ticket.createdBy?.email}) from{" "}
+            <h2 className="text-xl font-bold text-foreground mt-1">{ticket.subject}</h2>
+            <p className="text-xs text-muted-foreground">
+              Submitted by <span className="text-foreground font-medium">{ticket.createdBy?.name || "Customer"}</span> ({ticket.createdBy?.email}) from{" "}
               <span className="text-indigo-300 font-medium">{ticket.tenant?.name || "Unknown Tenant"}</span>
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-2 rounded-lg bg-slate-800/50 hover:bg-slate-800 text-lg font-bold"
+            className="text-muted-foreground hover:text-foreground p-2 rounded-lg bg-muted/50 hover:bg-muted text-lg font-bold"
           >
             ✕
           </button>
@@ -112,15 +112,15 @@ export function TicketDetailModal({ ticket, onClose, onRefresh }: TicketDetailMo
         {/* Content Body */}
         <div className="flex-1 flex overflow-hidden">
           {/* Main Chat & Ticket Description */}
-          <div className="flex-1 flex flex-col border-r border-slate-800 overflow-hidden">
+          <div className="flex-1 flex flex-col border-r border-border overflow-hidden">
             <div className="flex-1 p-6 overflow-y-auto space-y-4">
               {/* Original ticket request card */}
-              <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 text-sm space-y-2">
-                <div className="flex items-center justify-between text-xs text-slate-400">
-                  <span className="font-semibold text-slate-300">Initial Request Description</span>
+              <div className="p-4 rounded-xl bg-background/60 border border-border/80 text-sm space-y-2">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span className="font-semibold text-muted-foreground">Initial Request Description</span>
                   <span>{format(new Date(ticket.createdAt), "MMM d, yyyy h:mm a")}</span>
                 </div>
-                <p className="text-slate-200 whitespace-pre-wrap leading-relaxed">{ticket.description}</p>
+                <p className="text-foreground whitespace-pre-wrap leading-relaxed">{ticket.description}</p>
               </div>
 
               {/* Message thread */}
@@ -132,13 +132,13 @@ export function TicketDetailModal({ ticket, onClose, onRefresh }: TicketDetailMo
                     className={`p-4 rounded-xl text-sm space-y-1.5 ${
                       isInternalNote
                         ? "bg-amber-950/20 border border-amber-800/40 text-amber-200"
-                        : "bg-slate-800/40 border border-slate-700/50 text-slate-200"
+                        : "bg-muted/40 border border-border/50 text-foreground"
                     }`}
                   >
-                    <div className="flex items-center justify-between text-xs text-slate-400">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <div className="flex items-center gap-1.5 font-medium">
-                        <User className="h-3.5 w-3.5 text-slate-400" />
-                        <span className="text-white">{msg.author?.name || msg.author?.email || "Support Agent"}</span>
+                        <User className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-foreground">{msg.author?.name || msg.author?.email || "Support Agent"}</span>
                         {isInternalNote && (
                           <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/30 text-amber-300 uppercase tracking-wider">
                             Internal Note
@@ -152,16 +152,16 @@ export function TicketDetailModal({ ticket, onClose, onRefresh }: TicketDetailMo
                 );
               })}
               {messages.length === 0 && (
-                <div className="text-center py-6 text-xs text-slate-500 italic">
+                <div className="text-center py-6 text-xs text-muted-foreground italic">
                   No replies yet. Use the message box below to respond to the requester.
                 </div>
               )}
             </div>
 
             {/* Reply composer */}
-            <div className="p-4 bg-slate-950/60 border-t border-slate-800 space-y-3">
+            <div className="p-4 bg-background/60 border-t border-border space-y-3">
               <div className="flex items-center gap-4 text-xs">
-                <label className="flex items-center gap-1.5 cursor-pointer text-slate-300">
+                <label className="flex items-center gap-1.5 cursor-pointer text-muted-foreground">
                   <input
                     type="radio"
                     name="replyType"
@@ -193,12 +193,12 @@ export function TicketDetailModal({ ticket, onClose, onRefresh }: TicketDetailMo
                       : "Type your response to the customer..."
                   }
                   rows={3}
-                  className="flex-1 bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-indigo-500 resize-none"
+                  className="flex-1 bg-card border border-border rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-indigo-500 resize-none"
                 />
                 <button
                   onClick={handleSendMessage}
                   disabled={isSubmitting || !replyText.trim()}
-                  className="px-5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-xl font-bold flex flex-col items-center justify-center gap-1 text-xs"
+                  className="px-5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-foreground rounded-xl font-bold flex flex-col items-center justify-center gap-1 text-xs"
                 >
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   <span>Send</span>
@@ -208,16 +208,16 @@ export function TicketDetailModal({ ticket, onClose, onRefresh }: TicketDetailMo
           </div>
 
           {/* Ticket Lifecycle & Status Sidebar */}
-          <div className="w-72 bg-slate-950/30 p-6 space-y-6 overflow-y-auto">
+          <div className="w-72 bg-background/30 p-6 space-y-6 overflow-y-auto">
             <div>
-              <label className="text-[10px] uppercase font-black tracking-widest text-slate-400 block mb-2">
+              <label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground block mb-2">
                 Ticket Status
               </label>
               <select
                 value={status}
                 onChange={(e) => handleUpdateStatus(e.target.value)}
                 disabled={isSubmitting}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-semibold focus:outline-none focus:border-indigo-500"
+                className="w-full bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground font-semibold focus:outline-none focus:border-indigo-500"
               >
                 <option value="OPEN">OPEN</option>
                 <option value="IN_PROGRESS">IN_PROGRESS</option>
@@ -229,12 +229,12 @@ export function TicketDetailModal({ ticket, onClose, onRefresh }: TicketDetailMo
             </div>
 
             <div>
-              <label className="text-[10px] uppercase font-black tracking-widest text-slate-400 block mb-2">
+              <label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground block mb-2">
                 SLA Turnaround Deadline
               </label>
-              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs space-y-1">
-                <div className="text-slate-400">Target Resolution:</div>
-                <div className="font-bold text-white">
+              <div className="p-3 rounded-xl bg-card border border-border text-xs space-y-1">
+                <div className="text-muted-foreground">Target Resolution:</div>
+                <div className="font-bold text-foreground">
                   {ticket.slaDeadline ? format(new Date(ticket.slaDeadline), "MMM d, yyyy h:mm a") : "Not Set"}
                 </div>
                 <div
@@ -248,7 +248,7 @@ export function TicketDetailModal({ ticket, onClose, onRefresh }: TicketDetailMo
             </div>
 
             <div>
-              <label className="text-[10px] uppercase font-black tracking-widest text-slate-400 block mb-2">
+              <label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground block mb-2">
                 Resolution Summary
               </label>
               <textarea
@@ -256,12 +256,12 @@ export function TicketDetailModal({ ticket, onClose, onRefresh }: TicketDetailMo
                 onChange={(e) => setResolutionText(e.target.value)}
                 placeholder="Details of the resolution provided..."
                 rows={3}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 resize-none"
+                className="w-full bg-card border border-border rounded-xl p-2.5 text-xs text-foreground focus:outline-none focus:border-indigo-500 resize-none"
               />
               <button
                 onClick={() => handleUpdateStatus("RESOLVED")}
                 disabled={isSubmitting || status === "RESOLVED"}
-                className="mt-2 w-full py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5"
+                className="mt-2 w-full py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-foreground rounded-lg text-xs font-bold flex items-center justify-center gap-1.5"
               >
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 Resolve Ticket

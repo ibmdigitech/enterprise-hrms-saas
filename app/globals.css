@@ -1,37 +1,173 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════════
-   CSS Variables
+   iBoo HR MultiSaaS — Design Tokens (CSS Custom Properties)
+   Light / Dark / System theme support via class-based dark mode
 ═══════════════════════════════════════════════════════════════ */
+
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card:       #ffffff;
-  --sidebar-bg: #0f172a;
-  --radius:     0.75rem;
-  --font-sans:  var(--font-geist-sans), "Inter", system-ui, sans-serif;
-  --font-mono:  var(--font-geist-mono), "Fira Code", monospace;
+  /* Brand Colors */
+  --color-brand-navy: #0B2D4B;
+  --color-brand-teal: #00B4A6;
+  --color-brand-teal-light: #2DD4BF;
+  --color-brand-gold: #D4AF37;
+  --color-brand-deep-teal: #0F766E;
+  --color-brand-sky: #3B82F6;
+  --color-brand-aqua: #A7F3D0;
+  --color-brand-warm-gold: #F6D365;
+
+  /* Semantic Color Tokens — Light Mode (default) */
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+  --primary: #008F85;
+  --primary-foreground: #FFFFFF;
+  --secondary: #E2E8F0;
+  --secondary-foreground: #0F172A;
+  --muted: #F1F5F9;
+  --muted-foreground: #64748B;
+  --accent: #E0F2F1;
+  --accent-foreground: #00695C;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: #00B4A6;
+  --radius: 0.75rem;
+
+  /* Sidebar Specific */
+  --sidebar-background: #0B2D4B;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #2DD4BF;
+  --sidebar-primary-foreground: #062C2B;
+  --sidebar-accent: #113D5A;
+  --sidebar-accent-foreground: #A7F3D0;
+  --sidebar-border: #1A4D6E;
+  --sidebar-ring: #2DD4BF;
+
+  /* Chart Colors */
+  --chart-1: #00B4A6;
+  --chart-2: #3B82F6;
+  --chart-3: #D4AF37;
+  --chart-4: #22C55E;
+  --chart-5: #A855F7;
+  --chart-6: #EF4444;
+
+  --color-chart-1: #00B4A6;
+  --color-chart-2: #3B82F6;
+  --color-chart-3: #D4AF37;
+  --color-chart-4: #22C55E;
+  --color-chart-5: #A855F7;
+  --color-chart-6: #EF4444;
+
+  /* Fonts */
+  --font-sans: var(--font-geist-sans), "Inter", system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), "Fira Code", monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0f1e;
-    --foreground: #e2e8f0;
-    --card:       #111827;
-    --sidebar-bg: #050a14;
-  }
+/* Dark Mode Tokens — Applied via .dark class on <html> */
+.dark {
+  --background: #071827;
+  --foreground: #F8FAFC;
+  --card: #10283B;
+  --card-foreground: #F8FAFC;
+  --popover: #10283B;
+  --popover-foreground: #F8FAFC;
+  --primary: #2DD4BF;
+  --primary-foreground: #062C2B;
+  --secondary: #1A3A4A;
+  --secondary-foreground: #F8FAFC;
+  --muted: #0F2A3D;
+  --muted-foreground: #CBD5E1;
+  --accent: #0F4A44;
+  --accent-foreground: #A7F3D0;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #284456;
+  --input: #284456;
+  --ring: #2DD4BF;
+
+  --sidebar-background: #061A2B;
+  --sidebar-foreground: #F8FAFC;
+  --sidebar-primary: #2DD4BF;
+  --sidebar-primary-foreground: #062C2B;
+  --sidebar-accent: #0F3D4D;
+  --sidebar-accent-foreground: #A7F3D0;
+  --sidebar-border: #1A3A4A;
+  --sidebar-ring: #2DD4BF;
+
+  --chart-1: #2DD4BF;
+  --chart-2: #60A5FA;
+  --chart-3: #F6D365;
+  --chart-4: #4ADE80;
+  --chart-5: #C084FC;
+  --chart-6: #F87171;
+
+  --color-chart-1: #2DD4BF;
+  --color-chart-2: #60A5FA;
+  --color-chart-3: #F6D365;
+  --color-chart-4: #4ADE80;
+  --color-chart-5: #C084FC;
+  --color-chart-6: #F87171;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Tailwind CSS 4 @theme inline — Maps CSS variables to utilities
+═══════════════════════════════════════════════════════════════ */
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
+
+  /* Sidebar Colors */
+  --color-sidebar-background: var(--sidebar-background);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Chart Colors */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
 }
 
 /* ═══════════════════════════════════════════════════════════════
    Base Reset & Typography
 ═══════════════════════════════════════════════════════════════ */
+
 *,
 *::before,
 *::after {
@@ -55,6 +191,7 @@ body {
 /* ═══════════════════════════════════════════════════════════════
    Scrollbar — Hide in sidebar, custom everywhere else
 ═══════════════════════════════════════════════════════════════ */
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -72,33 +209,36 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(99, 102, 241, 0.25);
+  background: var(--ring);
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.5);
+  background: var(--primary);
 }
 
 /* ═══════════════════════════════════════════════════════════════
    Selection colour
 ═══════════════════════════════════════════════════════════════ */
+
 ::selection {
-  background: rgba(99, 102, 241, 0.25);
-  color: inherit;
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
 
 /* ═══════════════════════════════════════════════════════════════
    Focus ring — consistent across all interactive elements
 ═══════════════════════════════════════════════════════════════ */
+
 :focus-visible {
-  outline: 2px solid #6366f1;
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
   border-radius: 6px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Card glass-morphism utility
+   Card glass-morphism utility (respects theme)
 ═══════════════════════════════════════════════════════════════ */
+
 .glass {
   background: rgba(255, 255, 255, 0.65);
   backdrop-filter: blur(20px);
@@ -106,16 +246,15 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.35);
 }
 
-@media (prefers-color-scheme: dark) {
-  .glass {
-    background: rgba(15, 23, 42, 0.65);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-  }
+.dark .glass {
+  background: rgba(16, 40, 59, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Leave type badge colours  (used in the leaves module)
+   Leave type badge colours (used in the leaves module)
 ═══════════════════════════════════════════════════════════════ */
+
 .leave-annual       { @apply bg-violet-50  text-violet-700  border-violet-100  dark:bg-violet-950/40 dark:text-violet-400 dark:border-violet-900/50; }
 .leave-sick         { @apply bg-rose-50    text-rose-700    border-rose-100    dark:bg-rose-950/40   dark:text-rose-400   dark:border-rose-900/50; }
 .leave-casual       { @apply bg-sky-50     text-sky-700     border-sky-100     dark:bg-sky-950/40    dark:text-sky-400    dark:border-sky-900/50; }
@@ -130,8 +269,9 @@ body {
 .leave-unpaid       { @apply bg-gray-100   text-gray-700    border-gray-200    dark:bg-gray-800/60   dark:text-gray-300   dark:border-gray-700; }
 
 /* ═══════════════════════════════════════════════════════════════
-   Status badges
+   Status badges (semantic colors)
 ═══════════════════════════════════════════════════════════════ */
+
 .status-pending  { @apply bg-amber-100  text-amber-700  dark:bg-amber-900/30  dark:text-amber-400; }
 .status-approved { @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400; }
 .status-rejected { @apply bg-rose-100   text-rose-700   dark:bg-rose-900/30   dark:text-rose-400; }
@@ -139,6 +279,7 @@ body {
 /* ═══════════════════════════════════════════════════════════════
    Animations
 ═══════════════════════════════════════════════════════════════ */
+
 @keyframes fade-in-up {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -155,9 +296,9 @@ body {
 }
 
 @keyframes pulse-ring {
-  0%   { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.5); }
-  70%  { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+  0%   { box-shadow: 0 0 0 0 var(--ring); }
+  70%  { box-shadow: 0 0 0 8px rgba(0, 180, 166, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 180, 166, 0); }
 }
 
 .animate-fade-in-up {
@@ -182,26 +323,23 @@ body {
 .delay-400 { animation-delay: 400ms; }
 
 /* ═══════════════════════════════════════════════════════════════
-   Table — zebra striping + hover
+   Table — zebra striping + hover (uses semantic colors)
 ═══════════════════════════════════════════════════════════════ */
+
 .hr-table tbody tr:nth-child(even) {
-  background-color: rgba(248, 250, 252, 0.6);
-}
-@media (prefers-color-scheme: dark) {
-  .hr-table tbody tr:nth-child(even) {
-    background-color: rgba(15, 23, 42, 0.3);
-  }
+  background-color: var(--muted);
 }
 .hr-table tbody tr {
   transition: background-color 0.15s ease;
 }
 .hr-table tbody tr:hover {
-  background-color: rgba(99, 102, 241, 0.04) !important;
+  background-color: var(--accent) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════
    Date input — remove native browser chrome
 ═══════════════════════════════════════════════════════════════ */
+
 input[type="date"]::-webkit-calendar-picker-indicator {
   opacity: 0;
   cursor: pointer;
@@ -214,18 +352,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 /* ═══════════════════════════════════════════════════════════════
    Print styles — clean output for letters / payslips
 ═══════════════════════════════════════════════════════════════ */
+
 @media print {
   .no-print { display: none !important; }
   body { background: white; color: black; font-size: 12pt; }
   .print-break { page-break-after: always; }
 }
 
-/* Respect a stated preference for less motion.
-   The sidebar animates icon scale, chevron rotation, section fades and a
-   blinking status dot. None of it carries meaning that is lost without motion -
-   the open state is also conveyed by aria-expanded and by the section's
-   background - so it is all safe to drop. Without this, a user who has asked
-   the OS for reduced motion still gets all of it. */
+/* ═══════════════════════════════════════════════════════════════
+   Respect reduced motion preference
+═══════════════════════════════════════════════════════════════ */
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

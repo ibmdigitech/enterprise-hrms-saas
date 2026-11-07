@@ -68,7 +68,7 @@ export default async function SuperAdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
       <SuperAdminLayoutClient
         user={userWithPhoto}
         currentTenantName={currentTenantName}

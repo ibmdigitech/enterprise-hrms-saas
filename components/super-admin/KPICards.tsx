@@ -47,18 +47,26 @@ export function KPICard({
   description,
   loading = false,
 }: KPICardProps) {
+  const isCssVar = (val: string) => val.startsWith("var(--");
+  const borderGradientStyle = isCssVar(bgGradient) 
+    ? { background: `linear-gradient(90deg, ${bgGradient}, ${bgGradient})` }
+    : undefined;
+  const iconBgStyle = isCssVar(bgGradient || iconColor)
+    ? { background: `linear-gradient(135deg, ${bgGradient || iconColor}, ${bgGradient || iconColor})` }
+    : undefined;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
       className={cn(
-        "relative overflow-hidden rounded-2xl p-6 bg-white dark:bg-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-slate-800/50 shadow-xs transition-all duration-300 hover:border-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/10",
+        "relative overflow-hidden rounded-2xl p-6 bg-card border-border shadow-xs transition-all duration-300 hover:border-ring/30 hover:shadow-xl hover:shadow-ring/10",
         "group"
       )}
     >
       {/* Gradient Border Top */}
-      <div className={cn("absolute top-0 left-0 right-0 h-1 bg-gradient-to-r", bgGradient)} />
+      <div className="absolute top-0 left-0 right-0 h-1" style={borderGradientStyle} />
 
       {/* Background Glow */}
       <motion.div
@@ -73,16 +81,16 @@ export function KPICard({
         {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-600 dark:text-slate-400 truncate">{title}</p>
+            <p className="text-sm font-medium text-muted-foreground truncate">{title}</p>
             {description && (
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-500 truncate">{description}</p>
+              <p className="mt-1 text-xs text-muted-foreground truncate">{description}</p>
             )}
           </div>
           <div
             className={cn(
-              "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br shadow-sm text-white",
-              bgGradient || iconColor
+              "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-sm text-primary-foreground"
             )}
+            style={iconBgStyle}
           >
             <Icon className="h-6 w-6" />
           </div>
@@ -95,14 +103,14 @@ export function KPICard({
               <motion.div
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
-                className="h-10 w-48 bg-slate-200 dark:bg-slate-700/50 rounded-lg animate-pulse"
+                className="h-10 w-48 bg-muted rounded-lg animate-pulse"
               />
             ) : (
               <motion.span
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" }}
-                className="text-3xl font-bold text-slate-900 dark:text-white tabular-nums"
+                className="text-3xl font-bold text-foreground tabular-nums"
               >
                 {value}
               </motion.span>
@@ -119,7 +127,7 @@ export function KPICard({
                   ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                   : trend === "down"
                   ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
-                  : "bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20"
+                  : "bg-muted text-muted-foreground border border-border"
               )}
             >
               {trend === "up" ? <ArrowUpRight className="h-3.5 w-3.5" /> : trend === "down" ? <ArrowDownRight className="h-3.5 w-3.5" /> : <Target className="h-3.5 w-3.5" />}
@@ -162,19 +170,19 @@ export function StatCard({ label, value, icon: Icon, color, loading = false }: S
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="relative rounded-xl p-5 bg-white dark:bg-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-slate-800/50 shadow-xs transition-all hover:border-indigo-500/30 group"
+      className="relative rounded-xl p-5 bg-card border-border shadow-xs transition-all hover:border-ring/30 group"
     >
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{label}</p>
+          <p className="text-sm font-medium text-muted-foreground">{label}</p>
           {loading ? (
-            <motion.div className="mt-2 h-8 w-24 bg-slate-200 dark:bg-slate-700/50 rounded animate-pulse" />
+            <motion.div className="mt-2 h-8 w-24 bg-muted rounded animate-pulse" />
           ) : (
             <motion.span
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.1, duration: 0.3 }}
-              className="text-2xl font-bold text-slate-900 dark:text-white"
+              className="text-2xl font-bold text-foreground"
             >
               {value}
             </motion.span>
@@ -195,8 +203,8 @@ export const kpiCards = [
     change: 12.5,
     changeLabel: "vs last month",
     icon: Building2,
-    iconColor: "from-blue-500 to-cyan-500",
-    bgGradient: "from-blue-500 to-cyan-500",
+    iconColor: "var(--color-chart-2)",
+    bgGradient: "var(--color-chart-2)",
     trend: "up" as const,
     description: "Active tenants across platform",
   },
@@ -206,8 +214,8 @@ export const kpiCards = [
     change: 8.2,
     changeLabel: "vs last month",
     icon: Users,
-    iconColor: "from-emerald-500 to-teal-500",
-    bgGradient: "from-emerald-500 to-teal-500",
+    iconColor: "var(--color-chart-4)",
+    bgGradient: "var(--color-chart-4)",
     trend: "up" as const,
     description: "Total workforce across all tenants",
   },
@@ -217,8 +225,8 @@ export const kpiCards = [
     change: 15.3,
     changeLabel: "vs last month",
     icon: CreditCard,
-    iconColor: "from-violet-500 to-purple-500",
-    bgGradient: "from-violet-500 to-purple-500",
+    iconColor: "var(--color-chart-5)",
+    bgGradient: "var(--color-chart-5)",
     trend: "up" as const,
     description: "Platform MRR from subscriptions",
   },
@@ -228,18 +236,18 @@ export const kpiCards = [
     change: -0.02,
     changeLabel: "vs target",
     icon: Activity,
-    iconColor: "from-amber-500 to-orange-500",
-    bgGradient: "from-amber-500 to-orange-500",
+    iconColor: "var(--color-chart-3)",
+    bgGradient: "var(--color-chart-3)",
     trend: "down" as const,
     description: "Platform availability SLA",
   },
 ];
 
 export const statCards = [
-  { label: "Active Tenants", value: "2,156", icon: Building2, color: "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400" },
-  { label: "Trial Tenants", value: "423", icon: Clock, color: "bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400" },
-  { label: "Suspended", value: "18", icon: ShieldCheck, color: "bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400" },
-  { label: "Dedicated DBs", value: "892", icon: Database, color: "bg-violet-500/10 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400" },
-  { label: "Open Tickets", value: "23", icon: TicketCheck, color: "bg-orange-500/10 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400" },
-  { label: "Active Modules", value: "12", icon: Package, color: "bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400" },
+  { label: "Active Tenants", value: "2,156", icon: Building2, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+  { label: "Trial Tenants", value: "423", icon: Clock, color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
+  { label: "Suspended", value: "18", icon: ShieldCheck, color: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" },
+  { label: "Dedicated DBs", value: "892", icon: Database, color: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400" },
+  { label: "Open Tickets", value: "23", icon: TicketCheck, color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" },
+  { label: "Active Modules", value: "12", icon: Package, color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400" },
 ];

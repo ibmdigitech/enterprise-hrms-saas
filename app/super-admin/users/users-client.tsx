@@ -67,31 +67,31 @@ export function UsersClient({ initialData, initialParams }: UsersClientProps) {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
             <Users className="h-7 w-7 text-indigo-400" /> Platform Users
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Global identity repository across all tenants, admins, managers, and staff accounts.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs px-3 py-1.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-            Total Users: <strong className="text-white font-mono">{initialData.total}</strong>
+          <span className="text-xs px-3 py-1.5 rounded-full bg-muted text-muted-foreground border border-border">
+            Total Users: <strong className="text-foreground font-mono">{initialData.total}</strong>
           </span>
         </div>
       </div>
 
       {/* Filter Bar */}
-      <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-wrap gap-3 items-center">
+      <div className="p-4 rounded-xl bg-card/90 border border-border flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 min-w-[220px]">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search by name or email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && applyFilters()}
-            className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-indigo-500"
           />
         </div>
 
@@ -100,7 +100,7 @@ export function UsersClient({ initialData, initialParams }: UsersClientProps) {
           onChange={(e) => {
             setRole(e.target.value);
           }}
-          className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+          className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-indigo-500"
         >
           <option value="">All Roles</option>
           {ROLES_LIST.map((r) => (
@@ -115,7 +115,7 @@ export function UsersClient({ initialData, initialParams }: UsersClientProps) {
           onChange={(e) => {
             setTenantId(e.target.value);
           }}
-          className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 max-w-[200px]"
+          className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-indigo-500 max-w-[200px]"
         >
           <option value="">All Organizations</option>
           {initialData.tenants?.map((t: any) => (
@@ -128,17 +128,17 @@ export function UsersClient({ initialData, initialParams }: UsersClientProps) {
         <button
           onClick={() => applyFilters(1)}
           disabled={isPending}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-foreground rounded-lg text-sm font-medium transition-colors"
         >
           Filter
         </button>
       </div>
 
       {/* Users Table */}
-      <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/40">
+      <div className="rounded-xl border border-border overflow-hidden bg-card">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead className="bg-slate-900/90 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
+          <table className="w-full text-left text-sm text-muted-foreground">
+            <thead className="bg-card/90 text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
               <tr>
                 <th className="py-3 px-4">User</th>
                 <th className="py-3 px-4">Role</th>
@@ -148,7 +148,7 @@ export function UsersClient({ initialData, initialParams }: UsersClientProps) {
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-border/80">
               {initialData.users.map((user: any) => {
                 const isDisabled = Boolean(user.securityFlag?.accountDisabled);
                 const tenantName =
@@ -157,17 +157,17 @@ export function UsersClient({ initialData, initialParams }: UsersClientProps) {
                   "Global Platform";
 
                 return (
-                  <tr key={user.id} className="hover:bg-slate-800/30 transition-colors">
+                  <tr key={user.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4">
-                      <div className="font-medium text-white">{user.name || "Anonymous User"}</div>
-                      <div className="text-xs text-slate-400 font-mono">{user.email}</div>
+                      <div className="font-medium text-foreground">{user.name || "Anonymous User"}</div>
+                      <div className="text-xs text-muted-foreground font-mono">{user.email}</div>
                     </td>
                     <td className="py-3 px-4">
                       <select
                         value={user.role}
                         disabled={isPending}
                         onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                        className="bg-slate-950 border border-slate-700/80 rounded px-2 py-1 text-xs font-semibold text-indigo-300 focus:outline-none"
+                        className="bg-background border border-border/80 rounded px-2 py-1 text-xs font-semibold text-indigo-300 focus:outline-none"
                       >
                         {ROLES_LIST.map((r) => (
                           <option key={r} value={r}>
@@ -177,8 +177,8 @@ export function UsersClient({ initialData, initialParams }: UsersClientProps) {
                       </select>
                     </td>
                     <td className="py-3 px-4">
-                      <div className="flex items-center gap-1.5 text-xs text-slate-300">
-                        <Building2 className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                         <span className="truncate max-w-[160px]">{tenantName}</span>
                       </div>
                     </td>
@@ -193,7 +193,7 @@ export function UsersClient({ initialData, initialParams }: UsersClientProps) {
                         </span>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-xs text-slate-400 font-mono">
+                    <td className="py-3 px-4 text-xs text-muted-foreground font-mono">
                       {format(new Date(user.createdAt), "yyyy-MM-dd")}
                     </td>
                     <td className="py-3 px-4 text-right">
@@ -214,7 +214,7 @@ export function UsersClient({ initialData, initialParams }: UsersClientProps) {
               })}
               {initialData.users.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-slate-500">
+                  <td colSpan={6} className="text-center py-8 text-muted-foreground">
                     No users found matching query.
                   </td>
                 </tr>
@@ -225,7 +225,7 @@ export function UsersClient({ initialData, initialParams }: UsersClientProps) {
 
         {/* Pagination */}
         {initialData.totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 bg-slate-900/60 border-t border-slate-800 text-xs text-slate-400">
+          <div className="flex items-center justify-between px-4 py-3 bg-card/90 border-t border-border text-xs text-muted-foreground">
             <div>
               Page {initialData.page} of {initialData.totalPages} ({initialData.total} total)
             </div>
@@ -233,14 +233,14 @@ export function UsersClient({ initialData, initialParams }: UsersClientProps) {
               <button
                 disabled={initialData.page <= 1 || isPending}
                 onClick={() => applyFilters(initialData.page - 1)}
-                className="p-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40"
+                className="p-1 rounded bg-muted hover:bg-slate-700 disabled:opacity-40"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <button
                 disabled={initialData.page >= initialData.totalPages || isPending}
                 onClick={() => applyFilters(initialData.page + 1)}
-                className="p-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40"
+                className="p-1 rounded bg-muted hover:bg-slate-700 disabled:opacity-40"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>

@@ -187,16 +187,16 @@ export function RoleRequestsClient({ initialData, initialParams }: RoleRequestsC
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <ShieldCheck className="h-7 w-7 text-indigo-400" />
             Role Access Requests
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Review and manage user requests for elevated role permissions (Manager, HR).
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-slate-400">
+          <span className="text-sm text-muted-foreground">
             {data.total} total requests
           </span>
         </div>
@@ -209,24 +209,24 @@ export function RoleRequestsClient({ initialData, initialParams }: RoleRequestsC
         transition={{ delay: 0.1 }}
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
       >
-        <div className="rounded-xl p-4 bg-white/5 dark:bg-slate-900/50 backdrop-blur-xl border border-white/10 dark:border-slate-800/50">
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Requests</p>
-          <p className="text-2xl font-bold text-white mt-1">{data.total}</p>
+        <div className="rounded-xl p-4 bg-white/5 bg-card/50 backdrop-blur-xl border border-white/10 border-border/50">
+          <p className="text-sm font-medium text-muted-foreground text-muted-foreground">Total Requests</p>
+          <p className="text-2xl font-bold text-foreground mt-1">{data.total}</p>
         </div>
-        <div className="rounded-xl p-4 bg-white/5 dark:bg-slate-900/50 backdrop-blur-xl border border-white/10 dark:border-slate-800/50">
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Pending Review</p>
+        <div className="rounded-xl p-4 bg-white/5 bg-card/50 backdrop-blur-xl border border-white/10 border-border/50">
+          <p className="text-sm font-medium text-muted-foreground text-muted-foreground">Pending Review</p>
           <p className="text-2xl font-bold text-amber-400 mt-1">
             {data.requests.filter((r) => r.status === "PENDING").length}
           </p>
         </div>
-        <div className="rounded-xl p-4 bg-white/5 dark:bg-slate-900/50 backdrop-blur-xl border border-white/10 dark:border-slate-800/50">
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Approved</p>
+        <div className="rounded-xl p-4 bg-white/5 bg-card/50 backdrop-blur-xl border border-white/10 border-border/50">
+          <p className="text-sm font-medium text-muted-foreground text-muted-foreground">Approved</p>
           <p className="text-2xl font-bold text-emerald-400 mt-1">
             {data.requests.filter((r) => r.status === "APPROVED").length}
           </p>
         </div>
-        <div className="rounded-xl p-4 bg-white/5 dark:bg-slate-900/50 backdrop-blur-xl border border-white/10 dark:border-slate-800/50">
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Rejected</p>
+        <div className="rounded-xl p-4 bg-white/5 bg-card/50 backdrop-blur-xl border border-white/10 border-border/50">
+          <p className="text-sm font-medium text-muted-foreground text-muted-foreground">Rejected</p>
           <p className="text-2xl font-bold text-rose-400 mt-1">
             {data.requests.filter((r) => r.status === "REJECTED").length}
           </p>
@@ -242,16 +242,16 @@ export function RoleRequestsClient({ initialData, initialParams }: RoleRequestsC
       >
         <div className="flex flex-col sm:flex-row gap-3 flex-1">
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by name or email..."
               value={params.search}
               onChange={(e) => handleSearch(e.target.value)}
-              className="pl-10 bg-slate-900/50 border-slate-700/50"
+              className="pl-10 bg-card border-border/50"
             />
           </div>
           <Select value={params.status} onValueChange={handleStatusFilter}>
-            <SelectTrigger className="w-full sm:w-40 bg-slate-900/50 border-slate-700/50">
+            <SelectTrigger className="w-full sm:w-40 bg-card border-border/50">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
@@ -262,7 +262,7 @@ export function RoleRequestsClient({ initialData, initialParams }: RoleRequestsC
             </SelectContent>
           </Select>
           <Select value={params.role} onValueChange={handleRoleFilter}>
-            <SelectTrigger className="w-full sm:w-40 bg-slate-900/50 border-slate-700/50">
+            <SelectTrigger className="w-full sm:w-40 bg-card border-border/50">
               <SelectValue placeholder="All Roles" />
             </SelectTrigger>
             <SelectContent>
@@ -279,10 +279,10 @@ export function RoleRequestsClient({ initialData, initialParams }: RoleRequestsC
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="rounded-2xl border border-slate-800/50 bg-slate-900/50 backdrop-blur-xl overflow-hidden"
+        className="rounded-2xl border border-border/50 bg-card backdrop-blur-xl overflow-hidden"
       >
         <Table>
-          <TableHeader className="bg-slate-950/50">
+          <TableHeader className="bg-background/50">
             <TableRow>
               <TableHead className="w-8">Status</TableHead>
               <TableHead>User</TableHead>
@@ -297,7 +297,7 @@ export function RoleRequestsClient({ initialData, initialParams }: RoleRequestsC
             {data.requests.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="py-12 text-center">
-                  <div className="flex flex-col items-center gap-3 text-slate-500">
+                  <div className="flex flex-col items-center gap-3 text-muted-foreground">
                     <ShieldCheck className="h-12 w-12 opacity-50" />
                     <p className="text-lg font-medium">No role requests found</p>
                     <p className="text-sm">Try adjusting your search or filters</p>
@@ -311,7 +311,7 @@ export function RoleRequestsClient({ initialData, initialParams }: RoleRequestsC
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.05 * index }}
-                  className="hover:bg-slate-800/30 transition-colors"
+                  className="hover:bg-muted/30 transition-colors"
                 >
                   <TableCell className="flex items-center justify-center">
                     <Badge variant="outline" className={cn(statusConfig[request.status]?.color, "gap-1.5")}>
@@ -325,23 +325,23 @@ export function RoleRequestsClient({ initialData, initialParams }: RoleRequestsC
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600">
-                        <User className="h-5 w-5 text-white" />
+                        <User className="h-5 w-5 text-foreground" />
                       </div>
                       <div>
-                        <p className="font-medium text-white truncate max-w-[200px]">{request.user?.name || "Unknown"}</p>
-                        <p className="text-xs text-slate-400 font-mono">{request.user?.email}</p>
+                        <p className="font-medium text-foreground truncate max-w-[200px]">{request.user?.name || "Unknown"}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{request.user?.email}</p>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">
                     {request.tenant ? (
-                      <div className="flex items-center gap-2 text-slate-300">
-                        <Building2 className="h-3.5 w-3.5 text-slate-500" />
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
                         <span className="truncate max-w-[150px]">{request.tenant.name}</span>
-                        <span className="text-[10px] text-slate-500 font-mono">{request.tenant.slug}.hrms-saas.com</span>
+                        <span className="text-[10px] text-muted-foreground font-mono">{request.tenant.slug}.hrms-saas.com</span>
                       </div>
                     ) : (
-                      <span className="text-slate-500 text-sm">Global / Platform</span>
+                      <span className="text-muted-foreground text-sm">Global / Platform</span>
                     )}
                   </TableCell>
                   <TableCell>
@@ -351,12 +351,12 @@ export function RoleRequestsClient({ initialData, initialParams }: RoleRequestsC
                     </Badge>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border">
                       <User className="h-3 w-3" />
                       {request.user?.role || "STAFF"}
                     </span>
                   </TableCell>
-                  <TableCell className="hidden lg:table-cell text-slate-400 font-mono">
+                  <TableCell className="hidden lg:table-cell text-muted-foreground font-mono">
                     {format(new Date(request.createdAt), "yyyy-MM-dd HH:mm")}
                   </TableCell>
                   <TableCell className="text-right">
@@ -401,8 +401,8 @@ export function RoleRequestsClient({ initialData, initialParams }: RoleRequestsC
 
         {/* Pagination */}
         {data.totalPages > 1 && (
-          <div className="flex items-center justify-between p-4 border-t border-slate-800/50">
-            <div className="text-sm text-slate-400">
+          <div className="flex items-center justify-between p-4 border-t border-border/50">
+            <div className="text-sm text-muted-foreground">
               Page {data.page} of {data.totalPages} ({data.total} total)
             </div>
             <div className="flex items-center gap-2">
@@ -438,7 +438,7 @@ export function RoleRequestsClient({ initialData, initialParams }: RoleRequestsC
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); handleRejectSubmit(); }} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="rejectReason" className="text-sm font-medium text-slate-300">
+              <label htmlFor="rejectReason" className="text-sm font-medium text-muted-foreground">
                 Reason for Rejection
               </label>
               <Textarea
@@ -446,7 +446,7 @@ export function RoleRequestsClient({ initialData, initialParams }: RoleRequestsC
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
                 placeholder="Optional: Explain why this request is being rejected..."
-                className="bg-slate-950 border-slate-800"
+                className="bg-background border-border"
                 rows={3}
               />
             </div>

@@ -20,27 +20,39 @@ export default async function PlatformDashboardPage() {
     const activeTenants = tenants.filter((t: { status: string }) => t.status === "ACTIVE").length;
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-            <PlatformHeader totalTenants={tenants.length} activeTenants={activeTenants} />
+        <div className="min-h-screen bg-background text-foreground flex flex-col">
+            <PlatformHeader />
 
-            <div className="p-8 space-y-8 flex-1">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                        <h2 className="text-xl font-bold text-white">Platform Command Center</h2>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                            Real-time platform telemetry: revenue, tenants, workforce, security, and HR operations across all organizations.
-                        </p>
+            <main className="flex-1 px-6 pb-10 pt-8 sm:px-8 lg:px-10">
+                <div className="mb-8 flex items-center justify-between gap-4">
+                    <h1 className="text-4xl font-black tracking-tight text-foreground sm:text-5xl">Platform Command Center</h1>
+                    <div className="hidden sm:flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 shadow-inner shadow-amber-500/10 dark:text-amber-200">
+                        <span className="h-2.5 w-2.5 rounded-full bg-amber-400 shadow-[0_0_15px_rgba(252,211,77,0.7)]" />
+                        <span className="font-medium">Live</span>
+                        <span className="font-mono text-xs text-amber-700/90 dark:text-amber-100/90">21:57:03</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <span className="px-3 py-1 text-xs font-medium bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20 flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                            Live
-                        </span>
+                </div>
+
+                <div className="mb-6 flex items-center gap-3">
+                    <button
+                        type="button"
+                        aria-label="Refresh dashboard"
+                        className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition hover:border-ring/40"
+                    >
+                        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 12a9 9 0 1 0 3-6.7" />
+                            <path d="M3 4v5h5" />
+                        </svg>
+                    </button>
+                    <div className="flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 shadow-inner shadow-amber-500/10 dark:text-amber-200">
+                        <span className="h-2.5 w-2.5 rounded-full bg-amber-400 shadow-[0_0_15px_rgba(252,211,77,0.7)]" />
+                        <span className="font-medium">Live</span>
+                        <span className="font-mono text-xs text-amber-700/90 dark:text-amber-100/90">21:57:03</span>
                     </div>
                 </div>
 
                 <DashboardClient metrics={metrics} />
-            </div>
+            </main>
         </div>
     );
 }

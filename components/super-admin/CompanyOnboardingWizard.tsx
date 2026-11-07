@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
+import * as XLSX from "xlsx";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronRight,
@@ -64,7 +65,7 @@ interface WizardModule {
 }
 
 interface WizardState {
-  step: 1 | 2 | 3 | 4 | 5;
+  step: 1 | 2 | 3 | 4 | 5 | 6;
   formData: {
     name: string;
     slug: string;
@@ -75,6 +76,7 @@ interface WizardState {
     adminEmail: string;
     planTier: string;
     selectedModules: string[];
+    checklist: Record<string, boolean>;
   };
 }
 
@@ -83,7 +85,8 @@ const STEPS = [
   { id: 2, label: "Administrator", icon: UserPlus },
   { id: 3, label: "Subscription Plan", icon: CreditCard },
   { id: 4, label: "Module Configuration", icon: Layers },
-  { id: 5, label: "Review & Confirm", icon: Check },
+  { id: 5, label: "Onboarding Checklist", icon: CheckCircle2 },
+  { id: 6, label: "Review & Confirm", icon: Check },
 ] as const;
 
 const initialState: WizardState = {
@@ -98,12 +101,93 @@ const initialState: WizardState = {
     adminEmail: "",
     planTier: "STARTER",
     selectedModules: [],
+    checklist: {
+      profile: true,
+      admin: true,
+      plan: false,
+      modules: false,
+      import: false,
+      sendWelcome: false,
+    },
   },
 };
 
 export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[]; modules: WizardModule[] }) {
   const [wizard, setWizard] = useState<WizardState>(initialState);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const exportBulkTemplate = () => {
+    const templateRows = [
+      ["companyName", "subdomain", "adminName", "adminEmail", "planTier", "tradeLicenseNumber", "taxId", "currency"],
+      ["Acme Logistics", "acme-logistics", "Aisha Rahman", "aisha@acme.com", "STARTER", "TL-2024-001", "123456789", "AED"],
+      ["BluePeak Properties", "bluepeak", "Nabil Saleh", "nabil@bluepeak.com", "GROWTH", "TL-2024-002", "987654321", "AED"],
+    ];
+
+    const worksheet = XLSX.utils.aoa_to_sheet(templateRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Companies");
+    XLSX.writeFile(workbook, "company_bulk_import_template.xlsx");
+  };
+
+  const importBulkTemplate = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: "" });
+
+      if (!rows.length) {
+        toast.error("The uploaded file does not contain any rows to import.");
+        return;
+      }
+
+      const firstRow = rows[0];
+      const nextValues = {
+        name: String(firstRow.companyName ?? firstRow["Company Name"] ?? "").trim(),
+        slug: String(firstRow.subdomain ?? firstRow["Subdomain"] ?? "").trim(),
+        adminName: String(firstRow.adminName ?? firstRow["Admin Name"] ?? "").trim(),
+        adminEmail: String(firstRow.adminEmail ?? firstRow["Admin Email"] ?? "").trim(),
+        tradeLicenseNumber: String(firstRow.tradeLicenseNumber ?? firstRow["Trade License Number"] ?? "").trim(),
+        taxId: String(firstRow.taxId ?? firstRow["Tax ID"] ?? "").trim(),
+        currency: String(firstRow.currency ?? firstRow["Currency"] ?? "AED").trim() || "AED",
+        planTier: String(firstRow.planTier ?? firstRow["Plan Tier"] ?? "STARTER").trim().toUpperCase() || "STARTER",
+      };
+
+      const validPlans = new Set((plans || []).map((plan) => plan.id.toUpperCase()));
+      if (nextValues.planTier && !validPlans.has(nextValues.planTier)) {
+        nextValues.planTier = "STARTER";
+      }
+
+      setWizard((prev) => ({
+        ...prev,
+        step: 1,
+        formData: {
+          ...prev.formData,
+          ...nextValues,
+          checklist: {
+            ...prev.formData.checklist,
+            profile: Boolean(nextValues.name.trim()),
+            admin: Boolean(nextValues.adminName.trim() && nextValues.adminEmail.trim()),
+            plan: Boolean(nextValues.planTier.trim()),
+            import: true,
+          },
+        },
+      }));
+
+      toast.success(`Imported company details from ${file.name}. Review the fields before continuing.`);
+    } catch (error) {
+      console.error("Bulk company import failed", error);
+      toast.error("Could not read that Excel/CSV file. Please use the template format.");
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
 
   const canGoNext = useCallback(() => {
     const { step, formData } = wizard;
@@ -116,13 +200,15 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
         return Boolean(formData.planTier);
       case 4:
         return true;
+      case 5:
+        return true;
       default:
         return false;
     }
   }, [wizard]);
 
   const goNext = () => {
-    if (wizard.step < 5 && canGoNext()) {
+    if (wizard.step < 6 && canGoNext()) {
       setWizard((prev) => ({ ...prev, step: (prev.step + 1) as WizardState["step"] }));
     }
   };
@@ -133,8 +219,24 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
     }
   };
 
-  const updateField = (field: keyof WizardState["formData"], value: string | string[]) => {
-    setWizard((prev) => ({ ...prev, formData: { ...prev.formData, [field]: value } }));
+  const updateField = (field: keyof WizardState["formData"], value: string | string[] | Record<string, boolean>) => {
+    setWizard((prev) => {
+      const nextFormData = { ...prev.formData, [field]: value } as typeof prev.formData;
+
+      if (field === "name") {
+        nextFormData.checklist = { ...nextFormData.checklist, profile: Boolean(String(value).trim()) };
+      }
+
+      if (field === "adminName" || field === "adminEmail") {
+        nextFormData.checklist = { ...nextFormData.checklist, admin: Boolean(nextFormData.adminName.trim() && nextFormData.adminEmail.trim()) };
+      }
+
+      if (field === "planTier") {
+        nextFormData.checklist = { ...nextFormData.checklist, plan: Boolean(String(value).trim()) };
+      }
+
+      return { ...prev, formData: nextFormData };
+    });
   };
 
   const toggleModule = (moduleId: string) => {
@@ -145,6 +247,23 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
         selectedModules: prev.formData.selectedModules.includes(moduleId)
           ? prev.formData.selectedModules.filter((m) => m !== moduleId)
           : [...prev.formData.selectedModules, moduleId],
+        checklist: {
+          ...prev.formData.checklist,
+          modules: true,
+        },
+      },
+    }));
+  };
+
+  const toggleChecklistItem = (key: string) => {
+    setWizard((prev) => ({
+      ...prev,
+      formData: {
+        ...prev.formData,
+        checklist: {
+          ...prev.formData.checklist,
+          [key]: !prev.formData.checklist[key],
+        },
       },
     }));
   };
@@ -205,18 +324,18 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
             <Building2 className="h-5 w-5" />
           </span>
           <div>
-            <h1 className="text-2xl font-bold text-white">Create New Company</h1>
-            <p className="text-sm text-slate-400">Multi-tenant organization onboarding</p>
+            <h1 className="text-2xl font-bold text-foreground">Create New Company</h1>
+            <p className="text-sm text-muted-foreground">Multi-tenant organization onboarding</p>
           </div>
         </div>
 
         {/* Progress Bar */}
         <div className="mt-6">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Step {wizard.step} of {STEPS.length}</span>
-            <span className="text-xs font-medium text-slate-400">Progress</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Step {wizard.step} of {STEPS.length}</span>
+            <span className="text-xs font-medium text-muted-foreground">Progress</span>
           </div>
-          <div className="relative h-2 overflow-hidden rounded-full bg-slate-800/50">
+          <div className="relative h-2 overflow-hidden rounded-full bg-muted/80">
             <div className="relative h-full w-full bg-gradient-to-r from-indigo-500 to-violet-500" style={{ transform: `scaleX(${stepProgress})`, transformOrigin: "left" }} />
           </div>
         </div>
@@ -236,7 +355,7 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
                 ? "bg-indigo-500/10 border border-indigo-500/30 shadow-lg shadow-indigo-500/20"
                 : wizard.step > step.id
                 ? "bg-emerald-500/10 border border-emerald-500/20"
-                : "bg-slate-900/50 border border-slate-800/50"
+                : "bg-card border border-border/50"
             )}
           >
             <div className="flex items-center justify-center rounded-full p-1.5">
@@ -245,10 +364,10 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
               ) : wizard.step === step.id ? (
                 <step.icon className="h-5 w-5 text-indigo-500" />
               ) : (
-                <step.icon className="h-5 w-5 text-slate-500" />
+                <step.icon className="h-5 w-5 text-muted-foreground" />
               )}
             </div>
-            <p className={cn("text-xs font-medium", wizard.step <= step.id ? "text-white" : "text-slate-400")}>
+            <p className={cn("text-xs font-medium", wizard.step <= step.id ? "text-foreground" : "text-muted-foreground")}>
               {step.label}
             </p>
           </motion.div>
@@ -259,18 +378,36 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
       <motion.div
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
-        className="rounded-3xl p-8 bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 shadow-2xl"
+        className="rounded-3xl p-8 bg-card backdrop-blur-xl border border-border/50 shadow-2xl"
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Step 1: Company Details */}
           <AnimatePresence mode="wait">
             {wizard.step === 1 && (
               <motion.div key="step-1" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                <div className="flex items-start gap-3">
-                  <Building2 className="h-5 w-5 text-indigo-400 shrink-0" />
-                  <div>
-                    <h2 className="text-lg font-semibold text-white">Company Information</h2>
-                    <p className="text-sm text-slate-400">Basic details about the organization</p>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <Building2 className="h-5 w-5 text-indigo-400 shrink-0" />
+                    <div>
+                      <h2 className="text-lg font-semibold text-foreground">Company Information</h2>
+                      <p className="text-sm text-muted-foreground">Basic details about the organization</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={exportBulkTemplate}>
+                      Download Excel Template
+                    </Button>
+                    <Button type="button" variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
+                      Import Excel
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".xlsx,.xls,.csv"
+                      className="hidden"
+                      onChange={importBulkTemplate}
+                    />
                   </div>
                 </div>
 
@@ -381,8 +518,8 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
                 <div className="flex items-start gap-3">
                   <UserPlus className="h-5 w-5 text-indigo-400 shrink-0" />
                   <div>
-                    <h2 className="text-lg font-semibold text-white">Company Administrator</h2>
-                    <p className="text-sm text-slate-400">Create the initial administrator account</p>
+                    <h2 className="text-lg font-semibold text-foreground">Company Administrator</h2>
+                    <p className="text-sm text-muted-foreground">Create the initial administrator account</p>
                   </div>
                 </div>
 
@@ -424,12 +561,12 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
                   />
                 </div>
 
-                <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
+                <div className="bg-muted/50 rounded-xl p-4 border border-border/50">
                   <div className="flex items-start gap-3">
-                    <Info className="h-4 w-4 text-slate-400 mt-0.5 shrink-0" />
+                    <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                     <div className="flex-1">
-                      <p className="text-sm text-slate-300 font-medium">Administrator will receive:</p>
-                      <ul className="text-sm text-slate-400 mt-1 space-y-1 list-disc list-inside">
+                      <p className="text-sm text-muted-foreground font-medium">Administrator will receive:</p>
+                      <ul className="text-sm text-muted-foreground mt-1 space-y-1 list-disc list-inside">
                         <li>Welcome email with login credentials</li>
                         <li>Access to company admin portal</li>
                         <li>Ability to invite additional users</li>
@@ -449,8 +586,8 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
                 <div className="flex items-start gap-3">
                   <CreditCard className="h-5 w-5 text-indigo-400 shrink-0" />
                   <div>
-                    <h2 className="text-lg font-semibold text-white">Subscription Plan</h2>
-                    <p className="text-sm text-slate-400">Choose the pricing tier for this company</p>
+                    <h2 className="text-lg font-semibold text-foreground">Subscription Plan</h2>
+                    <p className="text-sm text-muted-foreground">Choose the pricing tier for this company</p>
                   </div>
                 </div>
 
@@ -466,20 +603,20 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
                           "flex flex-col items-center justify-between rounded-2xl p-6 border transition-all duration-200",
                           isSelected
                             ? "bg-indigo-500/10 border-indigo-500/30 shadow-lg shadow-indigo-500/20 ring-2 ring-indigo-500"
-                            : "bg-slate-900/50 border-slate-700/50 hover:border-indigo-500/30"
+                            : "bg-card border-border/50 hover:border-indigo-500/30"
                         )}
                         onClick={() => updateField("planTier", plan.id)}
                       >
                         <div className="text-center">
-                          <h3 className={cn("font-semibold text-white", isSelected ? "text-indigo-400" : "text-slate-300")}>
+                          <h3 className={cn("font-semibold text-foreground", isSelected ? "text-indigo-400" : "text-muted-foreground")}>
                             {plan.name}
                           </h3>
-                          <p className="text-xs text-slate-500 mt-1">{plan.description || ""}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{plan.description || ""}</p>
                         </div>
 
                         <div className="mt-4 flex items-baseline gap-1">
-                          <span className="text-2xl font-bold text-white">${plan.priceMonthly.toFixed(0)}</span>
-                          <span className="text-xs text-slate-500">/month</span>
+                          <span className="text-2xl font-bold text-foreground">${plan.priceMonthly.toFixed(0)}</span>
+                          <span className="text-xs text-muted-foreground">/month</span>
                         </div>
 
                         <div className="mt-6 space-y-2">
@@ -491,10 +628,10 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
                         </div>
 
                         <div className="mt-auto">
-                          <span className="text-sm font-medium text-slate-400">
+                          <span className="text-sm font-medium text-muted-foreground">
                             Up to {plan.maxEmployees} employees
                           </span>
-                          <span className="text-xs text-slate-500 block mt-1">
+                          <span className="text-xs text-muted-foreground block mt-1">
                             {plan.maxCompanies} {plan.maxCompanies === 1 ? "company" : "companies"} • {plan.maxLocations} locations
                           </span>
                         </div>
@@ -504,7 +641,7 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
                 </div>
 
                 <div className="text-center mt-4">
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-muted-foreground">
                     Plans can be changed later from the Subscriptions page
                   </span>
                 </div>
@@ -519,8 +656,8 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
                 <div className="flex items-start gap-3">
                   <Layers className="h-5 w-5 text-indigo-400 shrink-0" />
                   <div>
-                    <h2 className="text-lg font-semibold text-white">Module Configuration</h2>
-                    <p className="text-sm text-slate-400">Enable specific SaaS modules for this company</p>
+                    <h2 className="text-lg font-semibold text-foreground">Module Configuration</h2>
+                    <p className="text-sm text-muted-foreground">Enable specific SaaS modules for this company</p>
                   </div>
                 </div>
 
@@ -536,17 +673,17 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
                           "flex items-center justify-between rounded-xl p-4 border transition-all duration-200 group",
                           isEnabled
                             ? "bg-indigo-500/10 border-indigo-500/30"
-                            : "bg-slate-900/50 border-slate-700/50 hover:border-indigo-500/30"
+                            : "bg-card border-border/50 hover:border-indigo-500/30"
                         )}
                         onClick={() => toggleModule(module.id)}
                       >
                         <div className="flex items-center gap-3">
                           <Checkbox checked={isEnabled} onCheckedChange={() => toggleModule(module.id)} />
                           <div>
-                            <p className={cn("font-medium text-white", module.isCore && "text-indigo-400")}>
+                            <p className={cn("font-medium text-foreground", module.isCore && "text-indigo-400")}>
                               {module.name}
                             </p>
-                            <p className="text-xs text-slate-500">{module.category}</p>
+                            <p className="text-xs text-muted-foreground">{module.category}</p>
                             {module.isCore && (
                               <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded">
                                 Core Module
@@ -554,7 +691,7 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
                             )}
                           </div>
                         </div>
-                        <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-800 text-slate-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-muted text-muted-foreground group-hover:bg-indigo-500 group-hover:text-foreground transition-colors">
                           <Briefcase className="h-3 w-3" />
                         </div>
                       </motion.div>
@@ -563,7 +700,7 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
                 </div>
 
                 <div className="text-center">
-                  <span className="text-sm text-slate-400">
+                  <span className="text-sm text-muted-foreground">
                     Core modules are always enabled. Select additional modules based on subscription plan.
                   </span>
                 </div>
@@ -571,15 +708,73 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
             )}
           </AnimatePresence>
 
-          {/* Step 5: Review & Confirm */}
+          {/* Step 5: Onboarding Checklist */}
           <AnimatePresence mode="wait">
             {wizard.step === 5 && (
               <motion.div key="step-5" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
                 <div className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-indigo-400 shrink-0" />
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground">Onboarding Checklist</h2>
+                    <p className="text-sm text-muted-foreground">Confirm the tasks required before the new company is activated</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    { key: "profile", label: "Company profile details complete", helper: "Legal name, subdomain and business identifiers" },
+                    { key: "admin", label: "Administrator account ready", helper: "Primary admin account created and verified" },
+                    { key: "plan", label: "Subscription plan selected", helper: "Pricing tier approved for this tenant" },
+                    { key: "modules", label: "Required modules enabled", helper: "Core and optional modules configured" },
+                    { key: "import", label: "Bulk import template prepared", helper: "Excel/CSV template downloaded or uploaded" },
+                    { key: "sendWelcome", label: "Welcome email scheduled", helper: "Activation message and access details ready" },
+                  ].map((item) => {
+                    const checked = Boolean(wizard.formData.checklist[item.key]);
+                    return (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => toggleChecklistItem(item.key)}
+                        className={cn(
+                          "flex items-start gap-3 rounded-2xl border p-4 text-left transition-all duration-200",
+                          checked
+                            ? "border-emerald-500/30 bg-emerald-500/10 shadow-sm shadow-emerald-500/10"
+                            : "border-border/60 bg-card hover:border-indigo-500/30"
+                        )}
+                      >
+                        <div className={cn(
+                          "mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border transition-colors",
+                          checked
+                            ? "border-emerald-500 bg-emerald-500 text-white"
+                            : "border-muted-foreground/40 bg-transparent text-transparent"
+                        )}>
+                          {checked && <Check className="h-3 w-3" />}
+                        </div>
+                        <div className="space-y-1">
+                          <p className="font-medium text-foreground">{item.label}</p>
+                          <p className="text-xs text-muted-foreground">{item.helper}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="rounded-xl border border-dashed border-indigo-500/30 bg-indigo-500/5 p-4 text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">Checklist progress:</span> {Object.values(wizard.formData.checklist).filter(Boolean).length} of {Object.keys(wizard.formData.checklist).length} tasks complete.
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Step 6: Review & Confirm */}
+          <AnimatePresence mode="wait">
+            {wizard.step === 6 && (
+              <motion.div key="step-6" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                <div className="flex items-start gap-3">
                   <Check className="h-5 w-5 text-emerald-500 shrink-0" />
                   <div>
-                    <h2 className="text-lg font-semibold text-white">Review & Confirm</h2>
-                    <p className="text-sm text-slate-400">Review company details before creation</p>
+                    <h2 className="text-lg font-semibold text-foreground">Review & Confirm</h2>
+                    <p className="text-sm text-muted-foreground">Review company details before creation</p>
                   </div>
                 </div>
 
@@ -603,9 +798,9 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
                   )}
                 </div>
 
-                <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-                  <h3 className="text-sm font-semibold text-white mb-2">What happens next?</h3>
-                  <ul className="text-sm text-slate-400 space-y-1 list-disc list-inside">
+                <div className="bg-muted/50 rounded-xl p-4 border border-border/50">
+                  <h3 className="text-sm font-semibold text-foreground mb-2">What happens next?</h3>
+                  <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
                     <li>Company tenant will be provisioned</li>
                     <li>Administrator account will be created</li>
                     <li>Welcome email with login credentials sent</li>
@@ -617,7 +812,7 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
           </AnimatePresence>
 
           {/* Navigation Buttons */}
-          <div className="flex items-center justify-between pt-8 border-t border-slate-800/50">
+          <div className="flex items-center justify-between pt-8 border-t border-border/50">
             {wizard.step > 1 && (
               <Button
                 type="button"
@@ -630,7 +825,7 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
               </Button>
             )}
             <div className="flex items-center gap-2">
-              {wizard.step < 5 ? (
+              {wizard.step < 6 ? (
                 <Button
                   type="button"
                   variant="default"
@@ -674,8 +869,8 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
 function FeatureRow({ feature, enabled }: { feature: string; enabled: boolean }) {
   return (
     <div className="flex items-center justify-between text-sm">
-      <span className="text-slate-400">{feature}</span>
-      <span className={cn("text-xs font-bold", enabled ? "text-emerald-400" : "text-slate-600")}>
+      <span className="text-muted-foreground">{feature}</span>
+      <span className={cn("text-xs font-bold", enabled ? "text-emerald-400" : "text-muted-foreground")}>
         {enabled ? "Included" : "Not included"}
       </span>
     </div>
@@ -684,12 +879,12 @@ function FeatureRow({ feature, enabled }: { feature: string; enabled: boolean })
 
 function ReviewRow({ label, value, icon: Icon }: { label: string; value: string; icon?: React.ElementType }) {
   return (
-    <div className="flex items-center justify-between py-2 border-b border-slate-800/30 last:border-0">
+    <div className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
       <div className="flex items-center gap-3">
-        {Icon && <Icon className="h-4 w-4 text-slate-500" />}
-        <span className="text-sm text-slate-400">{label}</span>
+        {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+        <span className="text-sm text-muted-foreground">{label}</span>
       </div>
-      <span className="text-sm font-medium text-white max-w-xs truncate">{value}</span>
+      <span className="text-sm font-medium text-foreground max-w-xs truncate">{value}</span>
     </div>
   );
 }

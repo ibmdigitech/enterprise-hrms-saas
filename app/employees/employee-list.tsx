@@ -39,6 +39,7 @@ import {
     KeyRound,
     ClipboardCheck,
     CheckCircle2,
+    ArrowLeft,
     // Distinct icons for the two row actions. "View profile" originally reused
     // the same UserCircle as "Edit", so every row carried two identical glyphs
     // and neither was distinguishable at a glance. View is an eye; edit is a
@@ -240,6 +241,12 @@ export default function EmployeeList({ initialEmployees,  }: { initialEmployees:
     // act as jump targets, and `progressFormData` is refreshed on every change
     // so completion is derived from the real field values.
     const [activeTab, setActiveTab] = useState("personal");
+    const sectionOrder = ["personal", "employment", "finance", "docs"] as const;
+    const currentSectionIndex = sectionOrder.indexOf(activeTab as typeof sectionOrder[number]);
+    const goToPreviousSection = () => {
+        if (currentSectionIndex <= 0) return;
+        setActiveTab(sectionOrder[currentSectionIndex - 1]);
+    };
     const [progressFormData, setProgressFormData] = useState<FormData | null>(null);
     const [photoDraft, setPhotoDraft] = useState("");
     const [photoFileError, setPhotoFileError] = useState("");
@@ -1340,6 +1347,16 @@ export default function EmployeeList({ initialEmployees,  }: { initialEmployees:
 
                                     <DialogFooter className="shrink-0 flex-wrap gap-2 p-4 sm:px-8 lg:px-10 sm:py-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
                                         <Button type="button" variant="ghost" onClick={() => setOpen(false)} className="rounded-xl font-bold uppercase text-[10px] tracking-widest">Cancel</Button>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={goToPreviousSection}
+                                            disabled={currentSectionIndex <= 0}
+                                            className="rounded-xl font-black uppercase text-[10px] tracking-widest disabled:cursor-not-allowed"
+                                        >
+                                            <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+                                            Back
+                                        </Button>
 
                                         {/* Per-section save mode. Each tab can be saved as partial independently. */}
                                         <div className="flex flex-wrap items-center gap-2 mr-auto">

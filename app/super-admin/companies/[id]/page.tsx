@@ -17,8 +17,8 @@ export default async function CompanyDetailsPage({
   if (!company) {
     return (
       <div className="text-center py-20">
-        <h1 className="text-2xl font-bold text-white">Company Not Found</h1>
-        <p className="text-slate-400 mt-2">The requested company does not exist.</p>
+        <h1 className="text-2xl font-bold text-foreground">Company Not Found</h1>
+        <p className="text-muted-foreground mt-2">The requested company does not exist.</p>
       </div>
     );
   }

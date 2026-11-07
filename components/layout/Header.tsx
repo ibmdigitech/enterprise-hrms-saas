@@ -16,6 +16,7 @@ import { Menu } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { TenantSwitcher, TenantOption } from "@/components/tenant/tenant-switcher";
+import { ThemeSelector } from "@/components/layout/ThemeSelector";
 
 interface HeaderProps {
     user?: {
@@ -33,16 +34,10 @@ interface HeaderProps {
 /**
  * Shared chrome for every header icon control.
  *
- * `ring-inset` gives the resting state a hairline that matches the sidebar, so
- * the row reads as buttons without a filled chip per icon; hover lifts the ring
- * to indigo and adds a shadow. The scale on `active:` is the only transform, and
- * `motion-reduce` neutralises it along with the transition, because a control
- * that jumps under the pointer is exactly what that preference asks us not to
- * do. `focus-visible:outline-none` suppresses the global `:focus-visible`
- * outline in globals.css so the ring is not doubled.
+ * Uses semantic color tokens that adapt to light/dark mode.
  */
 const ICON_BUTTON =
-    "h-9 w-9 shrink-0 rounded-xl bg-slate-100/50 text-slate-600 shadow-xs ring-1 ring-inset ring-slate-200/70 transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-600 hover:shadow-sm hover:ring-indigo-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 motion-reduce:transition-none motion-reduce:transform-none dark:bg-slate-900/50 dark:text-slate-400 dark:ring-slate-800 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-300 dark:hover:ring-indigo-500/40";
+    "h-9 w-9 shrink-0 rounded-xl bg-secondary/50 text-foreground shadow-xs ring-1 ring-inset ring-border/70 transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:shadow-sm hover:ring-primary/20 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none motion-reduce:transform-none";
 
 export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
     const pathname = usePathname();
@@ -56,8 +51,8 @@ export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
         ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
         : "U";
 
-    return (
-        <header className="relative z-50 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-slate-200/50 bg-white/70 px-3 backdrop-blur-xl dark:bg-slate-950/70 md:h-20 md:gap-4 md:px-8">
+return (
+        <header className="relative z-50 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-border/50 bg-background/70 px-3 backdrop-blur-xl md:h-20 md:gap-4 md:px-8">
             <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-6">
                 {/* Mobile Menu Trigger */}
                 <Dialog open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -82,13 +77,13 @@ export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
                         already scrolls via its `flex-1 overflow-y-auto` child,
                         and `flex` drops the base's `grid`. */}
                     <DialogContent
-                        className="fixed inset-y-0 left-0 translate-x-0 translate-y-0 z-50 flex flex-col w-[85vw] max-w-[320px] h-[100dvh] max-h-[100dvh] overflow-y-hidden p-0 m-0 border-0 rounded-none sm:rounded-none data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left bg-slate-900 dark:bg-slate-950"
-                        /* This panel is dark BY ITS OWN CLASS, whatever the app
-                           theme is. With the app in light mode a theme-derived
-                           close icon is dark slate on a slate-900 panel and
-                           vanishes. The panel colour is the caller's decision,
-                           so the caller supplies the icon colour too. */
-                        closeButtonClassName="text-slate-300 hover:text-white hover:bg-white/10 focus-visible:ring-white/70"
+                            className="fixed inset-y-0 left-0 translate-x-0 translate-y-0 z-50 flex flex-col w-[85vw] max-w-[320px] h-[100dvh] max-h-[100dvh] overflow-y-hidden p-0 m-0 border-0 rounded-none sm:rounded-none data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left bg-sidebar-background"
+                            /* This panel is dark BY ITS OWN CLASS, whatever the app
+                               theme is. With the app in light mode a theme-derived
+                               close icon is dark slate on a slate-900 panel and
+                               vanishes. The panel colour is the caller's decision,
+                               so the caller supplies the icon colour too. */
+                            closeButtonClassName="text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:ring-ring/70"
                     >
                         <DialogTitle className="sr-only">Navigation Menu</DialogTitle>
                         <div className="mt-10 flex-1 overflow-y-auto p-4 scrollbar-hide">
@@ -125,7 +120,7 @@ export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
                     <button
                         type="button"
                         aria-label="Close search"
-                        className="absolute inset-0 z-[55] h-full w-full cursor-default bg-white/95 dark:bg-slate-950/95 md:hidden"
+                        className="absolute inset-0 z-[55] h-full w-full cursor-default bg-background/95 md:hidden"
                         onClick={() => setMobileSearchOpen(false)}
                     />
                 )}
@@ -153,7 +148,7 @@ export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
                     them the flex algorithm narrows these items and the text
                     wraps at its spaces — "GMT" / "+4" / "(UAE)" on three lines —
                     which tripled the header height. */}
-                <div className="hidden shrink-0 items-center gap-6 border-l border-slate-200 pl-6 dark:border-slate-800 xl:flex">
+                <div className="hidden shrink-0 items-center gap-6 border-l border-border pl-6 xl:flex">
                     <HeaderClock />
                     <HeaderTimezone />
                 </div>
@@ -168,7 +163,7 @@ export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
                     className={cn(
                         ICON_BUTTON,
                         "relative",
-                        isNotificationsActive && "bg-indigo-600 text-white ring-2 ring-indigo-500 shadow-md shadow-indigo-600/30 hover:bg-indigo-700 hover:text-white dark:bg-indigo-600 dark:text-white dark:ring-indigo-400"
+                        isNotificationsActive && "bg-primary text-primary-foreground ring-2 ring-primary shadow-md shadow-primary/30 hover:bg-primary/90 hover:text-primary-foreground"
                     )}
                 >
                     <Link 
@@ -176,12 +171,12 @@ export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
                         aria-label="Notifications" 
                         title={isNotificationsActive ? "Current Page: Notifications" : "View Notifications"}
                     >
-                        <Bell className={cn("h-4 w-4 transition-transform group-hover:scale-105", isNotificationsActive ? "text-white" : "text-slate-600 dark:text-slate-300")} />
+                        <Bell className={cn("h-4 w-4 transition-transform group-hover:scale-105", isNotificationsActive ? "text-primary-foreground" : "text-muted-foreground")} />
                         
                         {/* Active Notification Indicator Pinpoint Badge */}
                         <span className="absolute top-1.5 right-1.5 flex h-2 w-2 pointer-events-none">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500 ring-1.5 ring-white dark:ring-slate-900" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500 ring-1.5 ring-background" />
                         </span>
                     </Link>
                 </Button>
@@ -194,7 +189,7 @@ export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
                     </Link>
                 </Button>
 
-                <span aria-hidden="true" className="hidden h-7 w-px bg-slate-200 dark:bg-slate-800 lg:block" />
+                <span aria-hidden="true" className="hidden h-7 w-px border-border lg:block" />
 
                 <Popover>
                     <PopoverTrigger asChild>
@@ -205,51 +200,52 @@ export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
                             on the avatar keeps it at a stable tap target. The
                             name column itself is hidden below `lg`, where the
                             avatar alone identifies the account. */}
-                        <div className="group flex cursor-pointer items-center gap-2.5 rounded-xl p-1 pr-1.5 outline-none transition-colors duration-200 hover:bg-slate-100/70 focus-visible:ring-2 focus-visible:ring-indigo-500 dark:hover:bg-slate-900/70">
+                        <div className="group flex cursor-pointer items-center gap-2.5 rounded-xl p-1 pr-1.5 outline-none transition-colors duration-200 hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring">
                             <div className="hidden min-w-0 flex-col items-end lg:flex">
-                                <span className="max-w-[10rem] truncate text-sm font-black tracking-tight text-slate-900 transition-colors group-hover:text-indigo-600 dark:text-white">{user?.name || "User"}</span>
+                                <span className="max-w-[10rem] truncate text-sm font-black tracking-tight text-foreground transition-colors group-hover:text-primary">{user?.name || "User"}</span>
                                 <div className="flex items-center gap-2">
                                     <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{user?.role || "STAFF"}</span>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">{user?.role || "STAFF"}</span>
                                 </div>
                             </div>
-                            <Avatar className="h-9 w-9 shrink-0 rounded-xl border-2 border-white shadow-sm transition-transform duration-300 group-hover:scale-105 motion-reduce:transition-none motion-reduce:transform-none dark:border-slate-800">
+                            <Avatar className="h-9 w-9 shrink-0 rounded-xl border-2 border-background shadow-sm transition-transform duration-300 group-hover:scale-105 motion-reduce:transition-none motion-reduce:transform-none">
                                 {user?.image && <AvatarImage src={user.image} alt="" />}
-                                <AvatarFallback className="bg-indigo-600 font-black text-white">{userInitials}</AvatarFallback>
+                                <AvatarFallback className="bg-primary font-black text-primary-foreground">{userInitials}</AvatarFallback>
                             </Avatar>
                             <span className="sr-only">Account menu for {user?.name || "user"}</span>
                         </div>
                     </PopoverTrigger>
-                    <PopoverContent align="end" className="w-64 rounded-2xl border border-slate-200 bg-white/90 p-2 shadow-2xl backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90">
-                        <div className="mb-2 flex items-center gap-3 border-b border-slate-100 p-3 pb-4 dark:border-slate-800/50">
+                    <PopoverContent align="end" className="w-64 rounded-2xl border border-border bg-popover/90 p-2 shadow-2xl backdrop-blur-xl">
+                        <div className="mb-2 flex items-center gap-3 border-b border-border p-3 pb-4">
                             <Avatar className="h-12 w-12 rounded-xl">
                                 {user?.image && <AvatarImage src={user.image} alt="" />}
-                                <AvatarFallback className="bg-indigo-600 font-black text-white">{userInitials}</AvatarFallback>
+                                <AvatarFallback className="bg-primary font-black text-primary-foreground">{userInitials}</AvatarFallback>
                             </Avatar>
                             <div className="flex flex-col">
-                                <span className="w-32 truncate text-sm font-black leading-tight text-slate-900 dark:text-white">{user?.name || "User"}</span>
-                                <span className="w-32 truncate text-[10px] font-bold text-slate-500">{user?.email || "No email"}</span>
+                                <span className="w-32 truncate text-sm font-black leading-tight text-foreground">{user?.name || "User"}</span>
+                                <span className="w-32 truncate text-[10px] font-bold text-muted-foreground">{user?.email || "No email"}</span>
                             </div>
                         </div>
                         <div className="flex flex-col gap-1">
                             {user?.role === "SUPER_ADMIN" && (
-                                <Button asChild variant="ghost" className="h-10 w-full justify-start rounded-xl text-xs font-black text-indigo-600 bg-indigo-50/70 hover:bg-indigo-100 hover:text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 dark:hover:bg-indigo-900/50">
+                                <Button asChild variant="ghost" className="h-10 w-full justify-start rounded-xl text-xs font-black text-primary bg-primary/10 hover:bg-primary/20 hover:text-primary">
                                     <Link href="/super-admin/dashboard">
-                                        <ShieldCheck className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                                        <ShieldCheck className="mr-2 h-4 w-4 text-primary" />
                                         Super Admin Portal
                                     </Link>
                                 </Button>
                             )}
-                            <Button asChild variant="ghost" className="h-10 w-full justify-start rounded-xl text-xs font-bold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 dark:text-slate-300 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-400">
+                            <Button asChild variant="ghost" className="h-10 w-full justify-start rounded-xl text-xs font-bold text-muted-foreground hover:bg-accent hover:text-primary">
                                 <Link href="/settings">
                                     <User className="mr-2 h-4 w-4" />
                                     Profile Settings
                                 </Link>
                             </Button>
+                            <ThemeSelector variant="dropdown" showLabel={false} />
                             <Button
                                 variant="ghost"
                                 onClick={() => signOut({ callbackUrl: '/login' })}
-                                className="h-10 w-full justify-start rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-900/20"
+                                className="h-10 w-full justify-start rounded-xl text-xs font-bold text-destructive hover:bg-destructive/10 hover:text-destructive"
                             >
                                 <LogOut className="mr-2 h-4 w-4" />
                                 Sign out

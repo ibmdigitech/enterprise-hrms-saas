@@ -36,31 +36,31 @@ export function AuditClient({ initialData, initialParams }: AuditClientProps) {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
             <Activity className="h-7 w-7 text-indigo-400" /> Platform Security & Audit Trail
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Immutable system-wide event logs tracking authentications, privilege grants, mutations, and policy triggers.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs px-3 py-1.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-            Recorded Events: <strong className="text-white font-mono">{initialData.total}</strong>
+          <span className="text-xs px-3 py-1.5 rounded-full bg-muted text-muted-foreground border border-border">
+            Recorded Events: <strong className="text-foreground font-mono">{initialData.total}</strong>
           </span>
         </div>
       </div>
 
       {/* Filter Bar */}
-      <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-wrap gap-3 items-center">
+      <div className="p-4 rounded-xl bg-card/90 border border-border flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
             placeholder="Filter by action (e.g. tenant.create, auth.login)..."
             value={action}
             onChange={(e) => setAction(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && applyFilters()}
-            className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-indigo-500"
           />
         </div>
 
@@ -70,7 +70,7 @@ export function AuditClient({ initialData, initialParams }: AuditClientProps) {
           value={actorEmail}
           onChange={(e) => setActorEmail(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && applyFilters()}
-          className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-w-[180px]"
+          className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-indigo-500 min-w-[180px]"
         />
 
         <select
@@ -78,7 +78,7 @@ export function AuditClient({ initialData, initialParams }: AuditClientProps) {
           onChange={(e) => {
             setOutcome(e.target.value);
           }}
-          className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+          className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-indigo-500"
         >
           <option value="">All Outcomes</option>
           <option value="SUCCESS">SUCCESS</option>
@@ -88,17 +88,17 @@ export function AuditClient({ initialData, initialParams }: AuditClientProps) {
 
         <button
           onClick={() => applyFilters(1)}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors"
+          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-foreground rounded-lg text-sm font-medium transition-colors"
         >
           Filter
         </button>
       </div>
 
       {/* Audit Table */}
-      <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/40">
+      <div className="rounded-xl border border-border overflow-hidden bg-card">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead className="bg-slate-900/90 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
+          <table className="w-full text-left text-sm text-muted-foreground">
+            <thead className="bg-card/90 text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
               <tr>
                 <th className="py-3 px-4">Timestamp</th>
                 <th className="py-3 px-4">Action</th>
@@ -109,22 +109,22 @@ export function AuditClient({ initialData, initialParams }: AuditClientProps) {
                 <th className="py-3 px-4 text-right">Details</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
+            <tbody className="divide-y divide-border/80 font-mono text-xs">
               {initialData.logs.map((log: any) => {
                 const isExpanded = expandedId === log.id;
 
                 return (
                   <>
-                    <tr key={log.id} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="py-3 px-4 text-slate-400">
+                    <tr key={log.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="py-3 px-4 text-muted-foreground">
                         {format(new Date(log.createdAt), "yyyy-MM-dd HH:mm:ss")}
                       </td>
-                      <td className="py-3 px-4 text-white font-semibold">{log.action}</td>
-                      <td className="py-3 px-4 text-slate-300">
+                      <td className="py-3 px-4 text-foreground font-semibold">{log.action}</td>
+                      <td className="py-3 px-4 text-muted-foreground">
                         <div>{log.actorEmail || "SYSTEM"}</div>
-                        {log.actorRole && <div className="text-[10px] text-slate-500">{log.actorRole}</div>}
+                        {log.actorRole && <div className="text-[10px] text-muted-foreground">{log.actorRole}</div>}
                       </td>
-                      <td className="py-3 px-4 text-slate-300">{log.target || "—"}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{log.target || "—"}</td>
                       <td className="py-3 px-4">
                         {log.outcome === "SUCCESS" && (
                           <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400">
@@ -142,11 +142,11 @@ export function AuditClient({ initialData, initialParams }: AuditClientProps) {
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-slate-400">{log.ipAddress || "—"}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{log.ipAddress || "—"}</td>
                       <td className="py-3 px-4 text-right">
                         <button
                           onClick={() => setExpandedId(isExpanded ? null : log.id)}
-                          className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] inline-flex items-center gap-1"
+                          className="px-2 py-1 rounded bg-muted hover:bg-slate-700 text-muted-foreground text-[11px] inline-flex items-center gap-1"
                         >
                           {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                           JSON
@@ -154,10 +154,10 @@ export function AuditClient({ initialData, initialParams }: AuditClientProps) {
                       </td>
                     </tr>
                     {isExpanded && (
-                      <tr key={`${log.id}-detail`} className="bg-slate-950/70 border-b border-slate-800">
+                      <tr key={`${log.id}-detail`} className="bg-background/70 border-b border-border">
                         <td colSpan={7} className="p-4">
-                          <div className="bg-slate-900 border border-slate-800 rounded-lg p-3 max-h-60 overflow-y-auto">
-                            <div className="text-[11px] font-sans text-slate-400 mb-1">
+                          <div className="bg-card border border-border rounded-lg p-3 max-h-60 overflow-y-auto">
+                            <div className="text-[11px] font-sans text-muted-foreground mb-1">
                               <strong>Path:</strong> {log.requestMethod || "GET"} {log.requestPath || "—"}
                             </div>
                             <pre className="text-[11px] text-indigo-300 whitespace-pre-wrap">
@@ -172,7 +172,7 @@ export function AuditClient({ initialData, initialParams }: AuditClientProps) {
               })}
               {initialData.logs.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-slate-500 font-sans">
+                  <td colSpan={7} className="text-center py-8 text-muted-foreground font-sans">
                     No audit records match the current filters.
                   </td>
                 </tr>
@@ -183,7 +183,7 @@ export function AuditClient({ initialData, initialParams }: AuditClientProps) {
 
         {/* Pagination */}
         {initialData.totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 bg-slate-900/60 border-t border-slate-800 text-xs text-slate-400 font-sans">
+          <div className="flex items-center justify-between px-4 py-3 bg-card/90 border-t border-border text-xs text-muted-foreground font-sans">
             <div>
               Page {initialData.page} of {initialData.totalPages}
             </div>
@@ -191,14 +191,14 @@ export function AuditClient({ initialData, initialParams }: AuditClientProps) {
               <button
                 disabled={initialData.page <= 1}
                 onClick={() => applyFilters(initialData.page - 1)}
-                className="p-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40"
+                className="p-1 rounded bg-muted hover:bg-slate-700 disabled:opacity-40"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <button
                 disabled={initialData.page >= initialData.totalPages}
                 onClick={() => applyFilters(initialData.page + 1)}
-                className="p-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40"
+                className="p-1 rounded bg-muted hover:bg-slate-700 disabled:opacity-40"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>

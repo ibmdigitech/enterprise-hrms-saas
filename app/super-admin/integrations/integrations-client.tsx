@@ -11,10 +11,10 @@ export function IntegrationsClient({ integrations }: IntegrationsClientProps) {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
             <PlugZap className="h-7 w-7 text-indigo-400" /> Platform Integrations
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             External gateways, government compliance interfaces, identity providers, and storage connectors.
           </p>
         </div>
@@ -24,11 +24,11 @@ export function IntegrationsClient({ integrations }: IntegrationsClientProps) {
         {integrations.map((item) => (
           <div
             key={item.key}
-            className="flex flex-col justify-between p-5 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-slate-700 transition-all shadow-sm"
+            className="flex flex-col justify-between p-5 rounded-2xl bg-card border border-border hover:border-border transition-all shadow-sm"
           >
             <div>
               <div className="flex items-center justify-between gap-2 mb-3">
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border">
                   {item.category}
                 </span>
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
@@ -36,13 +36,13 @@ export function IntegrationsClient({ integrations }: IntegrationsClientProps) {
                 </span>
               </div>
 
-              <h3 className="text-lg font-bold text-white mb-2">{item.name}</h3>
-              <p className="text-xs text-slate-400 leading-relaxed mb-6">{item.description}</p>
+              <h3 className="text-lg font-bold text-foreground mb-2">{item.name}</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed mb-6">{item.description}</p>
             </div>
 
-            <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
-              <span className="text-xs text-slate-500 font-mono">ID: {item.key}</span>
-              <button className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white transition-colors flex items-center gap-1">
+            <div className="pt-4 border-t border-border flex items-center justify-between">
+              <span className="text-xs text-muted-foreground font-mono">ID: {item.key}</span>
+              <button className="px-3 py-1.5 rounded-lg bg-muted hover:bg-slate-700 text-xs font-semibold text-foreground transition-colors flex items-center gap-1">
                 <Sliders className="h-3.5 w-3.5" /> Configure
               </button>
             </div>
