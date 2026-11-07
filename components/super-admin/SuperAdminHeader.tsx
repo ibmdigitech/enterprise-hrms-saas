@@ -80,7 +80,12 @@ export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { data: session } = useSession();
-  const { theme, setTheme } = useTheme();
+  const { theme, resolvedTheme, setTheme } = useTheme();
+
+  const isDark = (resolvedTheme || theme) === "dark";
+  const toggleTheme = () => {
+    setTheme(isDark ? "light" : "dark");
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -131,10 +136,10 @@ export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
         aria-busy="true"
         aria-label="Loading header"
       >
-        <div className="h-10 w-full max-w-md animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-900" />
+        <div className="h-9 w-full max-w-md animate-pulse rounded-xl bg-slate-100 dark:bg-slate-900" />
         <div className="flex shrink-0 gap-2">
-          <span className="h-11 w-11 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-900" />
-          <span className="h-11 w-11 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-900" />
+          <span className="h-9 w-9 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-900" />
+          <span className="h-9 w-9 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-900" />
         </div>
       </motion.header>
     );
@@ -154,15 +159,15 @@ export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden h-10 w-10"
+              className="lg:hidden h-9 w-9 rounded-xl"
               onClick={onMenuClick}
               aria-label="Open navigation menu"
             >
-              <Menu className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+              <Menu className="h-4 w-4 text-slate-600 dark:text-slate-400" />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom" align="start">
-            <span className="text-sm font-medium text-slate-900 bg-white px-3 py-1.5 rounded-lg shadow-lg">Open menu</span>
+            <span className="text-xs font-medium text-slate-900 bg-white px-2.5 py-1 rounded-lg shadow-lg">Open menu</span>
           </TooltipContent>
         </Tooltip>
 
@@ -171,20 +176,19 @@ export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
-              size="icon"
-              className="hidden sm:flex h-10 w-10 max-w-[300px] min-w-[200px] items-center gap-2 rounded-xl bg-slate-100/50 px-3 py-2 text-slate-500 placeholder:text-slate-400 dark:bg-slate-800/50 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+              className="hidden sm:flex h-9 max-w-[280px] min-w-[190px] items-center gap-2 rounded-xl bg-slate-100/70 px-3 py-1.5 text-slate-500 placeholder:text-slate-400 dark:bg-slate-800/60 dark:text-slate-400 hover:bg-slate-200/70 dark:hover:bg-slate-700/60 transition-all text-xs"
               onClick={() => setSearchOpen(true)}
               aria-label="Global search (⌘K)"
             >
-              <Search className="h-4 w-4 shrink-0 text-slate-400" />
-              <span className="hidden sm:block truncate text-sm font-medium">Search commands...</span>
-              <kbd className="hidden sm:inline-flex items-center gap-1 rounded bg-slate-200/50 px-1.5 py-0.5 text-[10px] font-mono text-slate-500 dark:bg-slate-700/50 dark:text-slate-400">
+              <Search className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <span className="hidden sm:block truncate text-xs font-medium">Search commands...</span>
+              <kbd className="hidden sm:inline-flex items-center gap-1 rounded bg-slate-200/60 px-1.5 py-0.5 text-[9px] font-mono text-slate-500 dark:bg-slate-700/60 dark:text-slate-400 ml-auto">
                 <span>⌘</span>K
               </kbd>
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom" align="start">
-            <span className="text-sm font-medium text-slate-900 bg-white px-3 py-1.5 rounded-lg shadow-lg">Global search (⌘K)</span>
+            <span className="text-xs font-medium text-slate-900 bg-white px-2.5 py-1 rounded-lg shadow-lg">Global search (⌘K)</span>
           </TooltipContent>
         </Tooltip>
 
@@ -251,25 +255,27 @@ export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
         </AnimatePresence>
 
         {/* Right Section */}
-        <div className="flex items-center gap-1">
-          {/* Theme Toggle */}
+        <div className="flex items-center gap-1.5">
+          {/* Theme Toggle with working toggleTheme and reduced icon size */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="h-10 w-10 rounded-xl bg-slate-100/50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-slate-600 dark:text-slate-300"
+                onClick={toggleTheme}
+                className="h-9 w-9 rounded-xl bg-slate-100/70 dark:bg-slate-800/60 hover:bg-slate-200/70 dark:hover:bg-slate-700/60 transition-all text-slate-600 dark:text-slate-300"
                 aria-label="Toggle theme"
               >
-                <div className="relative h-5 w-5 flex items-center justify-center">
-                  <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-amber-500" />
-                  <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-indigo-400" />
+                <div className="relative h-4 w-4 flex items-center justify-center">
+                  <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-amber-500" />
+                  <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-indigo-400" />
                 </div>
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom" align="end">
-              <span className="text-sm font-medium text-slate-900 bg-white px-3 py-1.5 rounded-lg shadow-lg">Toggle theme</span>
+              <span className="text-xs font-medium text-slate-900 bg-white px-2.5 py-1 rounded-lg shadow-lg">
+                Switch to {isDark ? "Light" : "Dark"} Mode
+              </span>
             </TooltipContent>
           </Tooltip>
 
@@ -281,24 +287,24 @@ export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "h-10 w-10 rounded-xl transition-all relative",
+                  "h-9 w-9 rounded-xl transition-all relative",
                   isNotificationsActive
                     ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 ring-2 ring-indigo-500"
-                    : "bg-slate-100/50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
+                    : "bg-slate-100/70 dark:bg-slate-800/60 hover:bg-slate-200/70 dark:hover:bg-slate-700/60 text-slate-600 dark:text-slate-400"
                 )}
                 aria-label="Notifications"
               >
                 <Link href="/notifications" className="relative flex items-center justify-center w-full h-full">
-                  <Bell className={cn("h-5 w-5", isNotificationsActive ? "text-white" : "text-slate-600 dark:text-slate-400")} />
-                  <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5 pointer-events-none">
+                  <Bell className={cn("h-4 w-4", isNotificationsActive ? "text-white" : "text-slate-600 dark:text-slate-400")} />
+                  <span className="absolute top-1.5 right-1.5 flex h-2 w-2 pointer-events-none">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500 ring-1.5 ring-white dark:ring-slate-900" />
                   </span>
                 </Link>
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom" align="end">
-              <span className="text-sm font-medium text-slate-900 bg-white px-3 py-1.5 rounded-lg shadow-lg">
+              <span className="text-xs font-medium text-slate-900 bg-white px-2.5 py-1 rounded-lg shadow-lg">
                 {isNotificationsActive ? "Current Page: Notifications" : "Notifications"}
               </span>
             </TooltipContent>
@@ -309,12 +315,12 @@ export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="h-10 w-10 rounded-xl bg-slate-100/50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                className="h-9 w-9 p-0 rounded-xl bg-slate-100/70 dark:bg-slate-800/60 hover:bg-slate-200/70 dark:hover:bg-slate-700/60 transition-all"
                 aria-label="User menu"
               >
-                <Avatar className="h-8 w-8">
+                <Avatar className="h-7 w-7">
                   <AvatarImage src={user?.image || undefined} alt={user?.name || "Super Admin"} />
-                  <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-violet-500 text-[11px] font-black">
+                  <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-violet-500 text-[10px] font-black text-white">
                     {initials}
                   </AvatarFallback>
                 </Avatar>

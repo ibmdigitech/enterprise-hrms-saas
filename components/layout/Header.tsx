@@ -42,7 +42,7 @@ interface HeaderProps {
  * outline in globals.css so the ring is not doubled.
  */
 const ICON_BUTTON =
-    "h-11 w-11 shrink-0 rounded-2xl bg-slate-100/50 text-slate-600 shadow-sm ring-1 ring-inset ring-slate-200/70 transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-600 hover:shadow-md hover:ring-indigo-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 motion-reduce:transition-none motion-reduce:transform-none dark:bg-slate-900/50 dark:text-slate-400 dark:ring-slate-800 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-300 dark:hover:ring-indigo-500/40";
+    "h-9 w-9 shrink-0 rounded-xl bg-slate-100/50 text-slate-600 shadow-xs ring-1 ring-inset ring-slate-200/70 transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-600 hover:shadow-sm hover:ring-indigo-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 motion-reduce:transition-none motion-reduce:transform-none dark:bg-slate-900/50 dark:text-slate-400 dark:ring-slate-800 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-300 dark:hover:ring-indigo-500/40";
 
 export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
     const pathname = usePathname();
@@ -63,7 +63,7 @@ export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
                 <Dialog open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                     <DialogTrigger asChild>
                         <Button variant="ghost" size="icon" className={cn(ICON_BUTTON, "lg:hidden")}>
-                            <Menu className="h-5 w-5" />
+                            <Menu className="h-4 w-4" />
                             <span className="sr-only">Open navigation menu</span>
                         </Button>
                     </DialogTrigger>
@@ -113,7 +113,7 @@ export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
                     aria-expanded={mobileSearchOpen}
                     onClick={() => setMobileSearchOpen(true)}
                 >
-                    <Search className="h-5 w-5" />
+                    <Search className="h-4 w-4" />
                 </Button>
 
                 {/* Below `md` the expanded field sits over the header, so a
@@ -135,7 +135,7 @@ export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
                     between the menu button and the clock from `md` up. */}
                 <div
                     className={cn(
-                        "min-w-0 flex-1 md:max-w-md",
+                        "min-w-[160px] flex-1 max-w-sm lg:max-w-md",
                         mobileSearchOpen
                             ? "absolute inset-x-3 top-1/2 z-[60] -translate-y-1/2 md:static md:z-auto md:translate-y-0"
                             : "hidden md:block"
@@ -175,35 +175,26 @@ export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
                         href="/notifications" 
                         aria-label="Notifications" 
                         title={isNotificationsActive ? "Current Page: Notifications" : "View Notifications"}
-                        className="relative flex items-center justify-center w-full h-full"
                     >
-                        <Bell className={cn("h-6 w-6 transition-transform group-hover:scale-105", isNotificationsActive ? "text-white" : "text-slate-600 dark:text-slate-300")} />
+                        <Bell className={cn("h-4 w-4 transition-transform group-hover:scale-105", isNotificationsActive ? "text-white" : "text-slate-600 dark:text-slate-300")} />
                         
                         {/* Active Notification Indicator Pinpoint Badge */}
-                        <span className="absolute top-2 right-2 flex h-2.5 w-2.5 pointer-events-none">
+                        <span className="absolute top-1.5 right-1.5 flex h-2 w-2 pointer-events-none">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500 ring-1.5 ring-white dark:ring-slate-900" />
                         </span>
                     </Link>
                 </Button>
 
                 {/* Settings stays reachable from the account popover below, so
                     the duplicate icon is the first thing to go on small screens. */}
-                {user?.role === "SUPER_ADMIN" && (
-                    <Button asChild variant="ghost" className="hidden sm:inline-flex items-center gap-1.5 h-10 px-3 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-300 font-bold text-xs hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200/50 dark:border-indigo-800/50 shadow-sm">
-                        <Link href="/super-admin/dashboard" aria-label="Super Admin Portal" title="Super Admin Portal">
-                            <ShieldCheck className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                            <span>Super Admin</span>
-                        </Link>
-                    </Button>
-                )}
                 <Button asChild variant="ghost" size="icon" className={cn(ICON_BUTTON, "hidden sm:inline-flex")}>
                     <Link href="/settings" aria-label="Settings" title="Settings">
-                        <Settings className="h-5 w-5" />
+                        <Settings className="h-4 w-4" />
                     </Link>
                 </Button>
 
-                <span aria-hidden="true" className="hidden h-9 w-px bg-slate-200 dark:bg-slate-800 lg:block" />
+                <span aria-hidden="true" className="hidden h-7 w-px bg-slate-200 dark:bg-slate-800 lg:block" />
 
                 <Popover>
                     <PopoverTrigger asChild>
@@ -214,7 +205,7 @@ export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
                             on the avatar keeps it at a stable tap target. The
                             name column itself is hidden below `lg`, where the
                             avatar alone identifies the account. */}
-                        <div className="group flex cursor-pointer items-center gap-3 rounded-2xl p-1.5 pr-2 outline-none transition-colors duration-200 hover:bg-slate-100/70 focus-visible:ring-2 focus-visible:ring-indigo-500 dark:hover:bg-slate-900/70">
+                        <div className="group flex cursor-pointer items-center gap-2.5 rounded-xl p-1 pr-1.5 outline-none transition-colors duration-200 hover:bg-slate-100/70 focus-visible:ring-2 focus-visible:ring-indigo-500 dark:hover:bg-slate-900/70">
                             <div className="hidden min-w-0 flex-col items-end lg:flex">
                                 <span className="max-w-[10rem] truncate text-sm font-black tracking-tight text-slate-900 transition-colors group-hover:text-indigo-600 dark:text-white">{user?.name || "User"}</span>
                                 <div className="flex items-center gap-2">
@@ -222,7 +213,7 @@ export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
                                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{user?.role || "STAFF"}</span>
                                 </div>
                             </div>
-                            <Avatar className="h-11 w-11 shrink-0 rounded-2xl border-2 border-white shadow-lg transition-transform duration-300 group-hover:scale-110 motion-reduce:transition-none motion-reduce:transform-none dark:border-slate-800">
+                            <Avatar className="h-9 w-9 shrink-0 rounded-xl border-2 border-white shadow-sm transition-transform duration-300 group-hover:scale-105 motion-reduce:transition-none motion-reduce:transform-none dark:border-slate-800">
                                 {user?.image && <AvatarImage src={user.image} alt="" />}
                                 <AvatarFallback className="bg-indigo-600 font-black text-white">{userInitials}</AvatarFallback>
                             </Avatar>

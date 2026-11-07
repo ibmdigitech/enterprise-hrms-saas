@@ -315,7 +315,7 @@ export function CommandSearch({ role, autoFocus, onDismiss }: CommandSearchProps
         <div ref={containerRef} className="group relative w-full min-w-0 max-w-md">
             <Search
                 aria-hidden="true"
-                className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-indigo-500"
+                className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-indigo-500"
             />
             <Input
                 ref={inputRef}
@@ -340,12 +340,12 @@ export function CommandSearch({ role, autoFocus, onDismiss }: CommandSearchProps
                 }}
                 onFocus={() => setOpen(true)}
                 onKeyDown={onKeyDown}
-                className="h-11 rounded-2xl border-0 bg-slate-100/50 pl-12 pr-11 font-medium transition-all hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-indigo-500 dark:bg-slate-900/50 dark:hover:bg-slate-900"
+                className="h-9 rounded-xl border-0 bg-slate-100/60 pl-9 pr-9 text-xs font-medium transition-all hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-indigo-500 dark:bg-slate-900/60 dark:hover:bg-slate-900"
             />
             {(status === "loading" || expanding) && (
                 <Loader2
                     aria-hidden="true"
-                    className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-400"
+                    className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-slate-400"
                 />
             )}
 

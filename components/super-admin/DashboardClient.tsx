@@ -210,7 +210,7 @@ export function DashboardClient({ metrics, totalTenants, activeTenants }: Dashbo
       {/* Header */}
       <motion.div variants={sectionVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-300 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white dark:bg-gradient-to-r dark:from-white dark:to-slate-400 dark:bg-clip-text dark:text-transparent">
             Platform Command Center
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -218,18 +218,18 @@ export function DashboardClient({ metrics, totalTenants, activeTenants }: Dashbo
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 dark:bg-slate-800/50 border border-white/10 dark:border-slate-700/50">
-            <Calendar className="h-4 w-4 text-slate-400" />
+          <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-xs">
+            <Calendar className="h-4 w-4 text-slate-500 dark:text-slate-400" />
             <select
               value={timeRange}
               onChange={(e) => setTimeRange(e.target.value as any)}
-              className="bg-transparent text-sm font-medium text-white focus:outline-none cursor-pointer"
+              className="bg-transparent text-sm font-medium text-slate-700 dark:text-white focus:outline-none cursor-pointer"
               style={{ appearance: "none" }}
             >
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-              <option value="90d">Last 90 days</option>
-              <option value="1y">Last year</option>
+              <option value="7d" className="text-slate-900 bg-white dark:text-white dark:bg-slate-900">Last 7 days</option>
+              <option value="30d" className="text-slate-900 bg-white dark:text-white dark:bg-slate-900">Last 30 days</option>
+              <option value="90d" className="text-slate-900 bg-white dark:text-white dark:bg-slate-900">Last 90 days</option>
+              <option value="1y" className="text-slate-900 bg-white dark:text-white dark:bg-slate-900">Last year</option>
             </select>
           </div>
           <button
@@ -247,8 +247,8 @@ export function DashboardClient({ metrics, totalTenants, activeTenants }: Dashbo
       </motion.div>
 
       {/* Live Indicator */}
-      <motion.div variants={sectionVariants} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 w-fit text-xs font-medium">
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+      <motion.div variants={sectionVariants} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 w-fit text-xs font-medium">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
         Live Data
         <span suppressHydrationWarning className="px-2 py-0.5 rounded bg-emerald-500/20 text-[10px] font-mono">{format(new Date(), "HH:mm:ss")}</span>
       </motion.div>
@@ -271,7 +271,7 @@ export function DashboardClient({ metrics, totalTenants, activeTenants }: Dashbo
           <motion.div key={card.label} custom={index} variants={itemVariants}>
             <motion.div
               whileHover={{ y: -4, scale: 1.02 }}
-              className="relative rounded-xl p-5 bg-white/5 dark:bg-slate-900/50 backdrop-blur-xl border border-white/10 dark:border-slate-800/50 transition-all hover:border-indigo-500/30 group"
+              className="relative rounded-xl p-5 bg-white dark:bg-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-slate-800/50 shadow-xs transition-all hover:border-indigo-500/30 group"
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -280,13 +280,13 @@ export function DashboardClient({ metrics, totalTenants, activeTenants }: Dashbo
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.1, duration: 0.3 }}
-                    className="text-2xl font-bold text-white"
+                    className="text-2xl font-bold text-slate-900 dark:text-white"
                   >
                     {card.value}
                   </motion.span>
                 </div>
                 <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", card.color)}>
-                  <card.icon className="h-5 w-5 text-white" />
+                  <card.icon className="h-5 w-5 text-current" />
                 </div>
               </div>
             </motion.div>
@@ -421,27 +421,27 @@ export function DashboardClient({ metrics, totalTenants, activeTenants }: Dashbo
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 + index * 0.05 }}
-                className="flex items-center justify-between p-4 rounded-xl bg-white/5 dark:bg-slate-800/50 border border-white/10 dark:border-slate-700/50 hover:border-indigo-500/30 transition-all group"
+                className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 hover:border-indigo-500/30 transition-all group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400">
                     <Building2 className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="font-medium text-white">{tenant.name}</p>
-                    <p className="text-xs text-slate-400 font-mono">{tenant.slug}.hrms-saas.com</p>
+                    <p className="font-medium text-slate-900 dark:text-white">{tenant.name}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">{tenant.slug}.hrms-saas.com</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-sm">
                   <span className={cn(
                     "px-2 py-1 rounded-full text-xs font-medium",
-                    tenant.status === "ACTIVE" && "bg-emerald-500/10 text-emerald-400",
-                    tenant.status === "TRIAL" && "bg-amber-500/10 text-amber-400",
-                    tenant.status === "SUSPENDED" && "bg-rose-500/10 text-rose-400"
+                    tenant.status === "ACTIVE" && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+                    tenant.status === "TRIAL" && "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                    tenant.status === "SUSPENDED" && "bg-rose-500/10 text-rose-600 dark:text-rose-400"
                   )}>
                     {tenant.status}
                   </span>
-                  <span className="px-2 py-1 rounded-full bg-violet-500/10 text-violet-400 text-xs font-medium">
+                  <span className="px-2 py-1 rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400 text-xs font-medium">
                     {tenant.subscription?.planTier || "TRIAL"}
                   </span>
                 </div>
@@ -461,7 +461,7 @@ export function DashboardClient({ metrics, totalTenants, activeTenants }: Dashbo
           icon={ShieldCheck}
           iconColor="bg-gradient-to-r from-rose-500 to-red-500"
           action={
-            <a href="/super-admin/audit" className="text-sm text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+            <a href="/super-admin/audit" className="text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1">
               View All <ExternalLink className="h-3 w-3" />
             </a>
           }
@@ -473,24 +473,24 @@ export function DashboardClient({ metrics, totalTenants, activeTenants }: Dashbo
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 + index * 0.05 }}
-                className="flex items-center justify-between p-4 rounded-xl bg-white/5 dark:bg-slate-800/50 border border-white/10 dark:border-slate-700/50 hover:border-indigo-500/30 transition-all group"
+                className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 hover:border-indigo-500/30 transition-all group"
               >
                 <div className="flex items-center gap-3">
                   <div className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-lg",
-                    log.outcome === "SUCCESS" ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"
+                    log.outcome === "SUCCESS" ? "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400" : "bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400"
                   )}>
                     <Activity className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="font-medium text-white text-sm">{log.action}</p>
-                    <p className="text-xs text-slate-400">{log.actorEmail || "System"}</p>
+                    <p className="font-medium text-slate-900 dark:text-white text-sm">{log.action}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{log.actorEmail || "System"}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-sm">
                   <span className={cn(
                     "px-2 py-1 rounded-full text-xs font-medium",
-                    log.outcome === "SUCCESS" ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"
+                    log.outcome === "SUCCESS" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
                   )}>
                     {log.outcome}
                   </span>
@@ -510,23 +510,23 @@ export function DashboardClient({ metrics, totalTenants, activeTenants }: Dashbo
       {/* Quick Stats Summary */}
       <motion.div variants={sectionVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "System Health", value: "99.97%", icon: Activity, color: "bg-emerald-500/20 text-emerald-400", trend: 0.02 },
-          { label: "Failed Payments", value: metrics.failedPayments, icon: CreditCard, color: "bg-rose-500/20 text-rose-400", trend: -2 },
-          { label: "Overdue Invoices", value: metrics.overdueInvoices, icon: FileText, color: "bg-amber-500/20 text-amber-400", trend: 3 },
-          { label: "Audit Events (24h)", value: metrics.recentAuditEvents, icon: ShieldCheck, color: "bg-violet-500/20 text-violet-400", trend: 12 },
+          { label: "System Health", value: "99.97%", icon: Activity, color: "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400", trend: 0.02 },
+          { label: "Failed Payments", value: metrics.failedPayments, icon: CreditCard, color: "bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400", trend: -2 },
+          { label: "Overdue Invoices", value: metrics.overdueInvoices, icon: FileText, color: "bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400", trend: 3 },
+          { label: "Audit Events (24h)", value: metrics.recentAuditEvents, icon: ShieldCheck, color: "bg-violet-500/10 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400", trend: 12 },
         ].map((stat, index) => (
           <motion.div key={stat.label} custom={index} variants={itemVariants}>
             <motion.div
               whileHover={{ y: -4, scale: 1.02 }}
-              className="relative rounded-xl p-5 bg-white/5 dark:bg-slate-900/50 backdrop-blur-xl border border-white/10 dark:border-slate-800/50 transition-all hover:border-indigo-500/30 group"
+              className="relative rounded-xl p-5 bg-white dark:bg-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-slate-800/50 shadow-xs transition-all hover:border-indigo-500/30 group"
             >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{stat.label}</p>
-                  <p className="text-2xl font-bold text-white mt-1">{stat.value}</p>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{stat.value}</p>
                 </div>
                 <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl", stat.color)}>
-                  <stat.icon className="h-6 w-6 text-white" />
+                  <stat.icon className="h-6 w-6 text-current" />
                 </div>
               </div>
               <motion.div
@@ -537,13 +537,13 @@ export function DashboardClient({ metrics, totalTenants, activeTenants }: Dashbo
               >
                 {stat.trend >= 0 ? (
                   <>
-                    <ArrowUpRight className="h-3.5 w-3.5 text-emerald-400" />
-                    <span className="text-emerald-400 font-medium">+{stat.trend}%</span>
+                    <ArrowUpRight className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">+{stat.trend}%</span>
                   </>
                 ) : (
                   <>
-                    <ArrowDownRight className="h-3.5 w-3.5 text-rose-400" />
-                    <span className="text-rose-400 font-medium">{stat.trend}%</span>
+                    <ArrowDownRight className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
+                    <span className="text-rose-600 dark:text-rose-400 font-medium">{stat.trend}%</span>
                   </>
                 )}
                 <span className="text-slate-500">vs last period</span>

@@ -66,17 +66,17 @@ export function ChartCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="relative rounded-2xl p-6 bg-white/5 dark:bg-slate-900/50 backdrop-blur-xl border border-white/10 dark:border-slate-800/50 transition-all duration-300 hover:border-indigo-500/30"
+      className="relative rounded-2xl p-6 bg-white dark:bg-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-slate-800/50 shadow-xs transition-all duration-300 hover:border-indigo-500/30"
     >
       <div className="flex items-start justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg", iconColor)}>
-              <Icon className="h-4 w-4 text-white" />
+            <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg text-white shadow-xs", iconColor)}>
+              <Icon className="h-4 w-4" />
             </div>
-            <h3 className="text-lg font-semibold text-white">{title}</h3>
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{title}</h3>
           </div>
-          {description && <p className="text-sm text-slate-400 mt-1">{description}</p>}
+          {description && <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{description}</p>}
         </div>
         <div className="flex items-center gap-2">
           {trend && (
@@ -86,8 +86,8 @@ export function ChartCard({
               className={cn(
                 "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium",
                 trend.value >= 0
-                  ? "bg-emerald-500/10 text-emerald-400"
-                  : "bg-rose-500/10 text-rose-400"
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
               )}
             >
               {trend.value >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
@@ -151,9 +151,9 @@ export function MultiAreaChart({ data, keys, colors, labels, height = 300, showG
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 shadow-xl"
+          className="bg-white dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700/50 rounded-lg p-3 shadow-xl"
         >
-          <p className="text-xs font-medium text-slate-400 mb-2">{label}</p>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">{label}</p>
           {payload.map((entry: any, index: number) => (
             <motion.div
               key={entry.name}
@@ -163,8 +163,8 @@ export function MultiAreaChart({ data, keys, colors, labels, height = 300, showG
               className="flex items-center gap-2 text-sm"
             >
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
-              <span className="text-slate-300">{labels[entry.name] || entry.name}: </span>
-              <span className="font-mono font-semibold text-white">{entry.value.toLocaleString()}</span>
+              <span className="text-slate-600 dark:text-slate-300">{labels[entry.name] || entry.name}: </span>
+              <span className="font-mono font-semibold text-slate-900 dark:text-white">{entry.value.toLocaleString()}</span>
             </motion.div>
           ))}
         </motion.div>
@@ -184,20 +184,22 @@ export function MultiAreaChart({ data, keys, colors, labels, height = 300, showG
             </linearGradient>
           ))}
         </defs>
-        {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />}
+        {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#64748b" strokeOpacity={0.15} vertical={false} />}
         <XAxis
           dataKey="name"
-          stroke="#ffffff30"
+          stroke="#94a3b8"
+          strokeOpacity={0.4}
           fontSize={11}
-          tick={{ fill: "#ffffff60" }}
-          axisLine={{ stroke: "#ffffff15" }}
-          tickLine={{ stroke: "#ffffff15" }}
+          tick={{ fill: "#64748b" }}
+          axisLine={{ stroke: "#94a3b8", strokeOpacity: 0.3 }}
+          tickLine={{ stroke: "#94a3b8", strokeOpacity: 0.3 }}
           interval="preserveStartEnd"
         />
         <YAxis
-          stroke="#ffffff30"
+          stroke="#94a3b8"
+          strokeOpacity={0.4}
           fontSize={11}
-          tick={{ fill: "#ffffff60" }}
+          tick={{ fill: "#64748b" }}
           axisLine={false}
           tickLine={false}
           tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value}
@@ -248,9 +250,9 @@ export function GroupedBarChart({ data, keys, colors, labels, height = 300, stac
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 shadow-xl"
+          className="bg-white dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700/50 rounded-lg p-3 shadow-xl"
         >
-          <p className="text-xs font-medium text-slate-400 mb-2">{label}</p>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">{label}</p>
           {payload.map((entry: any, index: number) => (
             <motion.div
               key={entry.dataKey}
@@ -260,8 +262,8 @@ export function GroupedBarChart({ data, keys, colors, labels, height = 300, stac
               className="flex items-center gap-2 text-sm"
             >
               <span className="h-2 w-2 rounded" style={{ backgroundColor: entry.color }} />
-              <span className="text-slate-300">{labels[entry.dataKey] || entry.dataKey}: </span>
-              <span className="font-mono font-semibold text-white">{entry.value.toLocaleString()}</span>
+              <span className="text-slate-600 dark:text-slate-300">{labels[entry.dataKey] || entry.dataKey}: </span>
+              <span className="font-mono font-semibold text-slate-900 dark:text-white">{entry.value.toLocaleString()}</span>
             </motion.div>
           ))}
         </motion.div>
@@ -273,20 +275,22 @@ export function GroupedBarChart({ data, keys, colors, labels, height = 300, stac
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} layout={stacked ? "vertical" : "horizontal"}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#64748b" strokeOpacity={0.15} vertical={false} />
         <XAxis
           dataKey="name"
-          stroke="#ffffff30"
+          stroke="#94a3b8"
+          strokeOpacity={0.4}
           fontSize={11}
-          tick={{ fill: "#ffffff60" }}
-          axisLine={{ stroke: "#ffffff15" }}
-          tickLine={{ stroke: "#ffffff15" }}
+          tick={{ fill: "#64748b" }}
+          axisLine={{ stroke: "#94a3b8", strokeOpacity: 0.3 }}
+          tickLine={{ stroke: "#94a3b8", strokeOpacity: 0.3 }}
           interval="preserveStartEnd"
         />
         <YAxis
-          stroke="#ffffff30"
+          stroke="#94a3b8"
+          strokeOpacity={0.4}
           fontSize={11}
-          tick={{ fill: "#ffffff60" }}
+          tick={{ fill: "#64748b" }}
           axisLine={false}
           tickLine={false}
           tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value}
@@ -331,12 +335,12 @@ export function DonutChart({ data, height = 300, innerRadius = 60, outerRadius =
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 shadow-xl"
+          className="bg-white dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700/50 rounded-lg p-3 shadow-xl"
         >
           <div className="flex items-center gap-2 text-sm">
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
-            <span className="text-slate-300">{entry.name}: </span>
-            <span className="font-mono font-semibold text-white">{entry.value.toLocaleString()}</span>
+            <span className="text-slate-600 dark:text-slate-300">{entry.name}: </span>
+            <span className="font-mono font-semibold text-slate-900 dark:text-white">{entry.value.toLocaleString()}</span>
             <span className="text-slate-500">({((entry.value / data.reduce((a, b) => a + b.value, 0)) * 100).toFixed(1)}%)</span>
           </div>
         </motion.div>
@@ -427,9 +431,9 @@ export function MultiLineChart({ data, lines, height = 300 }: MultiLineChartProp
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 shadow-xl"
+          className="bg-white dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700/50 rounded-lg p-3 shadow-xl"
         >
-          <p className="text-xs font-medium text-slate-400 mb-2">{label}</p>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">{label}</p>
           {payload.map((entry: any, index: number) => (
             <motion.div
               key={entry.dataKey}
@@ -439,8 +443,8 @@ export function MultiLineChart({ data, lines, height = 300 }: MultiLineChartProp
               className="flex items-center gap-2 text-sm"
             >
               <span className="h-2 w-2 rounded" style={{ backgroundColor: entry.color }} />
-              <span className="text-slate-300">{entry.name}: </span>
-              <span className="font-mono font-semibold text-white">{entry.value.toLocaleString()}</span>
+              <span className="text-slate-600 dark:text-slate-300">{entry.name}: </span>
+              <span className="font-mono font-semibold text-slate-900 dark:text-white">{entry.value.toLocaleString()}</span>
             </motion.div>
           ))}
         </motion.div>
@@ -452,20 +456,22 @@ export function MultiLineChart({ data, lines, height = 300 }: MultiLineChartProp
   return (
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#64748b" strokeOpacity={0.15} vertical={false} />
         <XAxis
           dataKey="name"
-          stroke="#ffffff30"
+          stroke="#94a3b8"
+          strokeOpacity={0.4}
           fontSize={11}
-          tick={{ fill: "#ffffff60" }}
-          axisLine={{ stroke: "#ffffff15" }}
-          tickLine={{ stroke: "#ffffff15" }}
+          tick={{ fill: "#64748b" }}
+          axisLine={{ stroke: "#94a3b8", strokeOpacity: 0.3 }}
+          tickLine={{ stroke: "#94a3b8", strokeOpacity: 0.3 }}
           interval="preserveStartEnd"
         />
         <YAxis
-          stroke="#ffffff30"
+          stroke="#94a3b8"
+          strokeOpacity={0.4}
           fontSize={11}
-          tick={{ fill: "#ffffff60" }}
+          tick={{ fill: "#64748b" }}
           axisLine={false}
           tickLine={false}
           tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value}
