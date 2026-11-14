@@ -551,24 +551,27 @@ export function ManagerDashboard({
                                 </div>
                             ) : (
                                 <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                                    {teamPerformanceReviews.slice(0, 5).map((review: any) => (
-                                        <div key={review.id} className="flex items-center gap-3 p-4">
-                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 text-[10px] font-black text-white">
-                                                {`${review.employee?.firstName?.[0] ?? ""}${review.employee?.lastName?.[0] ?? ""}`.toUpperCase() || "?"}
+                                    {teamPerformanceReviews.slice(0, 5).map((review: any) => {
+                                        const emp = review.subject || review.employee;
+                                        return (
+                                            <div key={review.id} className="flex items-center gap-3 p-4">
+                                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 text-[10px] font-black text-white">
+                                                    {`${emp?.firstName?.[0] ?? ""}${emp?.lastName?.[0] ?? ""}`.toUpperCase() || "?"}
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="truncate text-xs font-bold text-slate-900 dark:text-white">
+                                                        {emp?.firstName} {emp?.lastName}
+                                                    </p>
+                                                    <p className="text-[10px] text-slate-400">
+                                                        Rating: {review.overallRating ?? "—"}
+                                                    </p>
+                                                </div>
+                                                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${reviewStatusBadge(review.status)}`}>
+                                                    {review.status}
+                                                </span>
                                             </div>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="truncate text-xs font-bold text-slate-900 dark:text-white">
-                                                    {review.employee?.firstName} {review.employee?.lastName}
-                                                </p>
-                                                <p className="text-[10px] text-slate-400">
-                                                    Rating: {review.overallRating ?? "—"}
-                                                </p>
-                                            </div>
-                                            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${reviewStatusBadge(review.status)}`}>
-                                                {review.status}
-                                            </span>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             )}
                         </CardContent>

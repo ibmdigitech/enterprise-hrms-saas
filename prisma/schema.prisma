@@ -1,6 +1,7 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "./generated/client"
+  provider      = "prisma-client-js"
+  output        = "./generated/client"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 generator client_default {
@@ -33,6 +34,9 @@ model User {
   passwordResetTokens PasswordResetToken[]
   securityFlag        UserSecurityFlag?
 
+  // --- Multi-tenant relations ---
+  memberships TenantMembership[]
+
   // --- Exit lifecycle relations (see the Exit* models at the end of this file)
   // Every one of these is a *named* relation because a single User appears in
   // four different roles on an exit case, and Prisma cannot infer four
@@ -47,37 +51,32 @@ model User {
   performanceReviewsApproved     PerformanceReview[] @relation("ReviewApprovedBy")
   performanceReviewsAcknowledged PerformanceReview[] @relation("ReviewAcknowledgedBy")
 
-  // --- SaaS Multi-Tenant relation ---
-  memberships TenantMembership[]
-
-  // --- Support Ticket relations ---
-  supportTicketsCreated   SupportTicket[] @relation("SupportTicketCreatedBy")
-  supportTicketsAssigned  SupportTicket[] @relation("SupportTicketAssignedTo")
-  supportTicketsResolved  SupportTicket[] @relation("SupportTicketResolvedBy")
-  supportTicketMessages   SupportTicketMessage[]
-
   // --- Training relations ---
-  trainingCoursesCreated     TrainingCourse[]     @relation("TrainingCourseCreatedBy")
-  trainingCoursesUpdated     TrainingCourse[]     @relation("TrainingCourseUpdatedBy")
-  trainingSessionsCreated    TrainingSession[]    @relation("TrainingSessionCreatedBy")
-  trainingSessionsInstructed TrainingSession[]    @relation("TrainingSessionInstructor")
-  trainingEnrollmentsApproved TrainingEnrollment[] @relation("TrainingEnrollmentApprovedBy")
-  trainingEnrollmentsCreated TrainingEnrollment[] @relation("TrainingEnrollmentEnrolledBy")
-  trainingAttendancesMarked  TrainingAttendance[] @relation("TrainingAttendanceMarkedBy")
-  trainingCertificatesIssued TrainingCertificate[] @relation("TrainingCertificateIssuedBy")
-  trainingCertificatesRevoked TrainingCertificate[] @relation("TrainingCertificateRevokedBy")
-  trainingTemplatesCreated   TrainingCertificateTemplate[] @relation("TrainingCertificateTemplateCreatedBy")
-  trainingAssessmentsCreated TrainingAssessment[] @relation("TrainingAssessmentCreatedBy")
-  trainingAssessmentsGraded  TrainingAssessmentAttempt[] @relation("TrainingAssessmentAttemptGradedBy")
-  employeeSkillsAssessed     EmployeeTrainingSkill[] @relation("EmployeeTrainingSkillAssessedBy")
+  trainingCoursesCreated        TrainingCourse[]         @relation("TrainingCourseCreatedBy")
+  trainingCoursesUpdated        TrainingCourse[]         @relation("TrainingCourseUpdatedBy")
+  trainingSessionsCreated       TrainingSession[]        @relation("TrainingSessionCreatedBy")
+  trainingSessionsInstructed    TrainingSession[]        @relation("TrainingSessionInstructor")
+  trainingEnrollmentsCreated    TrainingEnrollment[]     @relation("TrainingEnrollmentEnrolledBy")
+  trainingEnrollmentsApproved   TrainingEnrollment[]     @relation("TrainingEnrollmentApprovedBy")
+  trainingAttendancesMarked     TrainingAttendance[]     @relation("TrainingAttendanceMarkedBy")
+  trainingCertificatesIssued    TrainingCertificate[]    @relation("TrainingCertificateIssuedBy")
+  trainingCertificatesRevoked   TrainingCertificate[]    @relation("TrainingCertificateRevokedBy")
+  trainingCertificateTemplatesCreated TrainingCertificateTemplate[] @relation("TrainingCertificateTemplateCreatedBy")
+  trainingAssessmentsCreated    TrainingAssessment[]     @relation("TrainingAssessmentCreatedBy")
+  trainingAssessmentAttemptsGraded TrainingAssessmentAttempt[] @relation("TrainingAssessmentAttemptGradedBy")
+  employeeTrainingSkills        EmployeeTrainingSkill[]  @relation("EmployeeTrainingSkillAssessedBy")
+  supportTicketsCreated         SupportTicket[]          @relation("SupportTicketCreatedBy")
+  supportTicketsAssigned        SupportTicket[]          @relation("SupportTicketAssignedTo")
+  supportTicketsResolved        SupportTicket[]          @relation("SupportTicketResolvedBy")
+  supportTicketMessages         SupportTicketMessage[]
+  promotionsApproved            EmployeePromotion[]      @relation("EmployeePromotionApprovedBy")
 
-  // --- Employee Promotion relations ---
-  promotionsRequested        EmployeePromotion[] @relation("PromotionRequestedBy")
-  promotionsApproved         EmployeePromotion[] @relation("PromotionApprovedBy")
+  // --- AI relations ---
+  aiUsageLogs AIUsageLog[] @relation("AIUsageLogUser")
 
-  // --- Temporary Role Assignment back-relations (P1) ---
-  tempRoleAssignmentsReceived TemporaryRoleAssignment[] @relation("TempRoleAssignedUser")
-  tempRoleAssignmentsGranted  TemporaryRoleAssignment[] @relation("TempRoleAssignedBy")
+  // --- Promotions relations ---
+  promotionsCreated EmployeePromotion[] @relation("EmployeePromotionCreatedBy")
+  temporaryRoleAssignments TemporaryRoleAssignment[] @relation("TemporaryRoleAssignmentUser")
 }
 
 model Account {
@@ -103,15 +102,31 @@ model RoleRequest {
   userId        String
   user          User     @relation(fields: [userId], references: [id])
   tenantId      String?
-  tenant        Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant        Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   requestedRole String
   status        String   @default("PENDING")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
 
-  @@index([tenantId])
-  @@index([userId])
-  @@index([status])
+/// Temporary role assignment for time-bound elevated access
+model TemporaryRoleAssignment {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation("TemporaryRoleAssignmentUser", fields: [userId], references: [id], onDelete: Cascade)
+  tenantId    String?
+  tenant      Tenant?  @relation("TemporaryRoleAssignmentTenant", fields: [tenantId], references: [id], onDelete: SetNull)
+  role        String   // ADMIN, HR, FINANCE, MANAGER, etc.
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean  @default(true)
+  reason      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, isActive])
+  @@index([tenantId, isActive])
+  @@index([endDate, isActive])
 }
 
 // ─── P1 WORKFLOW SUPPORT ───────────────────────────────────────────────────────
@@ -557,18 +572,7 @@ model SecurityAuditLog {
 
 // ─── EMPLOYEE MASTER TABLE (Central Entity) ───────────────────────────────────
 model Employee {
-  id String @id @default(cuid())
-
-  // --- SaaS Multi-Tenant & Multi-Company Scoping ---
-  tenantId      String?
-  tenant        Tenant?     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  companyId     String?
-  company       Company?    @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  locationId    String?
-  locationRef   Location?   @relation(fields: [locationId], references: [id], onDelete: SetNull)
-  departmentId  String?
-  departmentRef Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-
+  id                     String    @id @default(cuid())
   /// P1 GAP-01: nullable so an employee can be created before their login is
   /// provisioned or their visa is processed. A CHECK constraint
   /// (Employee_active_requires_employment_data) requires the full set once
@@ -743,10 +747,25 @@ model Employee {
   overtime              Overtime[]
   salaryAdvances        SalaryAdvanceRequest[]
   reimbursements        ReimbursementRequest[]
-  trainingEnrollments    TrainingEnrollment[]
-  trainingAttendances    TrainingAttendance[]
-  trainingCertificates   TrainingCertificate[]
-  trainingSkills         EmployeeTrainingSkill[]
+
+  // --- Multi-tenant relations ---
+  tenantId          String?
+  tenant            Tenant?       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  companyId         String?
+  company           Company?      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  locationId        String?
+  location          Location?     @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  departmentId      String?
+  departmentRel     Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  // --- Training relations (employee as participant) ---
+  trainingEnrollments        TrainingEnrollment[]
+  trainingAttendances        TrainingAttendance[]
+  trainingCertificates       TrainingCertificate[]
+  trainingAssessmentAttempts TrainingAssessmentAttempt[]
+  employeeTrainingSkills     EmployeeTrainingSkill[]
+  promotions                 EmployeePromotion[]
+
   createdAt             DateTime                @default(now())
   updatedAt             DateTime                @updatedAt
   managerId             String?
@@ -754,7 +773,6 @@ model Employee {
   reportees             Employee[]              @relation("ManagerToStaff")
   requestedJobs         JobRequisition[]        @relation("RequestedJobs")
   changeRequests        EmployeeChangeRequest[]
-  promotions            EmployeePromotion[]
   /// P1: the interviewer relation moved to `InterviewParticipant` so a panel
   /// can have many interviewers. This now points at the join.
   interviewPanel        InterviewParticipant[]
@@ -768,13 +786,9 @@ model Employee {
   rehireRecords               RehireRecord[]
   performanceReviewsAsSubject PerformanceReview[] @relation("PerformanceSubject")
   performanceReviewsAsManager PerformanceReview[] @relation("PerformanceManager")
-  trainingAssessmentAttempts  TrainingAssessmentAttempt[]
 
   // --- Indexes (P0-13) ---
   // Filters: active-employee dropdowns (attendance, shifts, payroll) and department scope.
-  @@index([tenantId])
-  @@index([tenantId, companyId])
-  @@index([tenantId, isActive])
   @@index([isActive])
   @@index([department, isActive])
   @@index([currentStatus])
@@ -825,7 +839,6 @@ model Notification {
 // ─── ATTENDANCE ───────────────────────────────────────────────────────────────
 model Attendance {
   id              String         @id @default(cuid())
-  tenantId        String?
   employeeId      String
   employee        Employee       @relation(fields: [employeeId], references: [id])
   date            DateTime
@@ -842,7 +855,6 @@ model Attendance {
 
   // --- Indexes (P0-13) ---
   // Import duplicate check and per-employee daily lookups.
-  @@index([tenantId])
   @@index([employeeId, date])
   @@index([date])
 }
@@ -962,7 +974,6 @@ model AuditLog {
 // ─── LEAVE ────────────────────────────────────────────────────────────────────
 model LeaveRequest {
   id            String   @id @default(cuid())
-  tenantId      String?
   employeeId    String
   employee      Employee @relation(fields: [employeeId], references: [id])
   type          String
@@ -999,7 +1010,6 @@ model LeaveRequest {
 
   // --- Indexes (P0-13) ---
   // Approval queues filter on the two workflow status columns.
-  @@index([tenantId])
   @@index([managerStatus])
   @@index([hrStatus])
   @@index([employeeId, createdAt])
@@ -1030,7 +1040,6 @@ model SalaryStructure {
 
 model SalaryRecord {
   id                 String    @id @default(cuid())
-  tenantId           String?
   employeeId         String
   employee           Employee  @relation(fields: [employeeId], references: [id])
   month              Int
@@ -1055,7 +1064,6 @@ model SalaryRecord {
   status             String    @default("DRAFT") // DRAFT, LOCKED, PAID, CANCELLED
   paymentMethod      String    @default("BANK_TRANSFER")
   paidAt             DateTime?
-  /** URL (or path) of the generated payslip PDF */
   pdfUrl             String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
@@ -1066,7 +1074,6 @@ model SalaryRecord {
   @@unique([employeeId, year, month])
   // --- Indexes (P0-13) ---
   // Payroll period queries filter on (year, month).
-  @@index([tenantId])
   @@index([year, month])
   @@index([employeeId, year, month])
 }
@@ -1320,7 +1327,6 @@ model LetterRecord {
   voidedAt         DateTime?
   voidReason       String?
   supersededById   String?
-  promotions       EmployeePromotion[]
 
   @@index([documentKey, version])
   @@index([employeeId, type])
@@ -1333,20 +1339,12 @@ model LetterRequest {
   employee        Employee         @relation(fields: [employeeId], references: [id])
   templateId      String
   template        LetterTemplate   @relation(fields: [templateId], references: [id])
-  letterType      String?          // e.g. SALARY_CERTIFICATE, EMPLOYMENT, EXPERIENCE, NOC, BANK_ACCOUNT, VISA_SUPPORT
-  purpose         String?          // Purpose of the letter
-  reason          String?          // Legacy / additional details
-  remarks         String?          // Additional notes from employee
-  requiredDate    DateTime?        // When the letter is needed by
-  attachmentUrl   String?          // Optional attachment (e.g. embassy form, bank doc)
+  reason          String?
   status          String           @default("PENDING") // PENDING, MANAGER_APPROVED, HR_APPROVED, COMPLETED, REJECTED
   approvals       LetterApproval[]
   generatedLetter Letter?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
-
-  @@index([employeeId, status])
-  @@index([status])
 }
 
 model LetterApproval {
@@ -1354,13 +1352,10 @@ model LetterApproval {
   letterRequestId String
   letterRequest   LetterRequest @relation(fields: [letterRequestId], references: [id], onDelete: Cascade)
   approverId      String?
-  approverName    String?
-  level           String        // MANAGER, HR
-  action          String        // APPROVED, REJECTED
+  level           String // MANAGER, HR
+  action          String // APPROVED, REJECTED
   comments        String?
   createdAt       DateTime      @default(now())
-
-  @@index([letterRequestId])
 }
 
 model LetterTemplate {
@@ -1987,6 +1982,7 @@ model CompanyDocument {
   fileType      String
   /// Private uploaded PDF; served through an authenticated route.
   fileData      Bytes?
+  fileBytes     Int?     // File size in bytes for storage calculation
   version       String    @default("1.0")
   effectiveFrom DateTime?
   effectiveTo   DateTime?
@@ -2029,67 +2025,6 @@ model ChangeRequestDocument {
   documentType String // VISA, PASSPORT, EMIRATES_ID, ADDRESS_PROOF
   documentUrl  String
   createdAt    DateTime              @default(now())
-}
-
-// ─── EMPLOYEE PROMOTION & CAREER PROGRESSION ──────────────────────────
-model EmployeePromotion {
-  id                  String       @id @default(cuid())
-  tenantId            String
-  tenant              Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  employeeId          String
-  employee            Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-
-  promotionType       String       @default("DESIGNATION_PROMOTION") // GRADE_PROMOTION, DESIGNATION_PROMOTION, CAREER_LEVEL_PROMOTION, MANAGEMENT_PROMOTION, INTERNAL_PROMOTION, PROMOTION_WITH_SALARY_REVISION
-  status              String       @default("PENDING_APPROVAL") // DRAFT, PENDING_APPROVAL, APPROVED, REJECTED, CANCELLED, APPLIED
-
-  // Snapshot of current values before promotion
-  previousDesignation String?
-  previousDepartment  String?
-  previousGrade       String?
-  previousBasicSalary Float?
-
-  // Proposed changes
-  proposedDesignation String
-  proposedDepartment  String?
-  proposedGrade       String?
-
-  // Salary revision (optional)
-  salaryRevision      Boolean      @default(false)
-  proposedBasicSalary Float?
-  proposedHousing     Float?
-  proposedTransport   Float?
-  proposedOther       Float?
-
-  effectiveDate       DateTime
-  reason              String
-  justificationNotes  String?
-
-  // Workflow tracking
-  requestedById       String
-  requestedBy         User         @relation("PromotionRequestedBy", fields: [requestedById], references: [id])
-  approvedById        String?
-  approvedBy          User?        @relation("PromotionApprovedBy", fields: [approvedById], references: [id])
-  approvedAt          DateTime?
-  rejectionReason     String?
-
-  // Application tracking
-  appliedAt           DateTime?
-  appliedById         String?
-
-  // Letter association
-  letterRecordId      String?
-  letterRecord        LetterRecord? @relation(fields: [letterRecordId], references: [id])
-
-  /** URL (or path) of the generated promotion letter PDF */
-  pdfUrl              String?
-
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
-
-  @@index([tenantId, status])
-  @@index([employeeId, effectiveDate])
-  @@index([status, effectiveDate])
 }
 
 // ─── BUSINESS TRAVEL & AIR TICKET ENTITLEMENT (UAE) ───────────────────────────
@@ -2292,6 +2227,52 @@ model TravelDocument {
   @@index([kind])
 }
 
+// ─── SUBSCRIPTION MANAGEMENT ────────────────────────────────────────────────────
+model CompanySubscription {
+  id                    String   @id @default(cuid())
+  planId                String
+  plan                  SubscriptionPlan @relation(fields: [planId], references: [id])
+  status                String   @default("ACTIVE") // ACTIVE, TRIAL, PAST_DUE, CANCELLED, EXPIRED
+  billingCycle          String   @default("MONTHLY") // MONTHLY, YEARLY
+  currentPeriodStart    DateTime
+  currentPeriodEnd      DateTime
+  cancelAtPeriodEnd     Boolean  @default(false)
+  cancelledAt           DateTime?
+  trialStart            DateTime?
+  trialEnd              DateTime?
+  provider              String   @default("MANUAL") // MANUAL, STRIPE, PAYPAL
+  providerSubscriptionId String?
+  providerCustomerId    String?
+  employeesCount        Int      @default(0)
+  storageUsedMB         Int      @default(0)
+  apiCallsThisMonth     Int      @default(0)
+  metadata              Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  usageLogs SubscriptionUsageLog[]
+
+  @@index([planId])
+  @@index([status])
+  @@index([providerSubscriptionId])
+}
+
+model SubscriptionUsageLog {
+  id              String   @id @default(cuid())
+  subscriptionId  String
+  subscription    CompanySubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  featureKey      String
+  tokensUsed      Int      @default(0)
+  requestsCount   Int      @default(0)
+  periodStart     DateTime
+  periodEnd       DateTime
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  @@index([subscriptionId, featureKey])
+  @@index([periodStart, periodEnd])
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // ─── SAAS MULTI-TENANT & MULTI-COMPANY CORE MODELS ───────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -2350,6 +2331,7 @@ model Tenant {
   trainingCategories         TrainingCategory[]
   employeeTrainingSkills     EmployeeTrainingSkill[]
   promotions                 EmployeePromotion[]
+  temporaryRoleAssignments TemporaryRoleAssignment[] @relation("TemporaryRoleAssignmentTenant")
 
   @@index([slug])
   @@index([status])
@@ -2463,10 +2445,13 @@ model SubscriptionPlan {
   id             String               @id @default(cuid())
   name           String               @unique // Starter, Growth, Enterprise, Custom
   slug           String               @unique // starter, growth, enterprise, custom
+  displayName    String
   description    String?
   priceMonthly   Float                @default(0)
   priceAnnual    Float                @default(0)
+  priceYearly    Float                @default(0)
   currency       String               @default("AED")
+  features       Json?
   maxEmployees   Int                  @default(25)
   maxCompanies   Int                  @default(1)
   maxLocations   Int                  @default(2)
@@ -2477,12 +2462,16 @@ model SubscriptionPlan {
   hasApiAccess   Boolean              @default(false)
   isPopular      Boolean              @default(false)
   isActive       Boolean              @default(true)
+  isDefault      Boolean              @default(false)
+  sortOrder      Int                  @default(0)
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
   subscriptions  TenantSubscription[]
+  companySubscriptions CompanySubscription[]
 
   @@index([slug])
   @@index([isActive])
+  @@index([sortOrder])
 }
 
 /// Subscription limits, feature modules, and plan details for a Tenant.
@@ -2568,36 +2557,33 @@ model PaymentTransaction {
   @@index([createdAt])
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════════
 // ─── SAAS MODULES & ENTITLEMENTS ─────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /// Represents an available SaaS module/feature in the platform.
 model Module {
-  id             String   @id @default(cuid())
-  key            String   @unique // e.g., "payroll", "recruitment", "attendance"
-  name           String
-  description    String?
-  category       String   @default("CORE") // CORE, WORKFORCE, PAYROLL, LIFECYCLE, TALENT, COMPLIANCE, SERVICES, BI, ENTERPRISE, AI
-  version        String   @default("1.0.0")
-  priceMonthly   Float    @default(0)
-  priceAnnual    Float    @default(0)
-  currency       String   @default("AED")
-  trialDays      Int      @default(14)
-  features       String[] @default([])
-  dependencies   String[] @default([]) // Array of module keys required before activating
-  isPublished    Boolean  @default(true)
-  isActive       Boolean  @default(true)
-  isCore         Boolean  @default(false) // Core modules cannot be disabled
-  sortOrder      Int      @default(0)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id          String   @id @default(cuid())
+  key         String   @unique // e.g., "payroll", "recruitment", "attendance"
+  name        String
+  description String?
+  category    String   @default("CORE") // CORE, HR, FINANCE, COMPLIANCE, TALENT, OPERATIONS
+  isActive    Boolean  @default(true)
+  isCore      Boolean  @default(false) // Core modules cannot be disabled
+  sortOrder   Int      @default(0)
+  priceMonthly Float    @default(0)
+  priceAnnual  Float    @default(0)
+  trialDays    Int      @default(14)
+  features     String[] @default([])
+  dependencies String[] @default([])
+  isPublished  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   companyModules CompanyModule[]
 
   @@index([category, isActive])
   @@index([key])
-  @@index([isPublished])
 }
 
 /// Company-specific module entitlement (links Tenant/Company to Module with config).
@@ -2623,7 +2609,7 @@ model CompanyModule {
   @@index([companyId, status])
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════════
 // ─── SUPPORT & TICKETING ──────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -2686,7 +2672,7 @@ model SupportTicketMessage {
   @@index([ticketId, createdAt])
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════════
 // ─── PLATFORM USERS & ROLES ───────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -2740,7 +2726,7 @@ model PlatformSetting {
   @@index([category])
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════════
 // ─── INTEGRATIONS ──────────────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -2774,7 +2760,7 @@ model Integration {
   @@index([type, provider])
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════════
 // ─── SYSTEM HEALTH & MONITORING ───────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -3245,44 +3231,9 @@ model ApplicationError {
   @@index([type, status])
 }
 
-
-
-/// Temporary role elevation / acting assignment (P1 — Reliability).
-/// Tracks time-bound role grants (e.g. acting HR Manager while covering leave).
-/// Auto-revoked by the cron at /api/cron/maintenance when endDate is reached.
-model TemporaryRoleAssignment {
-  id          String   @id @default(cuid())
-
-  /// User receiving the temporary role elevation
-  userId      String
-  user        User     @relation("TempRoleAssignedUser", fields: [userId], references: [id], onDelete: Cascade)
-
-  /// The role name being temporarily granted (e.g. "HR_MANAGER", "ADMIN")
-  roleName    String
-
-  /// Validity period (enforced by cron job)
-  startDate   DateTime
-  endDate     DateTime
-
-  /// Whether this assignment is still active; set to false by cron on expiry
-  isActive    Boolean  @default(true)
-
-  /// Free-text reason e.g. "Covering maternity leave for 6 weeks"
-  reason      String?
-
-  /// HR admin / manager who authorised the grant
-  assignedById String?
-  assignedBy   User?   @relation("TempRoleAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([userId, isActive])
-  @@index([endDate, isActive])
-}
-
+// ════════════════════════════════════════════════════════════════════════════════
 // ─── AI SERVICES MARKETPLACE & USAGE GOVERNANCE ─────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════════
 
 /// AI Modules published in the AI Marketplace (e.g. AI HR Assistant, AI CV Parser)
 model AIModule {
@@ -3313,6 +3264,7 @@ model AIUsageLog {
   tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   companyId   String?
   userId      String?
+  user        User?     @relation("AIUsageLogUser", fields: [userId], references: [id], onDelete: SetNull)
   aiModuleKey String
   aiModule    AIModule? @relation(fields: [aiModuleKey], references: [key], onDelete: SetNull)
   provider    String
@@ -3338,4 +3290,43 @@ model AICompanyBudget {
   hardStopEnabled Boolean @default(true)
   warningThresholdPercent Int @default(80)
   updatedAt     DateTime @updatedAt
+}
+
+/// Employee Promotion record
+model EmployeePromotion {
+  id              String   @id @default(cuid())
+  employeeId      String
+  employee        Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  fromTitle       String
+  toTitle         String
+  fromGrade       String?
+  toGrade         String?
+  fromSalary      Float?
+  toSalary        Float?
+  proposedBasicSalary Float?
+  proposedHousing     Float?
+  proposedTransport   Float?
+  proposedOther       Float?
+  proposedDesignation String?
+  previousBasicSalary Float?
+  previousHousing     Float?
+  previousTransport   Float?
+  previousOther       Float?
+  previousDesignation String?
+  effectiveDate   DateTime
+  reason          String?
+  status          String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  approvedById    String?
+  approvedBy      User?    @relation("EmployeePromotionApprovedBy", fields: [approvedById], references: [id])
+  approvedAt      DateTime?
+  pdfUrl          String?
+  createdById     String?
+  createdBy       User?    @relation("EmployeePromotionCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([employeeId, effectiveDate])
+  @@index([tenantId, status])
 }

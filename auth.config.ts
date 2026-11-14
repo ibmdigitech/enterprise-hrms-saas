@@ -127,12 +127,12 @@ export const authConfig = {
                 return true;
             }
 
-            const isPublicRoute = pathname === "/login" || pathname === "/" || isActivationRoute;
+            const isPublicRoute = pathname === "/login" || pathname === "/" || pathname === "/account/change-password" || isActivationRoute;
 
-            // Public route: send an authenticated visitor onward.
+            // Public route: send an authenticated visitor onward (unless changing password).
             if (isPublicRoute) {
-                if (isLoggedIn && !isActivationRoute) {
-                    const role = (auth?.user as { role?: string } | undefined)?.role; return Response.redirect(new URL(role === "SUPER_ADMIN" ? "/super-admin/dashboard" : "/dashboard", nextUrl));
+                if (isLoggedIn && !isActivationRoute && pathname !== "/account/change-password") {
+                    const role = (auth?.user as { role?: string } | undefined)?.role; const target = role === "SUPER_ADMIN" ? "/super-admin/dashboard" : (role === "STAFF" ? "/staff-services" : "/dashboard"); return Response.redirect(new URL(target, nextUrl));
                 }
                 return true;
             }

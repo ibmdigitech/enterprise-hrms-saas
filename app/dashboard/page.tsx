@@ -121,7 +121,7 @@ export default async function DashboardPage() {
             }),
             prisma.performanceReview.findMany({
                 where: { managerId },
-                include: { employee: { select: { id: true, firstName: true, lastName: true } } },
+                include: { subject: { select: { id: true, firstName: true, lastName: true } } },
                 orderBy: { createdAt: "desc" },
                 take: 10,
             }),

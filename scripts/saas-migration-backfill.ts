@@ -80,26 +80,26 @@ async function main() {
     });
     console.log(`Backfilled ${employeeBackfill.count} employee records with tenant & company scope.`);
 
-    // 4. Backfill Attendance records without tenantId
-    const attendanceBackfill = await prisma.attendance.updateMany({
-        where: { tenantId: null },
-        data: { tenantId: defaultTenant.id },
-    });
-    console.log(`Backfilled ${attendanceBackfill.count} attendance records.`);
+    // 4. Backfill Attendance records without tenantId (Attendance model doesn't have tenantId yet)
+    // const attendanceBackfill = await prisma.attendance.updateMany({
+    //     where: { tenantId: null },
+    //     data: { tenantId: defaultTenant.id },
+    // });
+    // console.log(`Backfilled ${attendanceBackfill.count} attendance records.`);
 
-    // 5. Backfill Leave Requests without tenantId
-    const leaveBackfill = await prisma.leaveRequest.updateMany({
-        where: { tenantId: null },
-        data: { tenantId: defaultTenant.id },
-    });
-    console.log(`Backfilled ${leaveBackfill.count} leave requests.`);
+    // 5. Backfill Leave Requests without tenantId (LeaveRequest model doesn't have tenantId yet)
+    // const leaveBackfill = await prisma.leaveRequest.updateMany({
+    //     where: { tenantId: null },
+    //     data: { tenantId: defaultTenant.id },
+    // });
+    // console.log(`Backfilled ${leaveBackfill.count} leave requests.`);
 
-    // 6. Backfill Salary Records without tenantId
-    const salaryBackfill = await prisma.salaryRecord.updateMany({
-        where: { tenantId: null },
-        data: { tenantId: defaultTenant.id },
-    });
-    console.log(`Backfilled ${salaryBackfill.count} salary records.`);
+    // 6. Backfill Salary Records without tenantId (SalaryRecord model doesn't have tenantId yet)
+    // const salaryBackfill = await prisma.salaryRecord.updateMany({
+    //     where: { tenantId: null },
+    //     data: { tenantId: defaultTenant.id },
+    // });
+    // console.log(`Backfilled ${salaryBackfill.count} salary records.`);
 
     // 7. Ensure TenantMembership exists for all existing Users
     const usersWithoutMembership = await prisma.user.findMany({

@@ -5,8 +5,13 @@ const prisma = new PrismaClient();
 
 async function main() {
   const email = "superadmin@hrms.local";
-  const password = "SuperAdmin@123";
   const name = "Super Admin";
+  const password = process.env.SUPER_ADMIN_PASSWORD;
+
+  if (!password) {
+    console.error("SUPER_ADMIN_PASSWORD environment variable is required");
+    process.exit(1);
+  }
 
   // Check if user exists
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -70,9 +75,9 @@ async function main() {
 
   console.log("Super admin created successfully!");
   console.log("Email:", email);
-  console.log("Password:", password);
   console.log("Role:", user.role);
   console.log("Tenant:", tenant.name, "(" + tenant.slug + ")");
+  console.log("Password set via SUPER_ADMIN_PASSWORD env var — change on first login.");
 }
 
 main()

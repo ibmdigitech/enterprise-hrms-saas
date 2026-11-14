@@ -3,12 +3,12 @@ import NextAuth from "next-auth";
 import { authConfig } from "./auth.config";
 
 /** Reachable without a session. */
-const PUBLIC_PATHS = new Set(["/", "/login"]);
+const PUBLIC_PATHS = new Set(["/", "/login", "/account/change-password"]);
 
-const NEVER_REDIRECT_PATHS = new Set(["/api/health"]);
+const NEVER_REDIRECT_PATHS = new Set(["/api/health", "/api/account/change-password/confirm"]);
 
 function isPublicPath(pathname: string): boolean {
-    return PUBLIC_PATHS.has(pathname) || pathname.startsWith("/activate/");
+    return PUBLIC_PATHS.has(pathname) || pathname.startsWith("/activate/") || pathname.startsWith("/api/account/change-password/");
 }
 
 const { auth } = NextAuth(authConfig);

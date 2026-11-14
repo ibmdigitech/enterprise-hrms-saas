@@ -1,16 +1,16 @@
 @echo off
 :: ================================================================
-::  IBM DIGITECH HRMS - ONE-CLICK LAUNCHER
+::  MULTISAAS HRMS - ONE-CLICK LAUNCHER
 ::  (Named with a leading '___' so it sorts to the top of the folder)
 :: ================================================================
-TITLE IBM DIGITECH HRMS Launcher
+TITLE MultiSaaS HRMS Launcher
 COLOR 0A
 
 :: Ensure we are in the correct directory
 CD /D "%~dp0"
 
 ECHO ==============================================================
-ECHO      IBM DIGITECH HRMS - LAUNCHER
+ECHO      MULTISAAS HRMS - LAUNCHER
 ECHO ==============================================================
 ECHO.
 
@@ -132,9 +132,12 @@ IF NOT EXIST "node_modules" (
 REM ==============================================================
 REM  4. DATABASE
 REM
-REM  The database is PostgreSQL in a Docker container. Docker Desktop
-REM  crashes intermittently on this machine, so container state is
-REM  not proof the port is published - reachability is checked below.
+REM  Uses docker-compose.yml which mounts a NAMED volume (hr_system-main_pgdata).
+REM  This volume PERSISTS across restarts - passwords and data are never lost.
+REM
+REM  The old "docker run --name hr-postgres" used an ANONYMOUS volume that was
+REM  destroyed on restart, causing passwords to reset every boot. Never use
+REM  that command again - always use "docker compose up" from this directory.
 REM ==============================================================
 ECHO [SETUP] Checking Docker...
 docker ps >NUL 2>&1
@@ -163,46 +166,35 @@ IF NOT ERRORLEVEL 0 (
     ECHO        Docker is ready.
 )
 
-ECHO [SETUP] Ensuring the database container is running...
-docker ps -a --filter "name=hr-postgres" --format "{{.Names}}" | findstr /C:"hr-postgres" >NUL
+ECHO [SETUP] Starting the database via docker compose (named volume - data is permanent)...
+docker compose up -d db >NUL 2>&1
 IF ERRORLEVEL 1 (
-    ECHO [SETUP] Creating the hr-postgres container...
-    docker run -d --name hr-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=hr_system -p 5433:5432 postgres:16 >NUL
-    IF ERRORLEVEL 1 (
-        ECHO [ERROR] Could not create the container.
-        ECHO         If a stale container exists, run:
-        ECHO           docker rm -f hr-postgres
-        PAUSE
-        EXIT /B 1
-    )
-    ECHO [SETUP] First start initialises the database, giving it 15 seconds...
-    TIMEOUT /T 15 /NOBREAK >NUL
-) ELSE (
-    docker start hr-postgres >NUL 2>&1
+    ECHO [ERROR] docker compose up -d db failed.
+    ECHO         Ensure docker-compose.yml is present and POSTGRES_PASSWORD is set in .env
+    PAUSE
+    EXIT /B 1
 )
 
 REM The container can be up while the host port is still unreachable, so
 REM verify connectivity rather than trusting container state.
-ECHO [SETUP] Waiting for the database to accept connections on port 5433...
+ECHO [SETUP] Waiting for the database to accept connections on port 5434...
 SET /A TRIES=0
 :WAIT_DB
-powershell -NoProfile -Command "if (Test-NetConnection -ComputerName localhost -Port 5433 -InformationLevel Quiet -WarningAction SilentlyContinue) { exit 0 } else { exit 1 }" >NUL 2>&1
+powershell -NoProfile -Command "if (Test-NetConnection -ComputerName localhost -Port 5434 -InformationLevel Quiet -WarningAction SilentlyContinue) { exit 0 } else { exit 1 }" >NUL 2>&1
 IF NOT ERRORLEVEL 1 (
     ECHO        Database is reachable.
     GOTO DB_READY
 )
 SET /A TRIES+=1
-IF %TRIES% GEQ 20 (
-    ECHO [ERROR] The database is not reachable on port 5433.
-    ECHO         Docker may have restarted without re-publishing the port.
-    ECHO         Recreate it with:
-    ECHO           docker rm -f hr-postgres
-    ECHO           docker run -d --name hr-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=hr_system -p 5433:5432 postgres:16
+IF %TRIES% GEQ 30 (
+    ECHO [ERROR] The database is not reachable on port 5434.
+    ECHO         Check that docker-compose.yml is correct and POSTGRES_PASSWORD is in .env
+    ECHO         You can also run:  docker compose logs db
     ECHO.
     PAUSE
     EXIT /B 1
 )
-TIMEOUT /T 3 /NOBREAK >NUL
+TIMEOUT /T 5 /NOBREAK >NUL
 GOTO WAIT_DB
 
 :DB_READY
