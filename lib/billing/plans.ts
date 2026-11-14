@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 export interface PlanTemplate {
     name: string;
     slug: string;
+    displayName: string;
     description: string;
     priceMonthly: number;
     priceAnnual: number;
@@ -22,6 +23,7 @@ export const DEFAULT_PLANS: PlanTemplate[] = [
     {
         name: "Starter",
         slug: "STARTER",
+        displayName: "Starter",
         description: "Essential HR & compliance for growing teams and startups.",
         priceMonthly: 750,
         priceAnnual: 7200, // 600/mo equivalent
@@ -39,6 +41,7 @@ export const DEFAULT_PLANS: PlanTemplate[] = [
     {
         name: "Growth",
         slug: "GROWTH",
+        displayName: "Growth",
         description: "Comprehensive HRMS with multi-company operations, recruiting & shifts.",
         priceMonthly: 1850,
         priceAnnual: 17760, // 1480/mo equivalent
@@ -56,6 +59,7 @@ export const DEFAULT_PLANS: PlanTemplate[] = [
     {
         name: "Enterprise",
         slug: "ENTERPRISE",
+        displayName: "Enterprise",
         description: "Full conglomerate isolation, dedicated database, unlimited scalability & custom branding.",
         priceMonthly: 3650,
         priceAnnual: 35040, // 2920/mo equivalent
@@ -77,6 +81,7 @@ export const DEFAULT_PLANS_ZAR: PlanTemplate[] = [
     {
         name: "Starter (ZAR)",
         slug: "STARTER",
+        displayName: "Starter (ZAR)",
         description: "Essential HR & compliance for growing teams and startups.",
         priceMonthly: 3750,
         priceAnnual: 36000,
@@ -94,6 +99,7 @@ export const DEFAULT_PLANS_ZAR: PlanTemplate[] = [
     {
         name: "Growth (ZAR)",
         slug: "GROWTH",
+        displayName: "Growth (ZAR)",
         description: "Comprehensive HRMS with multi-company operations, recruiting & shifts.",
         priceMonthly: 9250,
         priceAnnual: 88800,
@@ -111,6 +117,7 @@ export const DEFAULT_PLANS_ZAR: PlanTemplate[] = [
     {
         name: "Enterprise (ZAR)",
         slug: "ENTERPRISE",
+        displayName: "Enterprise (ZAR)",
         description: "Full conglomerate isolation, dedicated database, unlimited scalability & custom branding.",
         priceMonthly: 18250,
         priceAnnual: 175200,

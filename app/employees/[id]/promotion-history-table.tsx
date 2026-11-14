@@ -90,10 +90,11 @@ Management & Human Resources
 
     if (promotions.length === 0) {
         return (
-            <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center dark:border-slate-800">
-                <TrendingUp className="mx-auto h-8 w-8 text-slate-300 dark:text-slate-700 mb-2" />
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">No promotion records found</p>
-                <p className="text-xs text-slate-500 mt-1">This employee has no promotion history recorded yet.</p>
+            <div className="rounded-xl border border-dashed border-slate-200/90 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 px-4 py-2.5 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                <TrendingUp className="h-4 w-4 text-slate-400 dark:text-slate-600 shrink-0" />
+                <span>
+                    <strong className="font-semibold text-slate-600 dark:text-slate-300">No promotion records found:</strong> This employee has no promotion history recorded yet.
+                </span>
             </div>
         );
     }

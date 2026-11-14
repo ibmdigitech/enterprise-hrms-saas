@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Bell, Settings, LogOut, User, Search, ShieldCheck } from "lucide-react";
+import { Bell, Settings, LogOut, User, Search, ShieldCheck, TicketCheck } from "lucide-react";
+import { getOpenTicketCountAction } from "@/lib/actions/ticket-notifications";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { signOut } from "next-auth/react";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -42,6 +43,12 @@ const ICON_BUTTON =
 export function Header({ user, currentTenantName, tenants = [] }: HeaderProps) {
     const pathname = usePathname();
     const isNotificationsActive = pathname === "/notifications";
+    const isSupportActive = pathname === "/support";
+    const [openTicketCount, setOpenTicketCount] = useState<number>(0);
+
+    useEffect(() => {
+        getOpenTicketCountAction().then((res) => setOpenTicketCount(res.openCount)).catch(() => {});
+    }, [pathname]);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     // Below `md` there is no room for a 448px field next to three 44px controls,
     // so search collapses to an icon that expands the field over the row.
@@ -155,6 +162,32 @@ return (
             </div>
 
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+                {/* Support Ticket Quick-Access Button with Live Badge */}
+                <Button 
+                    asChild 
+                    variant="ghost" 
+                    size="icon" 
+                    className={cn(
+                        ICON_BUTTON,
+                        "relative",
+                        isSupportActive && "bg-indigo-600 text-white ring-2 ring-indigo-500 shadow-md shadow-indigo-500/30 hover:bg-indigo-700 hover:text-white"
+                    )}
+                >
+                    <Link 
+                        href="/support" 
+                        aria-label="Support Desk and Tickets" 
+                        title={isSupportActive ? "Current Page: Support Desk" : (openTicketCount > 0 ? `Support Tickets (${openTicketCount} Open)` : "Support Desk")}
+                    >
+                        <TicketCheck className={cn("h-4 w-4 transition-transform group-hover:scale-105", isSupportActive ? "text-white" : "text-muted-foreground")} />
+                        
+                        {openTicketCount > 0 ? (
+                            <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-indigo-600 px-1 text-[9px] font-black text-white ring-2 ring-background">
+                                {openTicketCount > 9 ? "9+" : openTicketCount}
+                            </span>
+                        ) : null}
+                    </Link>
+                </Button>
+
                 {/* Notification Bell Button with Active Route Highlight & Pinpoint Pulse Badge */}
                 <Button 
                     asChild 

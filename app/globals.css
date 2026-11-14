@@ -340,13 +340,22 @@ body {
    Date input — remove native browser chrome
 ═══════════════════════════════════════════════════════════════ */
 
-input[type="date"]::-webkit-calendar-picker-indicator {
+  input[type="date"]::-webkit-calendar-picker-indicator {
   opacity: 0;
   cursor: pointer;
   position: absolute;
   right: 8px;
   width: 24px;
   height: 24px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Password input — disable native browser reveal icon
+═══════════════════════════════════════════════════════════════ */
+
+input::-ms-reveal,
+input::-ms-clear {
+  display: none !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════

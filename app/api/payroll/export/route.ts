@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { authorizePermission } from "@/lib/auth/guards";
 import { PERMISSIONS } from "@/lib/auth/permissions";
+import { requireModuleEntitlement } from "@/lib/entitlements/verify";
 import type { SalaryRecord, Employee } from "@/prisma/generated/client";
 import { generateBatchPaySlipsBuffer, type PaySlipData } from "@/lib/pdf/generate";
 
@@ -19,6 +20,21 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: authResult.error }, { status: authResult.status });
         }
 
+        const subject = authResult.subject;
+
+        // MODULE ENTITLEMENT: enforce payroll_wps module entitlement before
+        // allowing payroll export. CompanyModule is the single source of truth.
+        if (subject.tenantId) {
+            try {
+                await requireModuleEntitlement(subject.tenantId, "payroll_wps");
+            } catch {
+                return NextResponse.json(
+                    { error: "Your organization is not entitled to the Payroll module" },
+                    { status: 403 }
+                );
+            }
+        }
+
         const { searchParams } = new URL(request.url);
         const month = parseInt(searchParams.get("month") || "");
         const year = parseInt(searchParams.get("year") || "");
@@ -31,8 +47,14 @@ export async function GET(request: NextRequest) {
             );
         }
 
+        // TENANT-ISOLATION: scope salary records by tenantId through employee relation
+        const where: Record<string, unknown> = { month, year };
+        if (subject.tenantId) {
+            where.employee = { tenantId: subject.tenantId };
+        }
+
         const salaryRecords = await prisma.salaryRecord.findMany({
-            where: { month, year },
+            where,
             include: {
                 employee: true,
             },

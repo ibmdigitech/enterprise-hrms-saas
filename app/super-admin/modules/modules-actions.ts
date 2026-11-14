@@ -177,10 +177,6 @@ export async function getMarketplaceModulesAction() {
         category: item.category,
         description: item.description,
         isCore: item.isCore,
-        priceMonthly: item.priceMonthly,
-        priceAnnual: item.priceAnnual,
-        features: item.features,
-        isPublished: true,
         isActive: true,
       },
     });

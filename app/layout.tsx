@@ -21,8 +21,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HR Portal",
-  description: "Enterprise HR Management System",
+  title: "MultiSaaS HRMS",
+  description: "MultiSaaS HR Management System",
 };
 
 export default async function RootLayout({

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { requirePageAnyPermission } from "@/lib/auth/page-guard";
 import { PERMISSIONS } from "@/lib/auth/permissions";
 import { getCompanyDocuments } from "@/app/lib/actions/company-documents";
+import { DocumentActions } from "./DocumentActions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,10 +13,11 @@ import {
     FileText,
     FolderOpen,
     Plus,
-    ArrowRight,
     ShieldCheck,
     BookOpen
 } from "lucide-react";
+
+type CompanyDocument = NonNullable<Awaited<ReturnType<typeof getCompanyDocuments>>["data"]>[number];
 
 export default async function CompanyDocumentsPage() {
     await requirePageAnyPermission([PERMISSIONS.SETTINGS_VIEW, PERMISSIONS.SETTINGS_MANAGE]);
@@ -26,7 +28,7 @@ export default async function CompanyDocumentsPage() {
     const res = await getCompanyDocuments();
     const documents = res.success ? res.data : [];
     const userRole = session.user.role;
-    const isAdmin = userRole === "ADMIN" || userRole === "HR";
+    const isAdmin = userRole === "SUPER_ADMIN" || userRole === "ADMIN" || userRole === "HR";
 
     const typeColors: Record<string, string> = {
         POLICY: "bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300",
@@ -91,7 +93,7 @@ export default async function CompanyDocumentsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-black text-slate-800 dark:text-white">
-                            {documents.filter((d: any) => d.type === "POLICY").length}
+                            {documents.filter((d: CompanyDocument) => d.type === "POLICY").length}
                         </div>
                     </CardContent>
                 </Card>
@@ -104,7 +106,7 @@ export default async function CompanyDocumentsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-black text-slate-800 dark:text-white">
-                            {documents.filter((d: any) => d.type === "HANDBOOK").length}
+                            {documents.filter((d: CompanyDocument) => d.type === "HANDBOOK").length}
                         </div>
                     </CardContent>
                 </Card>
@@ -117,7 +119,7 @@ export default async function CompanyDocumentsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-black text-slate-800 dark:text-white">
-                            {documents.filter((d: any) => d.type === "PROCEDURE").length}
+                            {documents.filter((d: CompanyDocument) => d.type === "PROCEDURE").length}
                         </div>
                     </CardContent>
                 </Card>
@@ -155,7 +157,7 @@ export default async function CompanyDocumentsPage() {
                         </div>
                     ) : (
                         <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                            {documents.map((doc: any) => {
+                            {documents.map((doc: CompanyDocument) => {
                                 const Icon = categoryIcons[doc.category] || FileText;
                                 return (
                                     <div
@@ -172,21 +174,25 @@ export default async function CompanyDocumentsPage() {
                                                     {doc.category} · v{doc.version} · {doc.fileName}
                                                 </p>
                                             </div>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <Badge className={`font-bold px-3 py-1 rounded-full border-0 ${typeColors[doc.type] || typeColors.OTHER}`}>
-                                                {doc.type}
-                                            </Badge>
-                                            <Badge variant={doc.isActive ? "default" : "secondary"} className="font-bold">
-                                                {doc.isActive ? "Active" : "Inactive"}
-                                            </Badge>
-                                            <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
-                                                <Button variant="ghost" size="sm" className="gap-1">
-                                                    View <ArrowRight className="h-3 w-3" />
-                                                </Button>
-                                            </a>
-                                        </div>
-                                    </div>
+</div>
+                                          <div className="flex items-center gap-2">
+                                              <Badge className={`font-bold px-3 py-1 rounded-full border-0 ${typeColors[doc.type] || typeColors.OTHER}`}>
+                                                  {doc.type}
+                                              </Badge>
+                                              <Badge variant={doc.isActive ? "default" : "secondary"} className="font-bold">
+                                                  {doc.isActive ? "Active" : "Inactive"}
+                                              </Badge>
+                                              <DocumentActions
+                                                  document={{
+                                                      id: doc.id,
+                                                      title: doc.title,
+                                                      fileUrl: doc.fileUrl,
+                                                      isActive: doc.isActive
+                                                  }}
+                                                  onDelete={() => {}}
+                                              />
+                                          </div>
+                                      </div>
                                 );
                             })}
                         </div>

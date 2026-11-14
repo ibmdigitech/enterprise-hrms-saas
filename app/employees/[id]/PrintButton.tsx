@@ -3,15 +3,15 @@
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
 
-export function PrintButton() {
+export function PrintButton({ className }: { className?: string }) {
     return (
         <Button
             variant="outline"
             onClick={() => window.print()}
-            className="h-11 w-full gap-2 rounded-xl border-white/20 bg-white/5 px-6 font-bold text-sm text-white backdrop-blur-md hover:bg-white/10 sm:w-auto"
+            className={className ?? "h-10 gap-2 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 font-bold text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm"}
         >
-            <Printer className="h-4 w-4" aria-hidden="true" />
-            Print
+            <Printer className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" aria-hidden="true" />
+            Print Profile
         </Button>
     );
 }

@@ -62,6 +62,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeSelector } from "@/components/layout/ThemeSelector";
+import { getOpenTicketCountAction } from "@/lib/actions/ticket-notifications";
 
 interface SuperAdminHeaderProps {
   user: {
@@ -75,6 +76,8 @@ interface SuperAdminHeaderProps {
 export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
   const pathname = usePathname();
   const isNotificationsActive = pathname === "/notifications";
+  const isTicketsActive = pathname === "/super-admin/tickets";
+  const [openTicketsCount, setOpenTicketsCount] = useState<number>(0);
   const [searchOpen, setSearchOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { data: session } = useSession();
@@ -82,6 +85,10 @@ export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    getOpenTicketCountAction().then((res) => setOpenTicketsCount(res.openCount)).catch(() => {});
+  }, [pathname]);
 
   const initials = user?.name
     ? user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
@@ -256,6 +263,38 @@ export function SuperAdminHeader({ user, onMenuClick }: SuperAdminHeaderProps) {
             <TooltipContent side="bottom" align="end">
               <span className="rounded-lg border border-border bg-popover px-2.5 py-1 text-xs font-medium text-foreground shadow-lg">
                 Change appearance
+              </span>
+            </TooltipContent>
+          </Tooltip>
+
+          {/* Support Ticket Quick-Access Notification Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                asChild
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "relative h-9 w-9 rounded-xl transition-all",
+                  isTicketsActive
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 ring-2 ring-indigo-500"
+                    : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+                aria-label="Platform Support Tickets"
+              >
+                <Link href="/super-admin/tickets" className="relative flex items-center justify-center w-full h-full">
+                  <TicketCheck className={cn("h-4 w-4", isTicketsActive ? "text-white" : "text-muted-foreground")} />
+                  {openTicketsCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-black text-white ring-2 ring-background">
+                      {openTicketsCount > 9 ? "9+" : openTicketsCount}
+                    </span>
+                  )}
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" align="end">
+              <span className="rounded-lg border border-border bg-popover px-2.5 py-1 text-xs font-medium text-foreground shadow-lg">
+                {isTicketsActive ? "Current Page: Support Tickets" : (openTicketsCount > 0 ? `Support Tickets (${openTicketsCount} Open)` : "Support Tickets")}
               </span>
             </TooltipContent>
           </Tooltip>

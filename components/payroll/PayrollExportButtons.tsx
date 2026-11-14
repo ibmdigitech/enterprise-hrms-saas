@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Download, Loader2, Play, Calendar } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Download, Loader2, Play, Calendar, FileSpreadsheet, FileText, ShieldCheck, FileDown, Sparkles } from "lucide-react";
 
 const MONTHS = [
     { value: 1, label: "January" },
@@ -26,7 +25,7 @@ export function PayrollExportButtons() {
     const [year, setYear] = useState(now.getFullYear());
     const [loading, setLoading] = useState<string | null>(null);
 
-    const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i + 1);
+    const years = Array.from({ length: 6 }, (_, i) => now.getFullYear() - i + 1);
 
     const handleExport = async (format: "csv" | "excel" | "wps" | "pdf") => {
         setLoading(format);
@@ -35,7 +34,7 @@ export function PayrollExportButtons() {
                 `/api/payroll/export?month=${month}&year=${year}&format=${format}`
             );
 
-            if (!res.ok) {
+            if (!okStatus(res.status)) {
                 const errorData = await res.json().catch(() => ({}));
                 alert(errorData.error || "Export failed. Please try again.");
                 return;
@@ -64,25 +63,36 @@ export function PayrollExportButtons() {
         }
     };
 
+    const okStatus = (status: number) => status >= 200 && status < 300;
     const currentMonthLabel = MONTHS.find(m => m.value === month)?.label || "November";
 
     return (
-        <div className="bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+        <div className="bg-white dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col xl:flex-row items-start xl:items-center justify-between gap-5 transition-all">
             {/* Left: Export Payroll Header & Description */}
-            <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    Export Payroll
-                </h3>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">
-                    Select period & format
-                </p>
+            <div className="flex items-center gap-3.5">
+                <div className="h-11 w-11 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-800/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                    <FileDown className="h-5 w-5" />
+                </div>
+                <div>
+                    <div className="flex items-center gap-2">
+                        <h3 className="text-base font-black tracking-tight text-slate-900 dark:text-white">
+                            Export Payroll & Compliance Reports
+                        </h3>
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                            WPS Ready
+                        </span>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                        Select payroll cycle to generate Ministry of Human Resources SIF, audit spreadsheets, or slips.
+                    </p>
+                </div>
             </div>
 
             {/* Right: Interactive Period Selector + Quick Action + Export Format Buttons */}
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto">
                 {/* 1. Interactive Period Selector: Month & Year Picker */}
-                <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-2 shadow-2xs">
-                    <Calendar className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3.5 py-2 shadow-2xs">
+                    <Calendar className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
                     <select
                         value={month}
                         onChange={(e) => setMonth(Number(e.target.value))}
@@ -113,47 +123,57 @@ export function PayrollExportButtons() {
                 {/* 2. Quick Action Link: Run Payroll for Selected Period */}
                 <Link
                     href={`/payroll/generate?month=${month}&year=${year}`}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40 transition-colors shadow-2xs"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs shadow-indigo-600/30 transition-all hover:scale-[1.02]"
                     title={`Run payroll for ${currentMonthLabel} ${year}`}
                 >
-                    <Play className="h-3 w-3 fill-indigo-600 dark:fill-indigo-400" />
+                    <Play className="h-3.5 w-3.5 fill-white" />
                     <span>Run Period</span>
                 </Link>
 
-                {/* 3. CSV Button - Pastel Mint */}
+                <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block mx-1" />
+
+                {/* 3. CSV Button */}
                 <button
                     onClick={() => handleExport("csv")}
                     disabled={loading !== null}
-                    className="px-4 py-2 rounded-xl text-xs font-bold bg-[#d1fae5] hover:bg-[#a7f3d0] text-[#065f46] dark:bg-emerald-950/40 dark:text-emerald-300 dark:border dark:border-emerald-800/40 transition-colors shadow-2xs disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40 transition-colors shadow-2xs disabled:opacity-50"
+                    title="Export Comma Separated Values (.csv)"
                 >
-                    {loading === "csv" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "CSV"}
+                    {loading === "csv" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />}
+                    <span>CSV</span>
                 </button>
 
-                {/* 4. Excel Button - Pastel Light Cyan */}
+                {/* 4. Excel Button */}
                 <button
                     onClick={() => handleExport("excel")}
                     disabled={loading !== null}
-                    className="px-4 py-2 rounded-xl text-xs font-bold bg-[#cffafe] hover:bg-[#a5f3fc] text-[#155e75] dark:bg-cyan-950/40 dark:text-cyan-300 dark:border dark:border-cyan-800/40 transition-colors shadow-2xs disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-sky-50 hover:bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800/40 transition-colors shadow-2xs disabled:opacity-50"
+                    title="Export Microsoft Excel (.xlsx)"
                 >
-                    {loading === "excel" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Excel"}
+                    {loading === "excel" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />}
+                    <span>Excel</span>
                 </button>
 
-                {/* 5. WPS UAE MOL SIF Button - Pastel Soft Teal */}
+                {/* 5. WPS UAE MOL SIF Button */}
                 <button
                     onClick={() => handleExport("wps")}
                     disabled={loading !== null}
-                    className="px-4 py-2 rounded-xl text-xs font-bold bg-[#ccfbf1] hover:bg-[#99f6e4] text-[#115e59] dark:bg-teal-950/40 dark:text-teal-300 dark:border dark:border-teal-800/40 transition-colors shadow-2xs disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-teal-50 hover:bg-teal-100 text-teal-800 dark:bg-teal-950/40 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800/40 transition-colors shadow-2xs disabled:opacity-50"
+                    title="Generate UAE Ministry of Labour Wages Protection System SIF File"
                 >
-                    {loading === "wps" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "WPS UAE MOL SIF"}
+                    {loading === "wps" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" />}
+                    <span>WPS UAE MOL SIF</span>
                 </button>
 
-                {/* 6. PDF Button - Pastel Rose / Pink */}
+                {/* 6. PDF Button */}
                 <button
                     onClick={() => handleExport("pdf")}
                     disabled={loading !== null}
-                    className="px-4 py-2 rounded-xl text-xs font-bold bg-[#ffe4e6] hover:bg-[#fecdd3] text-[#9f1239] dark:bg-rose-950/40 dark:text-rose-300 dark:border dark:border-rose-800/40 transition-colors shadow-2xs disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/40 transition-colors shadow-2xs disabled:opacity-50"
+                    title="Download Full Summary PDF"
                 >
-                    {loading === "pdf" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "PDF"}
+                    {loading === "pdf" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />}
+                    <span>PDF</span>
                 </button>
             </div>
         </div>

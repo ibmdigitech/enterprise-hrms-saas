@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, CheckCircle2, KeyRound, ShieldCheck } from "lucide-react";
+import { AlertCircle, CheckCircle2, KeyRound, ShieldCheck, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { completePasswordChange, checkPasswordStrength } from "@/lib/workflow/credentials";
@@ -31,6 +31,8 @@ export default function ActivateClient({ token }: { token: string }) {
     const router = useRouter();
     const [password, setPassword] = useState("");
     const [confirm, setConfirm] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [done, setDone] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -107,20 +109,31 @@ export default function ActivateClient({ token }: { token: string }) {
                             <Label htmlFor="password" className="text-xs font-black uppercase tracking-widest text-slate-500">
                                 New password
                             </Label>
-                            <Input
-                                id="password"
-                                name="password"
-                                type="password"
-                                autoComplete="new-password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                aria-describedby="password-rules"
-                                className={cn(
-                                    "h-12 rounded-xl bg-slate-50 dark:bg-slate-900 font-bold",
-                                    password.length > 0 && !strength.ok &&
-                                        "border-rose-400 dark:border-rose-500 focus-visible:ring-rose-500"
-                                )}
-                            />
+                            <div className="relative">
+                                <Input
+                                    id="password"
+                                    name="password"
+                                    type={showPassword ? "text" : "password"}
+                                    autoComplete="new-password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    aria-describedby="password-rules"
+                                    className={cn(
+                                        "h-12 rounded-xl bg-slate-50 dark:bg-slate-900 font-bold pr-11",
+                                        password.length > 0 && !strength.ok &&
+                                            "border-rose-400 dark:border-rose-500 focus-visible:ring-rose-500"
+                                    )}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword((prev) => !prev)}
+                                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors focus:outline-none p-1"
+                                    title={showPassword ? "Hide password" : "Show password"}
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                >
+                                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                </button>
+                            </div>
                         </div>
 
                         {/* Live rule checklist. UX only — the server re-checks. */}
@@ -151,20 +164,31 @@ export default function ActivateClient({ token }: { token: string }) {
                             <Label htmlFor="confirm" className="text-xs font-black uppercase tracking-widest text-slate-500">
                                 Confirm password
                             </Label>
-                            <Input
-                                id="confirm"
-                                name="confirm"
-                                type="password"
-                                autoComplete="new-password"
-                                value={confirm}
-                                onChange={(e) => setConfirm(e.target.value)}
-                                aria-invalid={confirm.length > 0 && !matches ? "true" : undefined}
-                                className={cn(
-                                    "h-12 rounded-xl bg-slate-50 dark:bg-slate-900 font-bold",
-                                    confirm.length > 0 && !matches &&
-                                        "border-rose-400 dark:border-rose-500 focus-visible:ring-rose-500"
-                                )}
-                            />
+                            <div className="relative">
+                                <Input
+                                    id="confirm"
+                                    name="confirm"
+                                    type={showConfirm ? "text" : "password"}
+                                    autoComplete="new-password"
+                                    value={confirm}
+                                    onChange={(e) => setConfirm(e.target.value)}
+                                    aria-invalid={confirm.length > 0 && !matches ? "true" : undefined}
+                                    className={cn(
+                                        "h-12 rounded-xl bg-slate-50 dark:bg-slate-900 font-bold pr-11",
+                                        confirm.length > 0 && !matches &&
+                                            "border-rose-400 dark:border-rose-500 focus-visible:ring-rose-500"
+                                    )}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirm((prev) => !prev)}
+                                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors focus:outline-none p-1"
+                                    title={showConfirm ? "Hide password" : "Show password"}
+                                    aria-label={showConfirm ? "Hide password" : "Show password"}
+                                >
+                                    {showConfirm ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                </button>
+                            </div>
                             {confirm.length > 0 && !matches && (
                                 <p className="text-xs font-bold text-rose-600 dark:text-rose-400">Passwords do not match</p>
                             )}

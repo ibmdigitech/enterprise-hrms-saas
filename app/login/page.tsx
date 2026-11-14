@@ -13,7 +13,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { Building2, Mail, Loader2 } from 'lucide-react';
+import { Building2, Mail, Loader2, Eye, EyeOff } from 'lucide-react';
 
 // Google Icon SVG
 function GoogleIcon() {
@@ -53,6 +53,7 @@ function MicrosoftIcon() {
 
 function LoginForm() {
     const [errorMessage, setErrorMessage] = useState<string | undefined>();
+    const [showPassword, setShowPassword] = useState(false);
     const [isPending, startTransition] = useTransition();
     const [oauthLoading, setOauthLoading] = useState<'google' | 'microsoft' | null>(null);
     const router = useRouter();
@@ -211,15 +212,26 @@ function LoginForm() {
                         </div>
                         <div className="space-y-1.5">
                             <Label htmlFor="password" className="text-slate-300 text-sm">Password</Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                name="password"
-                                placeholder="••••••••"
-                                required
-                                disabled={isPending || !!oauthLoading}
-                                className="bg-white/10 border-white/20 text-white placeholder:text-slate-500 focus:border-indigo-500 focus:ring-indigo-500/20"
-                            />
+                            <div className="relative">
+                                <Input
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    name="password"
+                                    placeholder="••••••••"
+                                    required
+                                    disabled={isPending || !!oauthLoading}
+                                    className="bg-white/10 border-white/20 text-white placeholder:text-slate-500 focus:border-indigo-500 focus:ring-indigo-500/20 pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword((prev) => !prev)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors focus:outline-none p-1"
+                                    title={showPassword ? "Hide password" : "Show password"}
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                >
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </div>
                         </div>
 
                         <Button

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, stagger, type Variants } from "framer-motion";
+import { useState } from "react";
+import { motion, type Variants } from "framer-motion";
 import {
   Building2,
   Users,
@@ -10,45 +10,28 @@ import {
   Activity,
   Database,
   ShieldCheck,
-  TicketCheck,
-  Package,
-  Layers,
-  FileText,
-  PlugZap,
-  Settings2,
-  ArrowUpRight,
-  ArrowDownRight,
-  Target,
-  Clock,
-  RefreshCw,
-  ExternalLink,
+  ShieldAlert,
+  Server,
+  Zap,
   Calendar,
   DollarSign,
-  Zap,
-  Server,
-  HardDrive,
-  Headphones,
   Briefcase,
-  Shield,
-  TrendingUp as TrendingUpIcon,
-  ChevronDown,
-  BarChart3,
-  PieChart as PieChartIcon,
-  Wallet,
-  Target as TargetIcon,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  RefreshCw,
+  ExternalLink,
   ChevronRight,
+  Layers,
+  Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { KPICard, kpiCards } from "@/components/super-admin/KPICards";
-import {
-  ChartCard,
-  MultiAreaChart,
-  GroupedBarChart,
-  DonutChart,
-  GaugeChart,
-  CHART_COLORS,
-} from "@/components/super-admin/Charts";
+import { SuperAdminWorkforceAnalytics } from "@/components/super-admin/SuperAdminWorkforceAnalytics";
 import { format } from "date-fns";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface DashboardClientProps {
   metrics: {
@@ -74,16 +57,16 @@ interface DashboardClientProps {
     failedPayments: number;
     overdueInvoices: number;
     totalLeaveRequests: number;
-    pendingLeaveRequests: number;
-    totalPayrollRuns: number;
-    activePayrollRuns: number;
-    totalRecruitmentApplications: number;
-    activeJobRequisitions: number;
-    recentTenants: any[];
-    recentAuditLogs: any[];
+    recentAuditLogs: Array<{
+      id: string;
+      action: string;
+      actorEmail: string | null;
+      outcome: string;
+      createdAt: string | Date;
+    }>;
   };
-  totalTenants: number;
-  activeTenants: number;
+  totalTenants?: number;
+  activeTenants?: number;
 }
 
 const containerVariants: Variants = {
@@ -92,602 +75,219 @@ const containerVariants: Variants = {
     opacity: 1,
     transition: {
       staggerChildren: 0.08,
-      delayChildren: 0.2,
+      delayChildren: 0.05,
     },
-  },
-};
-
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: "easeOut" },
   },
 };
 
 const sectionVariants: Variants = {
-  hidden: { opacity: 0, y: 30 },
+  hidden: { opacity: 0, y: 15 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.6, ease: "easeOut" },
+    transition: { duration: 0.4, ease: "easeOut" },
   },
 };
 
-const formatNumber = (num: number) => {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
-  if (num >= 1000) return (num / 1000).toFixed(1) + "K";
-  return num.toLocaleString();
-};
-
-const formatCurrency = (num: number) => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "AED",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(num);
-};
-
-// ─── Compact Metric Card with Department Badge ───
-interface CompactMetricCardProps {
-  label: string;
-  value: string | number;
-  icon: React.ElementType;
-  department: string;
-  trend?: { value: number; label: string };
-  index: number;
-}
-
-const METRIC_CARD_GRADIENT = "linear-gradient(135deg, rgba(13,148,136,0.10) 0%, rgba(148,163,184,0.06) 50%, rgba(255,255,255,0.02) 100%)";
-const METRIC_CARD_BORDER = "linear-gradient(135deg, rgba(13,148,136,0.30) 0%, rgba(148,163,184,0.20) 50%, rgba(13,148,136,0.10) 100%)";
-
-function CompactMetricCard({ label, value, icon: Icon, department, trend, index }: CompactMetricCardProps) {
-  return (
-    <motion.div
-      key={label}
-      custom={index}
-      variants={itemVariants}
-      whileHover={{ y: -4, scale: 1.015 }}
-    >
-      <div className="relative group">
-        {/* Subtle gold border glow on hover */}
-        <div
-          className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-lg"
-          style={{ background: METRIC_CARD_BORDER, filter: "blur(8px)" }}
-        />
-        
-        <div className="relative rounded-xl p-5 min-h-[180px] flex flex-col" style={{ background: METRIC_CARD_GRADIENT }}>
-          <div className="relative flex flex-col h-full">
-            {/* Icon at top */}
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted/80 backdrop-blur-sm">
-              <Icon className="h-5 w-5 text-foreground" />
-            </div>
-
-            {/* Metric value */}
-            <div className="flex-1 flex flex-col justify-between">
-              <div>
-                <motion.span
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" }}
-                  className="text-2xl font-black text-foreground tabular-nums drop-shadow-sm"
-                >
-                  {value}
-                </motion.span>
-                <p className="mt-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-              </div>
-
-              {/* Trend badge - unified gold/amber for all trends */}
-              {trend && (
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4, duration: 0.3 }}
-                  className="mt-2 flex items-center gap-1 self-start rounded-full border border-amber-500/20 bg-amber-500/15 px-2 py-1 text-xs font-semibold text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/20 dark:text-amber-300"
-                >
-                  {trend.value >= 0 ? <TrendingUpIcon className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                  <span>{trend.value >= 0 ? "+" : ""}{trend.value}%</span>
-                  <span className="opacity-70">{trend.label}</span>
-                </motion.div>
-              )}
-            </div>
-
-            {/* Department badge at bottom */}
-            <div className="mt-auto flex items-center justify-between border-t border-border pt-3">
-              <span className="flex items-center gap-1.5 rounded-full border border-border bg-muted/80 px-2.5 py-1 text-xs font-semibold text-foreground">
-                {department}
-                <ChevronDown className="h-3 w-3 opacity-50" />
-              </span>
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-muted/80 transition-colors hover:bg-muted">
-                <ChevronRight className="h-3.5 w-3.5 text-primary" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-// ─── Large Metric Cards for Financial Section ───
-interface FinancialMetricCardProps {
-  title: string;
-  value: string;
-  subtitle?: string;
-  trend?: { value: number; label: string };
-  icon: React.ElementType;
-  department: string;
-  badge?: string;
-  badgeColor?: "emerald" | "amber" | "rose";
-  index: number;
-}
-
-function FinancialMetricCard({ title, value, subtitle, trend, icon: Icon, department, badge, badgeColor = "emerald", index }: FinancialMetricCardProps) {
-  return (
-    <motion.div key={title} custom={index} variants={itemVariants} whileHover={{ y: -4, scale: 1.015 }}>
-      <div className="relative group">
-        {/* Subtle gold border glow on hover */}
-        <div
-          className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-lg"
-          style={{ background: METRIC_CARD_BORDER, filter: "blur(8px)" }}
-        />
-        
-        <div className="relative rounded-xl p-5 min-h-[180px] flex flex-col" style={{ background: METRIC_CARD_GRADIENT }}>
-          <div className="relative flex flex-col h-full">
-            {/* Icon at top */}
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted/80 backdrop-blur-sm">
-              <Icon className="h-5 w-5 text-foreground" />
-            </div>
-
-            {/* Metric value */}
-            <div className="flex-1 flex flex-col justify-between">
-              <div>
-                <motion.span
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" }}
-                  className="text-2xl font-black text-foreground tabular-nums drop-shadow-sm"
-                >
-                  {value}
-                </motion.span>
-                <p className="text-xs text-muted-foreground mt-1.5 font-medium tracking-wide uppercase">{title}</p>
-                {subtitle && <p className="text-[10px] text-muted-foreground/80 mt-0.5">{subtitle}</p>}
-              </div>
-
-              {/* Trend badge - unified gold/amber for all trends */}
-              {trend && (
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4, duration: 0.3 }}
-                  className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold mt-2 self-start bg-amber-500/15 text-amber-700 border border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30"
-                >
-                  {trend.value >= 0 ? <TrendingUpIcon className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                  <span>{trend.value >= 0 ? "+" : ""}{trend.value}%</span>
-                  <span className="opacity-70">{trend.label}</span>
-                </motion.div>
-              )}
-            </div>
-
-            {/* Department/Badge at bottom */}
-            <div className="flex items-center justify-between pt-3 border-t border-border mt-auto">
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/80 border border-border text-xs font-semibold text-foreground">
-                {department}
-                {badge && <span className={cn(
-                  "ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-black uppercase",
-                  badgeColor === "emerald" && "bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300",
-                  badgeColor === "amber" && "bg-amber-500/15 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300",
-                  badgeColor === "rose" && "bg-rose-500/15 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300"
-                )}>{badge}</span>}
-                <ChevronDown className="h-3 w-3 opacity-50" />
-              </span>
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-muted/80 transition-colors hover:bg-muted">
-                <ChevronRight className="h-3.5 w-3.5 text-primary" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-export function DashboardClient({ metrics, totalTenants, activeTenants }: DashboardClientProps) {
+export function DashboardClient({ metrics, totalTenants = 0, activeTenants = 0 }: DashboardClientProps) {
   const [refreshing, setRefreshing] = useState(false);
-  const [timeRange, setTimeRange] = useState<"7d" | "30d" | "90d" | "1y">("30d");
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setRefreshing(false);
     window.location.reload();
   };
-
-  // Generate sample chart data
-  const generateRevenueData = () => {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return months.map((month, i) => ({
-      name: month,
-      mrr: Math.floor(metrics.mrr * (0.7 + Math.random() * 0.6)),
-      arr: Math.floor(metrics.arr * (0.7 + Math.random() * 0.6)),
-      newTenants: Math.floor(metrics.totalTenants / 12 * (0.5 + Math.random())),
-      churnedTenants: Math.floor(metrics.totalTenants / 12 * (0.1 + Math.random() * 0.2)),
-    }));
-  };
-
-  const generateTenantGrowthData = () => {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    let cumulative = 0;
-    return months.map((month) => {
-      const newTenants = Math.floor(Math.random() * 50) + 10;
-      cumulative += newTenants;
-      const churned = Math.floor(Math.random() * 5);
-      cumulative = Math.max(0, cumulative - churned);
-      return {
-        name: month,
-        total: cumulative,
-        new: newTenants,
-        churned,
-      };
-    });
-  };
-
-  const generateWorkforceData = () => {
-    const years = ["2020", "2021", "2022", "2023", "2024", "2025", "2026"];
-    let base = 45000;
-    return years.map((year, i) => {
-      const growth = Math.floor(Math.random() * 8000) + 12000;
-      base += growth;
-      const engaged = Math.floor(base * (0.65 + Math.random() * 0.2));
-      const newHires = Math.floor(growth * 0.3);
-      return {
-        name: year,
-        totalEmployees: base,
-        engagedEmployees: engaged,
-        newHires,
-      };
-    });
-  };
-
-  const generateFinancialData = () => {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return months.map((month) => ({
-      name: month,
-      mrr: Math.floor(metrics.mrr * (0.8 + Math.random() * 0.4)),
-      newRevenue: Math.floor(metrics.mrr * (0.1 + Math.random() * 0.15)),
-      expansionRevenue: Math.floor(metrics.mrr * (0.05 + Math.random() * 0.1)),
-      churnedRevenue: Math.floor(metrics.mrr * (0.02 + Math.random() * 0.05)),
-    }));
-  };
-
-  const generateProjectionData = () => {
-    const quarters = ["Q1 2026", "Q2 2026", "Q3 2026", "Q4 2026", "Q1 2027"];
-    return quarters.map((q, i) => ({
-      name: q,
-      projected: Math.floor(metrics.mrr * 12 * (1 + i * 0.15 + Math.random() * 0.1)),
-      actual: i < 2 ? Math.floor(metrics.mrr * 12 * (1 + i * 0.15)) : 0,
-    }));
-  };
-
-  const revenueData = generateRevenueData();
-  const tenantGrowthData = generateTenantGrowthData();
-  const workforceData = generateWorkforceData();
-  const financialData = generateFinancialData();
-  const projectionData = generateProjectionData();
-
-  // ─── Compact Metric Cards Data ───
-  const compactMetrics = [
-    { label: "Active Tenants", value: metrics.activeTenants.toLocaleString(), icon: Building2, department: "Admin", trend: { value: 12.5, label: "vs last month" } },
-    { label: "Trial Tenants", value: metrics.trialTenants.toLocaleString(), icon: Zap, department: "Support", trend: { value: 8.3, label: "vs last month" } },
-    { label: "Suspended", value: metrics.suspendedTenants.toLocaleString(), icon: Shield, department: "HR", trend: { value: -15.2, label: "vs last month" } },
-    { label: "Dedicated DBs", value: metrics.dedicatedDbTenants.toLocaleString(), icon: HardDrive, department: "IT", trend: { value: 22.1, label: "vs last month" } },
-    { label: "Open Tickets", value: metrics.recentAuditEvents.toLocaleString(), icon: Headphones, department: "Legal", trend: { value: 5.7, label: "vs last month" } },
-    { label: "Active Modules", value: "12", icon: Package, department: "R&D", trend: { value: 0, label: "stable" } },
-  ];
-
-  // ─── Financial Metric Cards Data ───
-  const financialMetrics = [
-    { 
-      title: "Monthly Recurring Revenue", 
-      value: formatCurrency(metrics.mrr), 
-      subtitle: "Current month", 
-      trend: { value: 15.3, label: "MoM" },
-      icon: DollarSign, 
-      department: "Finance",
-      badge: "+12.5% MoM",
-      badgeColor: "emerald" as const,
-    },
-    { 
-      title: "Annual Revenue Projection", 
-      value: formatCurrency(metrics.arr), 
-      subtitle: "Based on current run rate", 
-      trend: { value: 18.7, label: "YoY" },
-      icon: TargetIcon, 
-      department: "Strategy",
-      badge: "+18.7% YoY",
-      badgeColor: "amber" as const,
-    },
-    { 
-      title: "Customer Lifetime Value", 
-      value: formatCurrency(Math.floor(metrics.mrr * 24 * 0.85)), 
-      subtitle: "LTV:CAC ratio 4.2:1", 
-      trend: { value: 8.4, label: "vs last quarter" },
-      icon: Wallet, 
-      department: "Sales",
-      badge: "Healthy",
-      badgeColor: "emerald" as const,
-    },
-  ];
 
   return (
     <motion.div
       initial="hidden"
       animate="visible"
       variants={containerVariants}
-      className="space-y-5 min-h-screen bg-background p-5 md:p-6"
+      className="mx-auto w-full max-w-7xl space-y-8 p-4 md:p-8"
     >
-      {/* Header */}
-      <motion.div variants={sectionVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">Platform Command Center</h1>
-          <p className="text-xs text-muted-foreground mt-0.5 max-w-xl hidden sm:block">
-            Real-time telemetry: health, workforce, finance, operations.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border bg-card/80 backdrop-blur-sm">
-            <Calendar className="h-3.5 w-3.5 text-primary" />
-            <select
-              value={timeRange}
-              onChange={(e) => setTimeRange(e.target.value as any)}
-              className="bg-transparent text-xs font-medium text-foreground focus:outline-none cursor-pointer"
-              style={{ appearance: "none" }}
+      {/* 1. Hero Command Center Banner (Matching Main App Aesthetics) */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 p-6 sm:p-8 shadow-xl shadow-indigo-950/20 border border-indigo-900/40">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-20 -top-28 h-80 w-80 rounded-full bg-indigo-500/20 blur-3xl" />
+        <div aria-hidden="true" className="pointer-events-none absolute -bottom-36 left-1/3 h-72 w-72 rounded-full bg-emerald-500/15 blur-3xl" />
+        
+        <div className="relative z-10 flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
+          <div className="min-w-0">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3.5 py-1 text-xs font-bold text-indigo-100 backdrop-blur-md">
+              <Zap className="h-3.5 w-3.5 text-emerald-400" />
+              <span>Multi-Tenant Cloud Control Plane</span>
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse ml-1" />
+            </div>
+            <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
+              Super Admin <span className="text-indigo-200">Command Center</span>
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300 sm:text-base">
+              Real-time multi-tenant telemetry: global tenant health, total managed workforce, live MRR billing, and platform security.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href="/super-admin/companies/new">
+              <Button className="h-11 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-2 shadow-md">
+                <Building2 className="h-4 w-4" />
+                Add New Company
+              </Button>
+            </Link>
+            <Button
+              variant="outline"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="h-11 px-4 rounded-2xl bg-white/10 border-white/20 text-white hover:bg-white/20 font-bold text-xs gap-2 backdrop-blur-md"
             >
-              <option value="7d" className="bg-popover text-popover-foreground">7d</option>
-              <option value="30d" className="bg-popover text-popover-foreground">30d</option>
-              <option value="90d" className="bg-popover text-popover-foreground">90d</option>
-              <option value="1y" className="bg-popover text-popover-foreground">1y</option>
-            </select>
+              <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
+              <span>Refresh Telemetry</span>
+            </Button>
           </div>
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="flex items-center gap-1.5 rounded-xl border border-border bg-card/80 px-3 py-1.5 text-xs font-medium text-foreground transition-all hover:bg-muted"
-          >
-            <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
-            <span className="hidden sm:inline">Refresh</span>
-          </button>
         </div>
+      </section>
+
+      {/* 2. Executive PerformX-Style Multi-Tenant Analytics Engine */}
+      <motion.div variants={sectionVariants}>
+        <SuperAdminWorkforceAnalytics
+          totalTenants={totalTenants || metrics.totalTenants}
+          activeTenants={activeTenants || metrics.activeTenants}
+          totalEmployees={metrics.totalEmployees}
+          mrr={metrics.mrr}
+          arr={metrics.arr}
+          securityEventsCount={metrics.recentAuditEvents}
+          platformHealthPct={99.8}
+        />
       </motion.div>
 
-      {/* Live Indicator - Fixed */}
-      <motion.div variants={sectionVariants} className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/25 w-fit text-[10px] font-medium backdrop-blur-sm">
-        <span className="w-1 h-1 rounded-full bg-amber-400 animate-pulse shadow-lg shadow-amber-400/50" />
-        <span>Live</span>
-        <span className="px-1.5 py-0.5 rounded bg-amber-500/25 text-[9px] font-mono text-amber-100">{format(new Date(), "HH:mm:ss")}</span>
-      </motion.div>
-
-      {/* ─── TOP ROW: 4 Large Cards ─── */}
-      <motion.div variants={sectionVariants} className="grid grid-cols-1 lg:grid-cols-4 gap-5">
-        {/* Card 1: Health Index - Gauge */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="group relative h-[320px] overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-xs hover:border-ring/30"
-        >
-          <div className="relative flex h-full flex-col">
-            {/* Header - compact */}
-            <div className="mb-2 flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 shadow-xs dark:bg-emerald-500/20 dark:text-emerald-400">
-                <Activity className="h-3.5 w-3.5" />
+      {/* 3. Operational Infrastructure Grid & Security Audit Feed */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Cloud Infrastructure & Database Status (5 Cols) */}
+        <div className="lg:col-span-5 space-y-6">
+          <Card className="rounded-3xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center">
+                    <Server className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-sm font-bold text-slate-900 dark:text-white">Tenant Topology</CardTitle>
+                    <CardDescription className="text-xs">Database isolation & tenancy model</CardDescription>
+                  </div>
+                </div>
+                <Badge variant="outline" className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30">Healthy</Badge>
               </div>
-              <h3 className="text-base font-semibold text-foreground">Health Index</h3>
-            </div>
-
-            {/* Gauge + Metrics - proper spacing */}
-            <div className="flex min-h-0 flex-1 -translate-x-[20px] flex-col items-center justify-start gap-1 pt-1">
-              <GaugeChart value={92} label="Health Index" size={170} showLabel={true} />
-              <div className="-mt-1 grid w-[calc(100%+20px)] grid-cols-4 gap-2 pb-2 translate-y-[-4px]">
-                <div className="flex min-h-[52px] flex-col items-center justify-center gap-0.5 rounded-md border border-border bg-muted/80 px-1.5 py-1.5 text-center">
-                  <p className="truncate text-[11px] font-black leading-none text-foreground">{metrics.activeTenants.toLocaleString()}</p>
-                  <p className="text-[7px] uppercase tracking-[0.12em] text-muted-foreground">Active</p>
-                </div>
-                <div className="flex min-h-[52px] translate-y-[-2px] flex-col items-center justify-center gap-0.5 rounded-md border border-border bg-muted/80 px-1.5 py-1.5 text-center">
-                  <p className="truncate text-[11px] font-black leading-none text-foreground">{metrics.suspendedTenants}</p>
-                  <p className="text-[7px] uppercase tracking-[0.12em] text-muted-foreground">Suspended</p>
-                </div>
-                <div className="flex min-h-[52px] translate-y-[-2px] flex-col items-center justify-center gap-0.5 rounded-md border border-border bg-muted/80 px-1.5 py-1.5 text-center">
-                  <p className="truncate text-[11px] font-black leading-none text-foreground">{'< 2h'}</p>
-                  <p className="text-[7px] uppercase tracking-[0.12em] text-muted-foreground">Response</p>
-                </div>
-                <div className="flex min-h-[52px] translate-y-[-2px] flex-col items-center justify-center gap-0.5 rounded-md border border-border bg-muted/80 px-1.5 py-1.5 text-center">
-                  <p className="truncate text-[11px] font-black leading-none text-foreground">99.97%</p>
-                  <p className="text-[7px] uppercase tracking-[0.12em] text-muted-foreground">Uptime</p>
-                </div>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-1">
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-xs">
+                <span className="font-semibold text-slate-600 dark:text-slate-300">Dedicated Database Tenants</span>
+                <span className="font-black text-slate-900 dark:text-white">{metrics.dedicatedDbTenants} Organizations</span>
               </div>
-            </div>
-          </div>
-        </motion.div>
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-xs">
+                <span className="font-semibold text-slate-600 dark:text-slate-300">Shared Multi-Tenant Shards</span>
+                <span className="font-black text-slate-900 dark:text-white">{metrics.sharedDbTenants} Organizations</span>
+              </div>
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-xs">
+                <span className="font-semibold text-slate-600 dark:text-slate-300">Total Companies Managed</span>
+                <span className="font-black text-slate-900 dark:text-white">{metrics.totalCompanies} Entities</span>
+              </div>
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-xs">
+                <span className="font-semibold text-slate-600 dark:text-slate-300">Total Operational Departments</span>
+                <span className="font-black text-slate-900 dark:text-white">{metrics.totalDepartments} Divisions</span>
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Card 2: Workforce Growth */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="group relative z-10 h-[320px] overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-xs hover:border-ring/30"
-        >
-          <div className="mb-3 flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-500/15 text-teal-600 shadow-xs dark:bg-teal-500/20 dark:text-teal-300">
-              <Users className="h-3.5 w-3.5" />
-            </div>
-            <div className="flex flex-col">
-              <h3 className="text-base font-semibold text-foreground">Workforce Growth</h3>
-              <p className="mt-0.5 text-[10px] tracking-wide text-muted-foreground">Engagement & trends</p>
-            </div>
+          {/* Quick Management Shortcuts */}
+          <div className="grid grid-cols-2 gap-3">
+            <Link href="/super-admin/plans" className="block">
+              <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-indigo-500/40 transition-all group shadow-xs">
+                <Layers className="h-5 w-5 text-indigo-600 mb-2 group-hover:scale-110 transition-transform" />
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white">Subscription Plans</h4>
+                <p className="text-[10px] text-slate-500 mt-0.5">Tiers, pricing & AI tokens</p>
+              </div>
+            </Link>
+            <Link href="/super-admin/tickets" className="block">
+              <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-emerald-500/40 transition-all group shadow-xs">
+                <Activity className="h-5 w-5 text-emerald-600 mb-2 group-hover:scale-110 transition-transform" />
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white">Support Queue</h4>
+                <p className="text-[10px] text-slate-500 mt-0.5">Customer tickets & SLA</p>
+              </div>
+            </Link>
           </div>
-          <div className="h-[260px]">
-            <MultiAreaChart
-              data={workforceData}
-              keys={["totalEmployees", "engagedEmployees", "newHires"]}
-              colors={["var(--color-chart-2)", "var(--color-chart-4)", "var(--color-chart-3)"]}
-              labels={{ totalEmployees: "Total", engagedEmployees: "Engaged", newHires: "New Hires" }}
-              height={260}
-            />
-          </div>
-        </motion.div>
+        </div>
 
-        {/* Card 3: Revenue Analytics */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="group relative h-[320px] overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-xs hover:border-ring/30"
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 shadow-xs">
-              <DollarSign className="h-3.5 w-3.5" />
-            </div>
-            <div className="flex flex-col">
-              <h3 className="text-base font-semibold text-foreground">Revenue Analytics</h3>
-              <p className="text-[10px] text-teal-200/50 mt-0.5 tracking-wide">MRR composition & drivers</p>
-            </div>
-          </div>
-          <div className="h-[260px]">
-            <GroupedBarChart
-              data={financialData}
-              keys={["mrr", "newRevenue", "expansionRevenue", "churnedRevenue"]}
-              colors={["var(--color-chart-1)", "var(--color-chart-4)", "var(--color-chart-3)", "var(--color-chart-6)"]}
-              labels={{ mrr: "Base", newRevenue: "New", expansionRevenue: "Expansion", churnedRevenue: "Churn" }}
-              height={260}
-            />
-          </div>
-        </motion.div>
-
-        {/* Card 4: Revenue Projection */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="group relative h-[320px] overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-xs hover:border-ring/30"
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/20 text-amber-400 shadow-xs">
-              <BarChart3 className="h-3.5 w-3.5" />
-            </div>
-            <div className="flex flex-col">
-              <h3 className="text-base font-semibold text-foreground">Revenue Projection</h3>
-              <p className="text-[10px] text-teal-200/50 mt-0.5 tracking-wide">Quarterly forecast vs actuals</p>
-            </div>
-          </div>
-          <div className="h-[260px]">
-            <GroupedBarChart
-              data={projectionData}
-              keys={["projected", "actual"]}
-              colors={["var(--color-chart-3)", "var(--color-chart-4)"]}
-              labels={{ projected: "Projected", actual: "Actual" }}
-              height={260}
-              stacked={false}
-            />
-          </div>
-        </motion.div>
-      </motion.div>
-
-      {/* ─── BOTTOM ROW: 6 Compact Metric Cards ─── */}
-      <motion.div variants={sectionVariants} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {compactMetrics.map((card, index) => (
-          <CompactMetricCard
-            key={card.label}
-            label={card.label}
-            value={card.value}
-            icon={card.icon}
-            department={card.department}
-            trend={card.trend}
-            index={index}
-          />
-        ))}
-      </motion.div>
-
-      {/* ─── FINANCIAL METRICS ROW ─── */}
-      <motion.div variants={sectionVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {financialMetrics.map((card, index) => (
-          <FinancialMetricCard
-            key={card.title}
-            {...card}
-            index={index}
-          />
-        ))}
-      </motion.div>
-
-      {/* ─── ADDITIONAL CHARTS ─── */}
-      <motion.div variants={sectionVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Plan Distribution */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="relative rounded-2xl p-5 bg-card border-border shadow-xs h-[360px] group hover:border-ring/30"
-        >
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/20 text-violet-400 shadow-xs">
-              <Layers className="h-4 w-4" />
-            </div>
-            <div className="flex flex-col">
-              <h3 className="text-lg font-semibold text-foreground">Plan Distribution</h3>
-              <p className="mt-0.5 text-xs tracking-wide text-muted-foreground">Tenants by subscription tier</p>
-            </div>
-          </div>
-          <div className="h-[300px]">
-            <DonutChart
-              data={[
-                { name: "Enterprise", value: Math.floor(totalTenants * 0.15), color: "var(--color-chart-5)" },
-                { name: "Growth", value: Math.floor(totalTenants * 0.35), color: "var(--color-chart-1)" },
-                { name: "Starter", value: Math.floor(totalTenants * 0.4), color: "var(--color-chart-2)" },
-                { name: "Trial", value: Math.floor(totalTenants * 0.1), color: "var(--color-chart-3)" },
-              ]}
-              height={320}
-              innerRadius={70}
-              outerRadius={100}
-            />
-          </div>
-        </motion.div>
-
-        {/* Module Adoption */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="relative rounded-2xl p-5 bg-card border-border shadow-xs h-[360px] group hover:border-ring/30"
-        >
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400 shadow-xs">
-              <Package className="h-4 w-4" />
-            </div>
-            <div className="flex flex-col">
-              <h3 className="text-lg font-semibold text-foreground">Module Adoption</h3>
-              <p className="mt-0.5 text-xs tracking-wide text-muted-foreground">Percentage of tenants using each module</p>
-            </div>
-          </div>
-          <div className="h-[300px]">
-            <GroupedBarChart
-              data={[
-                { name: "Payroll", usage: 95 },
-                { name: "Attendance", usage: 88 },
-                { name: "Leave", usage: 92 },
-                { name: "Recruitment", usage: 65 },
-                { name: "Performance", usage: 45 },
-                { name: "Visa/Compliance", usage: 78 },
-              ]}
-              keys={["usage"]}
-              colors={["var(--color-chart-1)", "var(--color-chart-2)", "var(--color-chart-4)", "var(--color-chart-3)", "var(--color-chart-5)", "var(--color-chart-6)"]}
-              labels={{ usage: "Adoption %" }}
-              height={320}
-            />
-          </div>
-        </motion.div>
-      </motion.div>
+        {/* Right Column: Recent Security Audit Events (7 Cols) */}
+        <div className="lg:col-span-7">
+          <Card className="rounded-3xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs h-full flex flex-col">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center">
+                    <ShieldAlert className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-sm font-bold text-slate-900 dark:text-white">Security & Audit Event Stream</CardTitle>
+                    <CardDescription className="text-xs">Real-time governance & access events across all tenants</CardDescription>
+                  </div>
+                </div>
+                <Link href="/super-admin/audit" className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+                  View All Logs <ChevronRight className="h-3 w-3" />
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent className="flex-1 pt-1">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 dark:bg-slate-800/60 rounded-xl text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800">
+                    <tr>
+                      <th className="py-2.5 px-3">Timestamp</th>
+                      <th className="py-2.5 px-3">Event Action</th>
+                      <th className="py-2.5 px-3">Initiated By</th>
+                      <th className="py-2.5 px-3">Outcome</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                    {metrics.recentAuditLogs && metrics.recentAuditLogs.slice(0, 6).map((log: any) => (
+                      <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                        <td className="py-2.5 px-3 text-slate-500 whitespace-nowrap">
+                          {format(new Date(log.createdAt), "MMM dd, HH:mm")}
+                        </td>
+                        <td className="py-2.5 px-3 font-semibold text-slate-900 dark:text-white truncate max-w-[160px]">
+                          {log.action ? log.action.replace(/_/g, ' ') : "SYSTEM EVENT"}
+                        </td>
+                        <td className="py-2.5 px-3 text-slate-500 truncate max-w-[140px]">
+                          {log.actorEmail || "SYSTEM_DAEMON"}
+                        </td>
+                        <td className="py-2.5 px-3">
+                          {log.outcome === "SUCCESS" ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                              <CheckCircle2 className="h-3 w-3" /> ALLOWED
+                            </span>
+                          ) : log.outcome === "DENIED" ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                              <AlertTriangle className="h-3 w-3" /> DENIED
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 dark:text-rose-400">
+                              <XCircle className="h-3 w-3" /> BLOCKED
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                    {(!metrics.recentAuditLogs || metrics.recentAuditLogs.length === 0) && (
+                      <tr>
+                        <td colSpan={4} className="py-8 text-center text-slate-400 text-xs italic">
+                          No recent security events recorded.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </motion.div>
   );
 }

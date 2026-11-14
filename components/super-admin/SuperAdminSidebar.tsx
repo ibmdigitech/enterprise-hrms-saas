@@ -69,7 +69,7 @@ export const superAdminNavigation: SuperAdminNavItem[] = [
     title: "Normal Dashboard",
     href: "/dashboard",
     icon: Building2,
-    badge: "HRMS",
+    badge: "MultiSaaS",
     children: [
       { title: "Main Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { title: "Employees", href: "/employees", icon: Users },
@@ -392,7 +392,7 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
                     </div>
                     <div className="text-left min-w-0">
                       <div className="text-xs font-bold text-sidebar-foreground truncate">Normal Dashboard</div>
-                      <div className="text-[10px] text-emerald-600 dark:text-emerald-400/80 truncate">Open HRMS Workspace</div>
+                      <div className="text-[10px] text-emerald-600 dark:text-emerald-400/80 truncate">Open MultiSaaS HRMS</div>
                     </div>
                   </div>
                   <ArrowRightLeft className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
@@ -471,7 +471,7 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
                   </div>
                   <div className="text-left min-w-0">
                     <div className="text-xs font-bold text-sidebar-foreground truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors">Normal Dashboard</div>
-                    <div className="text-[10px] text-emerald-600 dark:text-emerald-400/80 truncate">Open HRMS Workspace</div>
+                    <div className="text-[10px] text-emerald-600 dark:text-emerald-400/80 truncate">Open MultiSaaS HRMS</div>
                   </div>
                 </div>
                 <ArrowRightLeft className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 group-hover:translate-x-0.5 transition-transform" />

@@ -1,5 +1,7 @@
 "use client";
 
+import * as XLSX from "xlsx";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -169,7 +171,7 @@ export default function EmployeeList({ initialEmployees,  }: { initialEmployees:
         return matchesSearch && matchesStatus;
     });
 
-    const exportToCSV = () => {
+    const exportToExcel = () => {
         const headers = [
             "First Name", "Last Name", "Email", "Roll Number", "Designation", "Department", "Joining Date", "Status",
             "Phone", "Gender", "Blood Group", "Marital Status", "Nationality", "Government ID", "Address", "Permanent Address",
@@ -579,8 +581,8 @@ export default function EmployeeList({ initialEmployees,  }: { initialEmployees:
         const file = e.target.files?.[0];
         if (!file) return;
 
-        if (!file.name.endsWith('.csv')) {
-            toast.error('Please upload a CSV file only');
+        if (!file.name.match(/\.(csv|xlsx|xls)$/i)) {
+            toast.error('Please upload a CSV or Excel (.xlsx / .xls) file');
             e.target.value = '';
             return;
         }
@@ -752,7 +754,7 @@ export default function EmployeeList({ initialEmployees,  }: { initialEmployees:
                             className="h-11 px-6 rounded-xl bg-white/5 backdrop-blur-md border-white/20 text-white hover:bg-white/10 font-bold text-sm gap-2"
                         >
                             <Upload className="h-4 w-4" />
-                            Import CSV
+                            Import Staff (CSV / Excel)
                         </Button>
                     </>
                 }
@@ -762,7 +764,7 @@ export default function EmployeeList({ initialEmployees,  }: { initialEmployees:
                 id="master-file-upload"
                 type="file"
                 className="hidden"
-                accept=".csv"
+                accept=".csv,.xlsx,.xls"
                 onChange={handleBulkUpload}
             />
 
@@ -1454,11 +1456,11 @@ export default function EmployeeList({ initialEmployees,  }: { initialEmployees:
                         </Button>
                         <Button
                             variant="outline"
-                            onClick={exportToCSV}
+                            onClick={exportToExcel}
                             className="h-12 w-full min-w-0 rounded-xl border-slate-200 bg-white font-black text-xs uppercase tracking-widest lg:h-14 lg:w-auto dark:border-slate-800 dark:bg-slate-900"
                         >
                             <Download className="h-4 w-4 shrink-0" />
-                            <span className="truncate">Export</span>
+                            <span className="truncate">Export Excel (.xlsx)</span>
                         </Button>
                     </div>
                 </div>

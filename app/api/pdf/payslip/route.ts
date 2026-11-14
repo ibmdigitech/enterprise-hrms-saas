@@ -32,6 +32,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Salary record not found" }, { status: 404 });
   }
 
+  // TENANT-ISOLATION: verify the actor's tenant owns this salary record
+  if (actor.tenantId && salaryRecord.employee.tenantId !== actor.tenantId) {
+    await logSecurityEvent({
+      action: SECURITY_ACTION.ACCESS_DENIED,
+      actorEmail: actor.email,
+      actorRole: actor.role,
+      target: `salaryRecord:${salaryRecordId}`,
+      outcome: 'DENIED',
+      requestPath: '/api/pdf/payslip',
+      requestMethod: 'POST',
+      detail: { reason: 'cross-tenant payslip access', employeeTenantId: salaryRecord.employee.tenantId, actorTenantId: actor.tenantId },
+    });
+    return NextResponse.json({ error: 'Access denied to this payslip' }, { status: 403 });
+  }
+
   const otherAllowances =
     salaryRecord.medicalAllowance +
     salaryRecord.foodAllowance +

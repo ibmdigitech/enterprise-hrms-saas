@@ -218,7 +218,7 @@ export async function getTenantHealthMetrics(tenantId: string) {
     invoices,
   ] = await Promise.all([
     prisma.employee.count({ where: { tenantId } }),
-    prisma.leaveRequest.count({ where: { tenantId } }),
+    prisma.leaveRequest.count({ where: { employee: { tenantId } } }),
     prisma.payrollRun.count(),
     prisma.securityAuditLog.count({ where: { target: { contains: tenantId } } }),
     prisma.subscriptionInvoice.findMany({

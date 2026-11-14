@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Layers, Check, X, Shield, Users, Building, MapPin, Zap } from "lucide-react";
+import { Layers, Check, X, Shield, Users, Building, MapPin, Zap, Sparkles } from "lucide-react";
 import { togglePlanActiveAction } from "./plans-actions";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -124,6 +124,17 @@ export function PlansClient({ plans }: PlansClientProps) {
                   <div className="flex items-center gap-2">
                     {p.hasApiAccess ? <Check className="h-4 w-4 text-emerald-500 shrink-0" /> : <X className="h-4 w-4 text-muted-foreground shrink-0" />}
                     <span className={p.hasApiAccess ? "text-foreground" : "text-muted-foreground line-through"}>REST API & Webhooks Access</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {p.features?.aiModules || p.hasApiAccess ? (
+                      <Check className="h-4 w-4 text-emerald-500 shrink-0" />
+                    ) : (
+                      <X className="h-4 w-4 text-muted-foreground shrink-0" />
+                    )}
+                    <span className={p.features?.aiModules || p.hasApiAccess ? "text-foreground flex items-center gap-1.5" : "text-muted-foreground line-through flex items-center gap-1.5"}>
+                      <Sparkles className="h-3 w-3 text-amber-500 shrink-0" />
+                      AI Insights & Copilot Suite
+                    </span>
                   </div>
                 </div>
               </div>

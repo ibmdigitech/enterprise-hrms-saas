@@ -2,28 +2,35 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/auth';
 import { NOT_ARCHIVED } from '@/lib/employees/retention';
+import { authorizePermission } from '@/lib/auth/guards';
+import { PERMISSIONS } from '@/lib/auth/permissions';
+import { scopeTenantWhere } from '@/lib/auth/scope';
 
-export async function GET() {
-    const session = await auth();
-    if (!session || !["ADMIN", "HR"].includes((session.user as { role: string }).role)) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+export async function GET(req: Request) {
+    const authResult = await authorizePermission(PERMISSIONS.EMPLOYEES_VIEW);
+    if (!authResult.ok) {
+        return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
+    const subject = authResult.subject;
 
     try {
+        const { searchParams } = new URL(req.url);
+        const tenantId = searchParams.get('tenantId');
+
+        const where: Record<string, unknown> = { ...NOT_ARCHIVED };
+
+        // TENANT-ISOLATION: every employee query must be scoped by tenantId.
+        // ADMIN/HR within a tenant see only that tenant's employees.
+        // SUPER_ADMIN (ALL scope) sees everything unless a tenantId filter is explicitly provided.
+        if (subject.tenantId) {
+            Object.assign(where, scopeTenantWhere(subject, {}));
+        } else if (tenantId) {
+            // Explicit tenant filter for platform-scoped callers
+            where['tenantId'] = tenantId;
+        }
+
         const employees = await prisma.employee.findMany({
-            // RET-001: this is the employee DIRECTORY, so it must not serve
-            // archived records. Before the archive landed this query carried no
-            // filter at all, which meant it served every row in the table
-            // regardless of employment state — an archived employee would have
-            // kept appearing here, name and roll number and government ID,
-            // with nothing on the page to say so.
-            //
-            // `deletedAt: null` is the tombstone filter. `isActive` is not added:
-            // this endpoint has always returned inactive employees too (HR uses
-            // it to inspect someone who has left), and narrowing it would be a
-            // behaviour change nobody asked for. The archive sets `isActive`
-            // separately, and that column is left as this endpoint found it.
-            where: NOT_ARCHIVED,
+            where,
             select: {
                 id: true,
                 firstName: true,
@@ -32,6 +39,7 @@ export async function GET() {
                 rollNumber: true,
                 governmentId: true,
                 joiningDate: true,
+                tenantId: true,
             },
             orderBy: { firstName: 'asc' }
         });

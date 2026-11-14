@@ -27,7 +27,7 @@ export async function getEmployeeProfileForLetter() {
         select: { id: true, firstName: true, lastName: true, designation: true },
       },
       salaryStructure: true,
-      departmentRef: { select: { id: true, name: true } },
+      departmentRel: { select: { id: true, name: true } },
     },
   });
 
@@ -41,7 +41,7 @@ export async function getEmployeeProfileForLetter() {
     name: `${employee.firstName} ${employee.lastName}`,
     firstName: employee.firstName,
     lastName: employee.lastName,
-    department: employee.departmentRef?.name || employee.department || "General",
+    department: employee.departmentRel?.name || employee.department || "General",
     designation: employee.designation || "Staff",
     email: employee.email,
     phone: employee.phone || "",
@@ -99,11 +99,7 @@ export async function submitLetterRequestAction(data: {
     data: {
       employeeId: profile.id,
       templateId: template.id,
-      letterType: data.letterType,
-      purpose: data.purpose.trim(),
       reason: data.purpose.trim(),
-      remarks: data.remarks?.trim() || null,
-      requiredDate: data.requiredDate ? new Date(data.requiredDate) : null,
       status: "PENDING", // PENDING -> MANAGER_APPROVED -> HR_APPROVED -> COMPLETED
     },
     include: {
@@ -207,7 +203,6 @@ export async function managerDecisionAction(data: {
     data: {
       letterRequestId: request.id,
       approverId: user.id,
-      approverName: user.email,
       level: "MANAGER",
       action: data.action,
       comments: data.comments?.trim() || null,
@@ -252,7 +247,6 @@ export async function hrDecisionAction(data: {
     data: {
       letterRequestId: request.id,
       approverId: user.id,
-      approverName: user.email,
       level: "HR",
       action: data.action,
       comments: data.comments?.trim() || null,
@@ -272,7 +266,7 @@ export async function hrDecisionAction(data: {
   // Generate Reference Number
   const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-  const referenceNumber = `REF/${request.letterType || "DOC"}/${dateStr}/${randomSuffix}`;
+  const referenceNumber = `REF/${request.template?.type || "DOC"}/${dateStr}/${randomSuffix}`;
 
   // 1. Resolve variables
   const branding = await getCompanySettings();
@@ -280,8 +274,8 @@ export async function hrDecisionAction(data: {
     referenceNumber,
     companyName: branding.name,
     customFields: {
-      'request.purpose': request.purpose || "Official Records",
-      'purpose': request.purpose || "Official Records",
+      'request.purpose': request.reason || "Official Records",
+      'purpose': request.reason || "Official Records",
     },
   });
 
@@ -291,7 +285,7 @@ export async function hrDecisionAction(data: {
   // 2. Generate PDF with tenant letterhead, stamp, signature
   const pdfDiskPath = await generateOfficialLetterPDF({
     referenceNumber,
-    letterType: request.letterType || request.template.type,
+    letterType: request.template.type,
     content_en: finalContentEn,
     content_ar: finalContentAr,
     branding,

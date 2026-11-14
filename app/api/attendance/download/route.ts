@@ -1,17 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
+import { authorizePermission } from "@/lib/auth/guards";
+import { PERMISSIONS } from "@/lib/auth/permissions";
+import { scopeTenantWhere } from "@/lib/auth/scope";
+import { requireModuleEntitlement } from "@/lib/entitlements/verify";
 
 export async function GET(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const authResult = await authorizePermission(PERMISSIONS.ATTENDANCE_EXPORT);
+  if (!authResult.ok) {
+    return NextResponse.json({ error: authResult.error }, { status: authResult.status });
   }
+  const subject = authResult.subject;
 
-  // Check role
-  const currentUser = await prisma.user.findUnique({ where: { email: session.user.email } });
-  if (!currentUser || !["ADMIN", "HR", "MANAGER"].includes(currentUser.role)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  // MODULE ENTITLEMENT: enforce attendance_shifts module entitlement before
+  // allowing attendance export.
+  if (subject.tenantId) {
+    try {
+      await requireModuleEntitlement(subject.tenantId, "attendance_shifts");
+    } catch {
+      return NextResponse.json(
+        { error: "Your organization is not entitled to the Attendance module" },
+        { status: 403 }
+      );
+    }
   }
 
   const searchParams = request.nextUrl.searchParams;
@@ -34,13 +46,15 @@ export async function GET(request: NextRequest) {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 1);
 
+    // TENANT-ISOLATION: scope attendance records by tenantId so a tenant's HR
+    // cannot export another tenant's attendance data.
+    const where: Record<string, unknown> = {
+      date: { gte: startDate, lt: endDate },
+      ...scopeTenantWhere(subject, {}),
+    };
+
     const attendanceRecords = await prisma.attendance.findMany({
-      where: {
-        date: {
-          gte: startDate,
-          lt: endDate,
-        },
-      },
+      where,
       include: {
         employee: {
           select: {

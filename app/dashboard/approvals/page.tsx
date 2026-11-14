@@ -270,131 +270,186 @@ export default async function ApprovalsPage() {
     return (
         <div className="space-y-8 p-4 md:p-8 w-full max-w-7xl mx-auto">
             {/* Header */}
-            <div className="relative group overflow-hidden bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 p-8 md:p-12 rounded-[2.5rem] shadow-2xl transition-all duration-500">
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 group-hover:bg-indigo-500/20 transition-all duration-700"></div>
-                <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-violet-500/10 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2 group-hover:bg-violet-500/20 transition-all duration-700"></div>
+            <div className="relative group overflow-hidden bg-gradient-to-br from-indigo-950 via-slate-950 to-indigo-900 p-6 sm:p-8 md:p-10 rounded-3xl shadow-xl border border-slate-800">
+                <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-500/10 rounded-full blur-[90px] -translate-y-1/2 translate-x-1/2"></div>
+                <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-violet-500/10 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2"></div>
 
-                <div className="relative z-10">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-indigo-200 text-xs font-bold uppercase tracking-widest mb-6">
-                        <Zap className="h-3 w-3 fill-indigo-400" />
-                        Approval Center
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                    <div>
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-indigo-200 text-xs font-bold uppercase tracking-widest mb-3">
+                            <Zap className="h-3 w-3 fill-indigo-400" />
+                            Approval Center
+                        </div>
+                        <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white mb-2 leading-tight">
+                            Pending{" "}
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-violet-300 to-indigo-300">
+                                Approvals
+                            </span>
+                        </h1>
+                        <p className="text-slate-300 text-sm font-medium max-w-xl leading-relaxed">
+                            {userRole === ROLES.MANAGER
+                                ? "Review and action your team's leave and service requests."
+                                : "Every approval this account is allowed to act on, in one place: leave, staff services, visas, letters and exit cases."}
+                        </p>
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mb-4 leading-tight">
-                        Pending<br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">
-                            Approvals
-                        </span>
-                    </h1>
-                    <p className="text-slate-300 text-base font-medium max-w-xl leading-relaxed">
-                        {userRole === ROLES.MANAGER
-                            ? "Review and action your team's leave and service requests."
-                            : "Every approval this account is allowed to act on, in one place: leave, staff services, visas, letters and exit cases."}
-                    </p>
+
+                    <div className="shrink-0 flex items-center gap-3">
+                        <div className="rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-md flex items-center gap-4">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-400/20">
+                                <AlertCircle className="h-6 w-6" />
+                            </div>
+                            <div>
+                                <span className="text-2xl font-black text-white">{totalPending}</span>
+                                <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Total Pending</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             {/* Stats Row */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-                <Card className="group bg-white dark:bg-slate-900/60 backdrop-blur-xl border-slate-200 dark:border-slate-800 shadow-lg rounded-[2rem] overflow-hidden hover:shadow-indigo-500/10 transition-all duration-300">
-                    <CardContent className="p-6 flex items-center gap-4">
-                        <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl group-hover:scale-110 transition-transform">
-                            <AlertCircle className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+            <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8">
+                <Card className="group bg-white dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-700 rounded-2xl transition-all duration-200">
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <div className="h-8 w-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+                                <AlertCircle className="h-4 w-4" />
+                            </div>
+                            <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${totalPending > 0 ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>
+                                {totalPending > 0 ? "Action" : "Clear"}
+                            </span>
                         </div>
-                        <div>
-                            <p className="text-3xl font-black text-slate-900 dark:text-white">{totalPending}</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Pending</p>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="group bg-white dark:bg-slate-900/60 backdrop-blur-xl border-slate-200 dark:border-slate-800 shadow-lg rounded-[2rem] overflow-hidden hover:shadow-amber-500/10 transition-all duration-300">
-                    <CardContent className="p-6 flex items-center gap-4">
-                        <div className="p-3 bg-amber-50 dark:bg-amber-900/30 rounded-xl group-hover:scale-110 transition-transform">
-                            <Briefcase className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-                        </div>
-                        <div>
-                            <p className="text-3xl font-black text-slate-900 dark:text-white">{pendingLeaves.length}</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Leave Requests</p>
+                        <div className="mt-3">
+                            <p className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">{totalPending}</p>
+                            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5 truncate">Total Pending</p>
                         </div>
                     </CardContent>
                 </Card>
-                <Card className="group bg-white dark:bg-slate-900/60 backdrop-blur-xl border-slate-200 dark:border-slate-800 shadow-lg rounded-[2rem] overflow-hidden hover:shadow-emerald-500/10 transition-all duration-300">
-                    <CardContent className="p-6 flex items-center gap-4">
-                        <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl group-hover:scale-110 transition-transform">
-                            <HeartHandshake className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+
+                <Card className="group bg-white dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-amber-300 dark:hover:border-amber-700 rounded-2xl transition-all duration-200">
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <div className="h-8 w-8 rounded-xl bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform">
+                                <Briefcase className="h-4 w-4" />
+                            </div>
+                            <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${pendingLeaves.length > 0 ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>
+                                {pendingLeaves.length > 0 ? "Pending" : "Clear"}
+                            </span>
                         </div>
-                        <div>
-                            <p className="text-3xl font-black text-slate-900 dark:text-white">{pendingStaffRequests.length}</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Staff Requests</p>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="group bg-white dark:bg-slate-900/60 backdrop-blur-xl border-slate-200 dark:border-slate-800 shadow-lg rounded-[2rem] overflow-hidden hover:shadow-violet-500/10 transition-all duration-300">
-                    <CardContent className="p-6 flex items-center gap-4">
-                        <div className="p-3 bg-violet-50 dark:bg-violet-900/30 rounded-xl group-hover:scale-110 transition-transform">
-                            <Globe className="h-6 w-6 text-violet-600 dark:text-violet-400" />
-                        </div>
-                        <div>
-                            <p className="text-3xl font-black text-slate-900 dark:text-white">{pendingVisaRequests.length}</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Visa Requests</p>
+                        <div className="mt-3">
+                            <p className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">{pendingLeaves.length}</p>
+                            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5 truncate">Leave Requests</p>
                         </div>
                     </CardContent>
                 </Card>
-                {/*
-                    A count is shown only to a role that could act on it. Showing
-                    "Letters 0" to an account with no `letter.approve` is noise,
-                    and showing a non-zero count to one is worse: it advertises
-                    pending work the account cannot reach.
-                */}
+
+                <Card className="group bg-white dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-700 rounded-2xl transition-all duration-200">
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <div className="h-8 w-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+                                <HeartHandshake className="h-4 w-4" />
+                            </div>
+                            <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${pendingStaffRequests.length > 0 ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>
+                                {pendingStaffRequests.length > 0 ? "Pending" : "Clear"}
+                            </span>
+                        </div>
+                        <div className="mt-3">
+                            <p className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">{pendingStaffRequests.length}</p>
+                            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5 truncate">Staff Requests</p>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="group bg-white dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-violet-300 dark:hover:border-violet-700 rounded-2xl transition-all duration-200">
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <div className="h-8 w-8 rounded-xl bg-violet-50 dark:bg-violet-950/60 flex items-center justify-center text-violet-600 dark:text-violet-400 group-hover:scale-110 transition-transform">
+                                <Globe className="h-4 w-4" />
+                            </div>
+                            <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${pendingVisaRequests.length > 0 ? "bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>
+                                {pendingVisaRequests.length > 0 ? "Pending" : "Clear"}
+                            </span>
+                        </div>
+                        <div className="mt-3">
+                            <p className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">{pendingVisaRequests.length}</p>
+                            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5 truncate">Visa Requests</p>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 {letterQueueWhere && (
-                    <Card className="group bg-white dark:bg-slate-900/60 backdrop-blur-xl border-slate-200 dark:border-slate-800 shadow-lg rounded-[2rem] overflow-hidden hover:shadow-sky-500/10 transition-all duration-300">
-                        <CardContent className="p-6 flex items-center gap-4">
-                            <div className="p-3 bg-sky-50 dark:bg-sky-900/30 rounded-xl group-hover:scale-110 transition-transform">
-                                <ScrollText className="h-6 w-6 text-sky-600 dark:text-sky-400" />
+                    <Card className="group bg-white dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-sky-300 dark:hover:border-sky-700 rounded-2xl transition-all duration-200">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div className="h-8 w-8 rounded-xl bg-sky-50 dark:bg-sky-950/60 flex items-center justify-center text-sky-600 dark:text-sky-400 group-hover:scale-110 transition-transform">
+                                    <ScrollText className="h-4 w-4" />
+                                </div>
+                                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${pendingLetters.length > 0 ? "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>
+                                    {pendingLetters.length > 0 ? "Pending" : "Clear"}
+                                </span>
                             </div>
-                            <div>
-                                <p className="text-3xl font-black text-slate-900 dark:text-white">{pendingLetters.length}</p>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Letters</p>
+                            <div className="mt-3">
+                                <p className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">{pendingLetters.length}</p>
+                                <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5 truncate">Letters</p>
                             </div>
                         </CardContent>
                     </Card>
                 )}
+
                 {exitQueueWhere && (
-                    <Card className="group bg-white dark:bg-slate-900/60 backdrop-blur-xl border-slate-200 dark:border-slate-800 shadow-lg rounded-[2rem] overflow-hidden hover:shadow-rose-500/10 transition-all duration-300">
-                        <CardContent className="p-6 flex items-center gap-4">
-                            <div className="p-3 bg-rose-50 dark:bg-rose-900/30 rounded-xl group-hover:scale-110 transition-transform">
-                                <UserMinus className="h-6 w-6 text-rose-600 dark:text-rose-400" />
+                    <Card className="group bg-white dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-rose-300 dark:hover:border-rose-700 rounded-2xl transition-all duration-200">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div className="h-8 w-8 rounded-xl bg-rose-50 dark:bg-rose-950/60 flex items-center justify-center text-rose-600 dark:text-rose-400 group-hover:scale-110 transition-transform">
+                                    <UserMinus className="h-4 w-4" />
+                                </div>
+                                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${pendingExitCases.length > 0 ? "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>
+                                    {pendingExitCases.length > 0 ? "Pending" : "Clear"}
+                                </span>
                             </div>
-                            <div>
-                                <p className="text-3xl font-black text-slate-900 dark:text-white">{pendingExitCases.length}</p>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Exit Cases</p>
+                            <div className="mt-3">
+                                <p className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">{pendingExitCases.length}</p>
+                                <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5 truncate">Exit Cases</p>
                             </div>
                         </CardContent>
                     </Card>
                 )}
+
                 {canApprovePromotions && (
-                    <Card className="group bg-white dark:bg-slate-900/60 backdrop-blur-xl border-slate-200 dark:border-slate-800 shadow-lg rounded-[2rem] overflow-hidden hover:shadow-fuchsia-500/10 transition-all duration-300">
-                        <CardContent className="p-6 flex items-center gap-4">
-                            <div className="p-3 bg-fuchsia-50 dark:bg-fuchsia-900/30 rounded-xl group-hover:scale-110 transition-transform">
-                                <TrendingUp className="h-6 w-6 text-fuchsia-600 dark:text-fuchsia-400" />
+                    <Card className="group bg-white dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-fuchsia-300 dark:hover:border-fuchsia-700 rounded-2xl transition-all duration-200">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div className="h-8 w-8 rounded-xl bg-fuchsia-50 dark:bg-fuchsia-950/60 flex items-center justify-center text-fuchsia-600 dark:text-fuchsia-400 group-hover:scale-110 transition-transform">
+                                    <TrendingUp className="h-4 w-4" />
+                                </div>
+                                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${pendingPromotions.length > 0 ? "bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-950 dark:text-fuchsia-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>
+                                    {pendingPromotions.length > 0 ? "Pending" : "Clear"}
+                                </span>
                             </div>
-                            <div>
-                                <p className="text-3xl font-black text-slate-900 dark:text-white">{pendingPromotions.length}</p>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Promotions</p>
+                            <div className="mt-3">
+                                <p className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">{pendingPromotions.length}</p>
+                                <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5 truncate">Promotions</p>
                             </div>
                         </CardContent>
                     </Card>
                 )}
+
                 {canApproveDataChanges && (
-                    <Card className="group bg-white dark:bg-slate-900/60 backdrop-blur-xl border-slate-200 dark:border-slate-800 shadow-lg rounded-[2rem] overflow-hidden hover:shadow-orange-500/10 transition-all duration-300">
-                        <CardContent className="p-6 flex items-center gap-4">
-                            <div className="p-3 bg-orange-50 dark:bg-orange-900/30 rounded-xl group-hover:scale-110 transition-transform">
-                                <FilePen className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                    <Card className="group bg-white dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-orange-300 dark:hover:border-orange-700 rounded-2xl transition-all duration-200">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div className="h-8 w-8 rounded-xl bg-orange-50 dark:bg-orange-950/60 flex items-center justify-center text-orange-600 dark:text-orange-400 group-hover:scale-110 transition-transform">
+                                    <FilePen className="h-4 w-4" />
+                                </div>
+                                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${pendingChangeRequests.filter((r) => r.status === "PENDING").length > 0 ? "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>
+                                    {pendingChangeRequests.filter((r) => r.status === "PENDING").length > 0 ? "Pending" : "Clear"}
+                                </span>
                             </div>
-                            <div>
-                                <p className="text-3xl font-black text-slate-900 dark:text-white">
+                            <div className="mt-3">
+                                <p className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
                                     {pendingChangeRequests.filter((r) => r.status === "PENDING").length}
                                 </p>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Data Changes</p>
+                                <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5 truncate">Data Changes</p>
                             </div>
                         </CardContent>
                     </Card>

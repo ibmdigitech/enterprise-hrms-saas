@@ -1,10 +1,26 @@
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
-import { getLanguageModel } from "@/lib/ai/provider";
+import { getLanguageModel, resolveAIProvider } from "@/lib/ai/provider";
 import { getAuthorizedAITools } from "@/lib/ai/tools";
 import { streamText } from "ai";
 
 export const maxDuration = 30;
+
+function estimateInputTokens(text: string): number {
+    // Rough estimate: 4 characters ≈ 1 token
+    return Math.ceil(text.length / 4);
+}
+
+function estimateCostAed(tokens: number, provider: string): number {
+    // Rough per-1K-token pricing in AED (approximate)
+    const per1k: Record<string, number> = {
+        openai: 0.018,
+        anthropic: 0.025,
+        google: 0.012,
+    };
+    const rate = per1k[provider] || 0.018;
+    return (tokens / 1000) * rate;
+}
 
 export async function POST(req: Request) {
     const session = await auth();
@@ -37,6 +53,51 @@ export async function POST(req: Request) {
     const tenantId = dbUser.employee?.tenantId || dbUser.memberships?.[0]?.tenantId || null;
     const employeeId = dbUser.employee?.id || null;
     const userName = dbUser.employee ? `${dbUser.employee.firstName} ${dbUser.employee.lastName}` : (session.user.name || "User");
+
+    // ── AI BUDGET ENFORCEMENT (transaction-safe) ──────────────────────────
+    let reservedCost = 0;
+    let inputTokens = 0;
+
+    if (tenantId) {
+        const inputText = (messages as { content: string }[]).map((m) => m.content).join("\n");
+        inputTokens = estimateInputTokens(inputText);
+        const resolved = resolveAIProvider();
+        reservedCost = resolved ? estimateCostAed(inputTokens, resolved.provider) : 0;
+
+        const budgetCheck = await prisma.$transaction(async (tx) => {
+            const budget = await tx.aICompanyBudget.findUnique({
+                where: { tenantId },
+            });
+
+            if (!budget) {
+                return { allowed: false, reason: "No AI budget configured for your organization" };
+            }
+
+            if (budget.hardStopEnabled && budget.currentSpendAed >= budget.monthlyBudgetAed) {
+                return { allowed: false, reason: "Monthly AI budget exceeded" };
+            }
+
+            if (budget.hardStopEnabled && budget.currentSpendAed + reservedCost > budget.monthlyBudgetAed) {
+                return { allowed: false, reason: "Insufficient AI budget remaining for this request" };
+            }
+
+            // Atomically reserve the estimated cost
+            await tx.aICompanyBudget.update({
+                where: { tenantId },
+                data: { currentSpendAed: { increment: reservedCost } },
+            });
+
+            return { allowed: true };
+        });
+
+        if (!budgetCheck.allowed) {
+            return new Response(
+                JSON.stringify({ error: budgetCheck.reason }),
+                { status: 403, headers: { "Content-Type": "application/json" } }
+            );
+        }
+    }
+    // ──────────────────────────────────────────────────────────────────────
 
     const { model } = getLanguageModel();
 

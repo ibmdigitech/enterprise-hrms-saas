@@ -56,6 +56,9 @@ export default async function PerformancePage() {
         ACKNOWLEDGED: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300",
     };
 
+    const isStaff = userRole === "STAFF" || userRole === "EMPLOYEE";
+    const isAdmin = userRole === "ADMIN" || userRole === "HR" || userRole === "SUPER_ADMIN" || userRole === "HR_MANAGER" || userRole === "COMPANY_ADMIN";
+
     return (
         <div className="space-y-8 p-4 md:p-8 w-full max-w-7xl mx-auto">
             {/* Header */}
@@ -64,13 +67,17 @@ export default async function PerformancePage() {
                 <div className="absolute bottom-0 left-0 w-72 h-72 bg-indigo-500/20 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4"></div>
 
                 <div className="relative z-10 min-w-0">
-                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white mb-2">Performance</h1>
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white mb-2">
+                        {isStaff ? "My Performance & Reviews" : "Performance"}
+                    </h1>
                     <p className="text-violet-100 text-sm md:text-base font-medium max-w-xl">
-                        Manage review cycles, track goals, and calibrate ratings across the workforce.
+                        {isStaff
+                            ? "View your performance review history, goals, and appraisals."
+                            : "Manage review cycles, track goals, and calibrate ratings across the workforce."}
                     </p>
                 </div>
                 <div className="relative z-10 flex flex-col sm:flex-row gap-3 flex-wrap">
-                    {(userRole === "ADMIN" || userRole === "HR") && (
+                    {isAdmin && (
                         <>
                             <Link href="/performance/questions">
                                 <Button variant="outline" className="gap-2 w-full sm:w-auto rounded-xl border-white/40 bg-white/10 font-bold text-white hover:bg-white/20 hover:text-white">
@@ -91,46 +98,52 @@ export default async function PerformancePage() {
 
             {/* Stats */}
             <div className="grid gap-4 sm:gap-6 md:grid-cols-4">
-                <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border-white/40 dark:border-slate-800/60 shadow-sm rounded-2xl">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider">Total Cycles</CardTitle>
-                        <div className="p-2 bg-violet-100 dark:bg-violet-900/30 rounded-lg">
-                            <Calendar className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-black text-slate-800 dark:text-white">{stats.totalCycles}</div>
-                        <p className="text-xs font-medium text-violet-600 mt-1">Review cycles</p>
-                    </CardContent>
-                </Card>
+                {!isStaff && (
+                    <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border-white/40 dark:border-slate-800/60 shadow-sm rounded-2xl">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider">Total Cycles</CardTitle>
+                            <div className="p-2 bg-violet-100 dark:bg-violet-900/30 rounded-lg">
+                                <Calendar className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-3xl font-black text-slate-800 dark:text-white">{stats.totalCycles}</div>
+                            <p className="text-xs font-medium text-violet-600 mt-1">Review cycles</p>
+                        </CardContent>
+                    </Card>
+                )}
 
-                <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border-white/40 dark:border-slate-800/60 shadow-sm rounded-2xl">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider">Active Cycles</CardTitle>
-                        <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                            <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-black text-slate-800 dark:text-white">{stats.activeCycles}</div>
-                        <p className="text-xs font-medium text-emerald-600 mt-1">Currently active</p>
-                    </CardContent>
-                </Card>
+                {!isStaff && (
+                    <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border-white/40 dark:border-slate-800/60 shadow-sm rounded-2xl">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider">Active Cycles</CardTitle>
+                            <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                                <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-3xl font-black text-slate-800 dark:text-white">{stats.activeCycles}</div>
+                            <p className="text-xs font-medium text-emerald-600 mt-1">Currently active</p>
+                        </CardContent>
+                    </Card>
+                )}
 
-                <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border-white/40 dark:border-slate-800/60 shadow-sm rounded-2xl">
+                <Card className={`bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border-white/40 dark:border-slate-800/60 shadow-sm rounded-2xl ${isStaff ? "md:col-span-2" : ""}`}>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider">Total Reviews</CardTitle>
+                        <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider">
+                            {isStaff ? "My Reviews" : "Total Reviews"}
+                        </CardTitle>
                         <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
                             <ClipboardCheck className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                         </div>
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-black text-slate-800 dark:text-white">{stats.totalReviews}</div>
-                        <p className="text-xs font-medium text-indigo-600 mt-1">All time</p>
+                        <p className="text-xs font-medium text-indigo-600 mt-1">{isStaff ? "Your evaluations" : "All time"}</p>
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border-white/40 dark:border-slate-800/60 shadow-sm rounded-2xl">
+                <Card className={`bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border-white/40 dark:border-slate-800/60 shadow-sm rounded-2xl ${isStaff ? "md:col-span-2" : ""}`}>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider">Avg Rating</CardTitle>
                         <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
@@ -144,15 +157,17 @@ export default async function PerformancePage() {
                 </Card>
             </div>
 
-            <Tabs defaultValue="cycles" className="space-y-6">
+            <Tabs defaultValue={isStaff ? "reviews" : "cycles"} className="space-y-6">
                 <TabsList className="bg-white dark:bg-slate-900 p-1 rounded-xl">
-                    <TabsTrigger value="cycles" className="gap-2 font-bold">
-                        <Calendar className="h-4 w-4" />
-                        Review Cycles
-                    </TabsTrigger>
+                    {!isStaff && (
+                        <TabsTrigger value="cycles" className="gap-2 font-bold">
+                            <Calendar className="h-4 w-4" />
+                            Review Cycles
+                        </TabsTrigger>
+                    )}
                     <TabsTrigger value="reviews" className="gap-2 font-bold">
                         <ClipboardCheck className="h-4 w-4" />
-                        Reviews
+                        {isStaff ? "My Reviews" : "Reviews"}
                     </TabsTrigger>
                 </TabsList>
 

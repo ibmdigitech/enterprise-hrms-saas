@@ -4,8 +4,8 @@ import prisma from "@/lib/prisma";
 import { SuperAdminLayoutClient } from "@/components/super-admin/SuperAdminLayoutClient";
 
 export const metadata = {
-  title: "Super Admin | Enterprise HRMS",
-  description: "Platform administration for Enterprise HRMS SaaS",
+  title: "Super Admin | MultiSaaS HRMS",
+  description: "Platform administration for MultiSaaS HRMS",
 };
 
 interface SuperAdminLayoutProps {

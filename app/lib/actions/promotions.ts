@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { requirePermission, AuthorizationError } from "@/lib/auth/guards";
-import { PERMISSIONS, hasPermission } from "@/lib/auth/permissions";
+import { PERMISSIONS, hasPermission, resolvePermissions } from "@/lib/auth/permissions";
 import { buildSubject, canActOnEmployeeRecord } from "@/lib/auth/scope";
 import { generateLetterPDF } from "@/app/lib/utils/letter-generator";
 import { getCompanySettings } from "@/app/lib/actions/company-settings";
@@ -90,23 +90,27 @@ export async function createPromotionRequest(data: PromotionRequestInput) {
             data: {
                 tenantId: employee.tenantId,
                 employeeId: employee.id,
-                promotionType: data.promotionType || "DESIGNATION_PROMOTION",
-                status: "PENDING_APPROVAL",
-                previousDesignation: employee.designation,
-                previousDepartment: employee.department,
-                previousBasicSalary: employee.basicSalary,
-                proposedDesignation: data.proposedDesignation,
-                proposedDepartment: data.proposedDepartment || employee.department,
-                proposedGrade: data.proposedGrade,
-                salaryRevision: Boolean(data.salaryRevision),
+                fromTitle: employee.designation || "Staff",
+                toTitle: data.proposedDesignation,
+                fromGrade: null,
+                toGrade: data.proposedGrade,
+                fromSalary: employee.basicSalary,
+                toSalary: data.proposedBasicSalary,
                 proposedBasicSalary: data.proposedBasicSalary,
                 proposedHousing: data.proposedHousing,
                 proposedTransport: data.proposedTransport,
                 proposedOther: data.proposedOther,
+                previousBasicSalary: employee.basicSalary,
+                previousHousing: employee.housingAllowance,
+                previousTransport: employee.transportAllowance,
+                previousOther: employee.otherAllowance,
+                previousDesignation: employee.designation || "Staff",
+                proposedDesignation: data.proposedDesignation,
                 effectiveDate: new Date(data.effectiveDate),
                 reason: data.reason,
-                justificationNotes: data.justificationNotes,
-                requestedById: user.id,
+                status: "PENDING",
+                approvedById: null,
+                createdById: user.id,
             },
         });
 
@@ -193,7 +197,7 @@ export async function approvePromotionRequest(promotionId: string) {
         return { success: false, error: "Promotion request not found" };
     }
 
-    if (promotion.status !== "PENDING_APPROVAL") {
+    if (promotion.status !== "PENDING") {
         return { success: false, error: `Cannot approve request in status ${promotion.status}` };
     }
 
@@ -218,11 +222,9 @@ export async function approvePromotionRequest(promotionId: string) {
             await tx.employeePromotion.update({
                 where: { id: promotionId },
                 data: {
-                    status: isEffectiveNow ? "APPLIED" : "APPROVED",
+                    status: isEffectiveNow ? "APPROVED" : "APPROVED",
                     approvedById: user.id,
                     approvedAt: now,
-                    appliedAt: isEffectiveNow ? now : null,
-                    appliedById: isEffectiveNow ? user.id : null,
                 },
             });
 
@@ -232,8 +234,8 @@ export async function approvePromotionRequest(promotionId: string) {
                     where: { id: promotion.employeeId },
                     data: {
                         designation: promotion.proposedDesignation,
-                        department: promotion.proposedDepartment ?? promotion.employee.department,
-                        ...(promotion.salaryRevision && promotion.proposedBasicSalary !== null
+                        department: promotion.employee.department,
+                        ...(promotion.proposedBasicSalary !== null
                             ? {
                                   basicSalary: promotion.proposedBasicSalary,
                                   housingAllowance: promotion.proposedHousing ?? promotion.employee.housingAllowance,
@@ -245,7 +247,7 @@ export async function approvePromotionRequest(promotionId: string) {
                 });
 
                 // Update or create SalaryStructure if applicable
-                if (promotion.salaryRevision && promotion.proposedBasicSalary !== null) {
+                if (promotion.proposedBasicSalary !== null) {
                     await tx.salaryStructure.upsert({
                         where: { employeeId: promotion.employeeId },
                         create: {
@@ -274,19 +276,19 @@ export async function approvePromotionRequest(promotionId: string) {
                     status: "APPROVED",
                     details: JSON.stringify({
                         designation: promotion.proposedDesignation,
-                        department: promotion.proposedDepartment,
+                        department: promotion.employee.department,
                         effectiveDate: promotion.effectiveDate,
                         reason: promotion.reason,
-                        salaryRevision: promotion.salaryRevision,
+                        salaryRevision: promotion.proposedBasicSalary !== null,
                         newBasicSalary: promotion.proposedBasicSalary,
                     }),
                 },
             });
 
-            // Link letter back to promotion
+            // Link letter back to promotion (pdfUrl field)
             await tx.employeePromotion.update({
                 where: { id: promotionId },
-                data: { letterRecordId: letter.id },
+                data: { pdfUrl: letter.id }, // Store letter ID in pdfUrl as reference
             });
 
             // Log Audit
@@ -364,7 +366,7 @@ export async function rejectPromotionRequest(promotionId: string, rejectionReaso
                 status: "REJECTED",
                 approvedById: user.id,
                 approvedAt: new Date(),
-                rejectionReason: rejectionReason || "No reason specified",
+                reason: rejectionReason || "No reason specified",
             },
         });
 
@@ -398,9 +400,8 @@ export async function getEmployeePromotionHistory(employeeId: string) {
         where: { employeeId },
         orderBy: { createdAt: "desc" },
         include: {
-            requestedBy: { select: { name: true, email: true } },
+            createdBy: { select: { name: true, email: true } },
             approvedBy: { select: { name: true, email: true } },
-            letterRecord: true,
         },
     });
 }
@@ -442,7 +443,7 @@ export async function getPendingPromotionsQueue() {
                     basicSalary: true,
                 },
             },
-            requestedBy: { select: { name: true, email: true } },
+            createdBy: { select: { name: true, email: true } },
         },
         orderBy: { createdAt: "desc" },
     });
@@ -461,7 +462,7 @@ export async function getAllPromotions() {
 
     const user = await prisma.user.findUnique({
         where: { email: session.user.email },
-        select: { id: true, email: true },
+        select: { id: true, email: true, role: true, employee: { select: { id: true, managerId: true } } },
     });
     if (!user) return [];
 
@@ -471,6 +472,19 @@ export async function getAllPromotions() {
     const whereClause: any = {};
     if (subject.tenantId) {
         whereClause.tenantId = subject.tenantId;
+    }
+
+    // Role-based visibility scoping:
+    // - Staff/Employee: sees only their own promotions
+    // - Manager: sees their team members' promotions
+    // - Admin / HR: sees all promotions in the tenant
+    if (user.role === "STAFF" || user.role === "EMPLOYEE") {
+        if (!user.employee) return [];
+        whereClause.employeeId = user.employee.id;
+    } else if (user.role === "MANAGER") {
+        if (user.employee) {
+            whereClause.employee = { managerId: user.employee.id };
+        }
     }
 
     return prisma.employeePromotion.findMany({
@@ -490,7 +504,7 @@ export async function getAllPromotions() {
                     otherAllowance: true,
                 },
             },
-            requestedBy: { select: { name: true, email: true } },
+            createdBy: { select: { name: true, email: true } },
             approvedBy: { select: { name: true, email: true } },
         },
         orderBy: { effectiveDate: "desc" },
@@ -501,19 +515,28 @@ export async function getAllPromotions() {
  * Gets list of active employees for promotion selection.
  */
 export async function getEmployeesForPromotion() {
-    await requirePermission(PERMISSIONS.EMPLOYEE_PROMOTION_CREATE);
-
     const session = await auth();
     if (!session?.user?.email) return [];
 
     const user = await prisma.user.findUnique({
         where: { email: session.user.email },
-        select: { id: true, email: true },
+        select: { id: true, email: true, role: true },
     });
     if (!user) return [];
 
+    // Allow staff/employees to view promotions list, but only users with promotion create permission get the selection list
     const subject = await buildSubject(user.id, user.email);
     if (!subject) return [];
+
+    const { permissions } = resolvePermissions(subject.role as any);
+    const hasCreate = permissions.has(PERMISSIONS.EMPLOYEE_PROMOTION_CREATE) ||
+        subject.role === "ADMIN" ||
+        subject.role === "SUPER_ADMIN" ||
+        subject.role === "HR";
+
+    if (!hasCreate) {
+        return [];
+    }
 
     const whereClause: any = { isActive: true };
     if (subject.tenantId) {

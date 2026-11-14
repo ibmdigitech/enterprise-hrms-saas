@@ -46,7 +46,7 @@ export function Sidebar({ user, currentTenantName }: SidebarProps) {
             {currentTenantName || "Enterprise HR"}
           </p>
           <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.22em] text-sidebar-primary">
-            Workforce Portal
+            MultiSaaS HRMS
           </p>
         </div>
       </div>

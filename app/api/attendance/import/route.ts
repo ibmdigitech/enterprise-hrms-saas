@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { authorizePermission, getSessionUser } from "@/lib/auth/guards";
 import { PERMISSIONS } from "@/lib/auth/permissions";
 import { logSecurityEvent, SECURITY_ACTION } from "@/lib/auth/audit";
+import { requireModuleEntitlement } from "@/lib/entitlements/verify";
 import { runAttendanceImport, validateFile, MAX_FILE_BYTES, MAX_ROWS } from "@/lib/attendance/import";
 
 /**
@@ -38,6 +39,32 @@ export async function POST(request: NextRequest) {
         });
         return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
+
+    const subject = authResult.subject;
+
+    // MODULE ENTITLEMENT: enforce attendance_shifts module entitlement before
+    // allowing attendance import.
+    if (subject.tenantId) {
+        try {
+            await requireModuleEntitlement(subject.tenantId, "attendance_shifts");
+        } catch {
+            await logSecurityEvent({
+                action: SECURITY_ACTION.ATTENDANCE_IMPORT_DENIED,
+                actorEmail: subject.email,
+                actorRole: subject.role,
+                outcome: "DENIED",
+                requestPath: "/api/attendance/import",
+                requestMethod: "POST",
+                detail: { reason: "module not entitled: attendance_shifts" },
+            });
+            return NextResponse.json(
+                { error: "Your organization is not entitled to the Attendance module" },
+                { status: 403 }
+            );
+        }
+    }
+
+    // ... rest of the import logic
 
     const actor = authResult.user;
 

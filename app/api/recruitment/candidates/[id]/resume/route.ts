@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth/guards";
 import { hasAnyPermission, PERMISSIONS } from "@/lib/auth/permissions";
+import { requireModuleEntitlement } from "@/lib/entitlements/verify";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,15 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     if (!session.ok) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     if (!hasAnyPermission(session.user.role, [PERMISSIONS.RECRUITMENT_VIEW, PERMISSIONS.RECRUITMENT_CREATE, PERMISSIONS.RECRUITMENT_INTERVIEW])) {
         return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    }
+
+    // MODULE ENTITLEMENT: enforce recruitment_ats module entitlement
+    if (session.user.tenantId) {
+        try {
+            await requireModuleEntitlement(session.user.tenantId, "recruitment_ats");
+        } catch {
+            return NextResponse.json({ error: "Your organization is not entitled to the Recruitment module" }, { status: 403 });
+        }
     }
 
     const { id } = await context.params;

@@ -198,10 +198,38 @@ export async function addPerformanceQuestion(formData: FormData): Promise<Perfor
 /* ------------------------------------------------------------------ */
 
 export async function getPerformanceReviews(cycleId?: string): Promise<PerformanceResult<any[]>> {
-    await requireAnyPermission([PERMISSIONS.PERFORMANCE_VIEW, PERMISSIONS.PERFORMANCE_REVIEW, PERMISSIONS.PERFORMANCE_APPROVE]);
+    const user = await requireAnyPermission([PERMISSIONS.PERFORMANCE_VIEW, PERMISSIONS.PERFORMANCE_REVIEW, PERMISSIONS.PERFORMANCE_APPROVE]);
 
     try {
-        const where = cycleId ? { cycleId } : {};
+        const isElevated = user.role === "ADMIN" || user.role === "HR" || user.role === "SUPER_ADMIN" || user.role === "HR_MANAGER" || user.role === "COMPANY_ADMIN";
+        const isManager = user.role === "MANAGER" || user.role === "DEPARTMENT_MANAGER";
+
+        let where: any = cycleId ? { cycleId } : {};
+
+        // Scope performance reviews by role:
+        // Regular employees / staff can only see their own reviews.
+        // Managers can see their own reviews and reviews of employees they manage.
+        // Admin / HR can see all reviews within tenant.
+        if (!isElevated) {
+            if (isManager && user.employeeId) {
+                where = {
+                    ...where,
+                    OR: [
+                        { employeeId: user.employeeId },
+                        { managerId: user.employeeId }
+                    ]
+                };
+            } else if (user.employeeId) {
+                where = {
+                    ...where,
+                    employeeId: user.employeeId
+                };
+            } else {
+                // User has no linked employee profile
+                return { success: true, data: [] };
+            }
+        }
+
         const reviews = await prisma.performanceReview.findMany({
             where,
             orderBy: { createdAt: "desc" },
@@ -220,9 +248,12 @@ export async function getPerformanceReviews(cycleId?: string): Promise<Performan
 }
 
 export async function getPerformanceReviewById(id: string): Promise<PerformanceResult<any>> {
-    await requireAnyPermission([PERMISSIONS.PERFORMANCE_VIEW, PERMISSIONS.PERFORMANCE_REVIEW, PERMISSIONS.PERFORMANCE_APPROVE]);
+    const user = await requireAnyPermission([PERMISSIONS.PERFORMANCE_VIEW, PERMISSIONS.PERFORMANCE_REVIEW, PERMISSIONS.PERFORMANCE_APPROVE]);
 
     try {
+        const isElevated = user.role === "ADMIN" || user.role === "HR" || user.role === "SUPER_ADMIN" || user.role === "HR_MANAGER" || user.role === "COMPANY_ADMIN";
+        const isManager = user.role === "MANAGER" || user.role === "DEPARTMENT_MANAGER";
+
         const review = await prisma.performanceReview.findUnique({
             where: { id },
             include: {
@@ -234,6 +265,16 @@ export async function getPerformanceReviewById(id: string): Promise<PerformanceR
             }
         });
         if (!review) return { success: false, error: "Review not found" };
+
+        // Enforce IDOR scoping: staff can only see their own review
+        if (!isElevated) {
+            const isSubject = user.employeeId && review.employeeId === user.employeeId;
+            const isAssignedManager = isManager && user.employeeId && review.managerId === user.employeeId;
+            if (!isSubject && !isAssignedManager) {
+                return { success: false, error: "Unauthorized: You do not have access to this review" };
+            }
+        }
+
         return { success: true, data: review };
     } catch (error) {
         return { success: false, error: (error instanceof Error ? error.message : "Unknown error") };

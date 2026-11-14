@@ -128,47 +128,19 @@ export async function verifyModuleEntitlement(
       }
     }
 
-    // 4. Fallback check on Tenant Subscription Plan entitlements
-    const tenantSub = await prisma.tenantSubscription.findFirst({
-      where: {
-        tenantId,
-        status: { in: ["ACTIVE", "TRIALING"] },
-      },
-      include: {
-        plan: true,
-      },
-    });
-
-    if (tenantSub?.plan) {
-      const plan = tenantSub.plan;
-      let planEntitled = false;
-
-      if (normalizedKey === "payroll" || normalizedKey === "payroll_wps") {
-        planEntitled = plan.hasPayroll;
-      } else if (normalizedKey === "recruitment" || normalizedKey === "recruitment_ats") {
-        planEntitled = plan.hasRecruitment;
-      } else if (normalizedKey === "visa" || normalizedKey === "compliance") {
-        planEntitled = plan.hasCompliance;
-      }
-
-      if (planEntitled) {
-        return {
-          entitled: true,
-          status: tenantSub.status === "TRIALING" ? "TRIAL" : "ACTIVE",
-          moduleKey: normalizedKey,
-          moduleName,
-          features,
-        };
-      }
-    }
-
+    // 4. No TenantSubscription plan fallback — CompanyModule is the single
+    //    source of truth for module entitlement. Subscription plans define
+    //    pricing and defaults, but actual entitlement is granted via
+    //    CompanyModule records created by Super Admin through the module
+    //    marketplace. This prevents conflicting entitlement decisions between
+    //    plan flags and explicit module assignments.
     return {
       entitled: false,
       status: "NOT_SUBSCRIBED",
       moduleKey: normalizedKey,
       moduleName,
       features,
-      reason: "Module is not included in current company subscription.",
+      reason: "Module is not explicitly entitled via CompanyModule. Subscription plan flags are not used as entitlement source of truth.",
     };
   } catch (error) {
     console.error(`Entitlement check error for [${tenantId}:${moduleKey}]:`, error);
