@@ -248,6 +248,11 @@ export const PERMISSIONS = {
     INVENTORY_MANAGE: "inventory.manage",
     ACCOUNTS_PAYABLE_VIEW: "accountspayable.view",
     ACCOUNTS_PAYABLE_MANAGE: "accountspayable.manage",
+
+    // Workflow Designer
+    WORKFLOW_VIEW: "workflow.view",
+    WORKFLOW_MANAGE: "workflow.manage",
+    WORKFLOW_RUN: "workflow.run",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -356,6 +361,9 @@ const HR_MANAGER_GRANTS: readonly Permission[] = [
     PERMISSIONS.COMPANY_MODULES_VIEW,
     PERMISSIONS.COMPANY_USAGE_VIEW,
     PERMISSIONS.COMPANY_ACTIVITY_VIEW,
+    PERMISSIONS.WORKFLOW_VIEW,
+    PERMISSIONS.WORKFLOW_MANAGE,
+    PERMISSIONS.WORKFLOW_RUN,
 ];
 
 /** Company Administrator capabilities (COMPANY_ADMIN). */
@@ -544,6 +552,9 @@ const ADMIN_GRANTS: readonly Permission[] = [
     PERMISSIONS.SYSTEM_AUDIT_VIEW,
     PERMISSIONS.SYSTEM_BACKUP_VIEW,
     PERMISSIONS.PAYROLL_UNLOCK,
+    PERMISSIONS.WORKFLOW_VIEW,
+    PERMISSIONS.WORKFLOW_MANAGE,
+    PERMISSIONS.WORKFLOW_RUN,
 ];
 
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {

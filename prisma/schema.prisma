@@ -2350,6 +2350,7 @@ model Tenant {
   employeeTrainingSkills     EmployeeTrainingSkill[]
   promotions                 EmployeePromotion[]
   temporaryRoleAssignments TemporaryRoleAssignment[] @relation("TemporaryRoleAssignmentTenant")
+  workflowTemplates        WorkflowTemplate[]
 
   @@index([slug])
   @@index([status])
@@ -3735,3 +3736,107 @@ model DepartmentSupplyRequestItem {
   @@index([requestId])
 }
 
+
+/// Visual Workflow Designer Models
+model WorkflowTemplate {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  description String?
+  category    String   @default("ONBOARDING") // ONBOARDING, OFFBOARDING, LEAVE, CUSTOM
+  isActive    Boolean  @default(true)
+  isPublished Boolean  @default(false)
+  version     Int      @default(1)
+  createdBy   String
+  updatedBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  steps  WorkflowStep[]
+  runs   WorkflowRun[]
+
+  @@index([tenantId])
+  @@index([tenantId, category])
+}
+
+model WorkflowStep {
+  id           String   @id @default(cuid())
+  templateId   String
+  name         String
+  description  String?
+  stepType     String   @default("USER") // USER, SYSTEM, CONDITION, NOTIFICATION, FORM
+  assigneeType String   @default("USER") // USER, ROLE, DEPARTMENT, AUTO
+  assigneeRef  String?  // userId, role name, or department
+  positionX    Float    @default(0)
+  positionY    Float    @default(0)
+  orderIndex   Int      @default(0)
+  isStart      Boolean  @default(false)
+  isEnd        Boolean  @default(false)
+  config       Json?    // step-specific config (form fields, conditions, etc.)
+  permissions  Json?    // {readOnly: bool, editable: bool, hidden: bool}
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  template  WorkflowTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  fromEdges WorkflowEdge[]    @relation("EdgeFrom")
+  toEdges   WorkflowEdge[]    @relation("EdgeTo")
+  runSteps  WorkflowRunStep[]
+
+  @@index([templateId])
+}
+
+model WorkflowEdge {
+  id         String  @id @default(cuid())
+  templateId String
+  fromStepId String
+  toStepId   String
+  label      String? // "Yes", "No", etc. for condition branches
+  condition  String? // condition expression
+
+  fromStep WorkflowStep @relation("EdgeFrom", fields: [fromStepId], references: [id], onDelete: Cascade)
+  toStep   WorkflowStep @relation("EdgeTo", fields: [toStepId], references: [id], onDelete: Cascade)
+
+  @@unique([fromStepId, toStepId])
+  @@index([templateId])
+}
+
+model WorkflowRun {
+  id          String    @id @default(cuid())
+  templateId  String
+  tenantId    String
+  triggeredBy String
+  entityType  String?   // "EMPLOYEE", "LEAVE_REQUEST", etc.
+  entityId    String?
+  status      String    @default("ACTIVE") // ACTIVE, COMPLETED, CANCELLED, PAUSED
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  template WorkflowTemplate  @relation(fields: [templateId], references: [id])
+  steps    WorkflowRunStep[]
+
+  @@index([tenantId])
+  @@index([templateId])
+}
+
+model WorkflowRunStep {
+  id          String    @id @default(cuid())
+  runId       String
+  stepId      String
+  status      String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, SKIPPED, FAILED
+  assignedTo  String?
+  completedBy String?
+  notes       String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  run  WorkflowRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
+  step WorkflowStep @relation(fields: [stepId], references: [id])
+
+  @@index([runId])
+  @@index([stepId])
+}

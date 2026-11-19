@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Activity, ArrowRightLeft, Bell, Briefcase, Building2, Calendar, CalendarClock,
   CheckCircle2, ChevronDown, CreditCard, Eye, FileSignature, FileText, FileUp,
-  Headphones, HeartHandshake, LayoutDashboard, Plane, Settings2, Target, UserPlus, Users,
+  GitBranch, Headphones, HeartHandshake, LayoutDashboard, Plane, Settings2, Target, UserPlus, Users,
   UserRoundX, Layers, Sparkles, Shield, ShieldCheck, UserCircle, KeyRound, BookOpen, Rocket,
   FolderOpen, GraduationCap, TrendingUp, type LucideIcon,
 } from "lucide-react";
@@ -72,6 +72,10 @@ export const sidebarItems: NavItem[] = [
   { title: "Recruitment", href: "/recruitment", icon: UserPlus, iconColor: "text-amber-400", permission: PERMISSIONS.RECRUITMENT_VIEW },
   { title: "Interviews", href: "/recruitment/interviews", icon: CalendarClock, iconColor: "text-indigo-400", permission: PERMISSIONS.RECRUITMENT_VIEW },
   { title: "Offers", href: "/recruitment/offers", icon: FileSignature, iconColor: "text-emerald-400", permission: PERMISSIONS.RECRUITMENT_OFFER },
+
+  /* ── WORKFLOWS ─────────────────────────────────────────────── */
+  { title: "Workflow Designer", href: "/workflows", icon: GitBranch, iconColor: "text-violet-400", permission: PERMISSIONS.WORKFLOW_VIEW },
+  { title: "Custom Workflows", href: "/workflows", icon: Layers, iconColor: "text-violet-300", permission: PERMISSIONS.WORKFLOW_MANAGE },
 
   /* ── FINANCE & ADMIN ──────────────────────────────────── */
   { title: "Finance Overview", href: "/finance", icon: Building2, iconColor: "text-emerald-400", permission: PERMISSIONS.FINANCE_VIEW },
@@ -140,6 +144,13 @@ export const navigationGroups: NavGroupDef[] = [
       "/payroll", "/attendance/shifts", "/letters", "/visa", "/staff-services",
       "/requests", "/notifications", "/travel", "/performance", "/dashboard/training",
     ],
+  },
+  {
+    title: "WORKFLOWS",
+    icon: GitBranch,
+    color: "text-violet-400",
+    collapsible: true,
+    links: ["/workflows"],
   },
   {
     title: "TALENT",
