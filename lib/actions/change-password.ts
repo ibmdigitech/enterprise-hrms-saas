@@ -58,3 +58,61 @@ export async function changePassword(formData: FormData) {
 
     return { success: true, message: "Password changed successfully" };
 }
+
+export type LoginRequirementResult =
+    | { status: "CONTINUE" }
+    | { status: "MUST_CHANGE_PASSWORD"; email: string; reason?: string };
+
+export async function checkLoginRequirementAction(
+    emailRaw: string,
+    passwordRaw: string
+): Promise<LoginRequirementResult> {
+    if (!emailRaw || !passwordRaw) {
+        return { status: "CONTINUE" };
+    }
+
+    try {
+        const normalizedEmail = emailRaw.toLowerCase().trim();
+        const user = await prisma.user.findUnique({
+            where: { email: normalizedEmail },
+            select: {
+                id: true,
+                email: true,
+                password: true,
+                securityFlag: {
+                    select: {
+                        mustChangePassword: true,
+                        mustChangeReason: true,
+                        lockedUntil: true,
+                    },
+                },
+            },
+        });
+
+        if (!user || !user.password) {
+            return { status: "CONTINUE" };
+        }
+
+        if (user.securityFlag?.lockedUntil && new Date() < user.securityFlag.lockedUntil) {
+            return { status: "CONTINUE" };
+        }
+
+        const passwordMatched = await bcrypt.compare(passwordRaw, user.password);
+        if (!passwordMatched) {
+            return { status: "CONTINUE" };
+        }
+
+        if (user.securityFlag?.mustChangePassword) {
+            return {
+                status: "MUST_CHANGE_PASSWORD",
+                email: user.email,
+                reason: user.securityFlag.mustChangeReason ?? "First login password change required",
+            };
+        }
+
+        return { status: "CONTINUE" };
+    } catch (err) {
+        console.error("[CHECK_LOGIN_REQUIREMENT_ERROR]", err);
+        return { status: "CONTINUE" };
+    }
+}

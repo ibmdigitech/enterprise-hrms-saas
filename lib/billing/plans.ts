@@ -17,6 +17,15 @@ export interface PlanTemplate {
     hasCustomTheme: boolean;
     hasApiAccess: boolean;
     isPopular: boolean;
+    features?: {
+        hasFinanceEngine?: boolean;
+        hasMarketplace?: boolean;
+        hasLetterSeal?: boolean;
+        hasBiometrics?: boolean;
+        hasAiCopilot?: boolean;
+        hasTaxInvoicing?: boolean;
+        [key: string]: any;
+    };
 }
 
 export const DEFAULT_PLANS: PlanTemplate[] = [
@@ -37,6 +46,14 @@ export const DEFAULT_PLANS: PlanTemplate[] = [
         hasCustomTheme: false,
         hasApiAccess: false,
         isPopular: false,
+        features: {
+            hasFinanceEngine: false,
+            hasMarketplace: true,
+            hasLetterSeal: false,
+            hasBiometrics: false,
+            hasAiCopilot: false,
+            hasTaxInvoicing: true,
+        },
     },
     {
         name: "Growth",
@@ -55,6 +72,14 @@ export const DEFAULT_PLANS: PlanTemplate[] = [
         hasCustomTheme: false,
         hasApiAccess: false,
         isPopular: true,
+        features: {
+            hasFinanceEngine: true,
+            hasMarketplace: true,
+            hasLetterSeal: true,
+            hasBiometrics: true,
+            hasAiCopilot: true,
+            hasTaxInvoicing: true,
+        },
     },
     {
         name: "Enterprise",
@@ -73,6 +98,14 @@ export const DEFAULT_PLANS: PlanTemplate[] = [
         hasCustomTheme: true,
         hasApiAccess: true,
         isPopular: false,
+        features: {
+            hasFinanceEngine: true,
+            hasMarketplace: true,
+            hasLetterSeal: true,
+            hasBiometrics: true,
+            hasAiCopilot: true,
+            hasTaxInvoicing: true,
+        },
     },
 ];
 
@@ -159,9 +192,11 @@ export async function ensureDefaultPlans() {
                         hasCustomTheme: plan.hasCustomTheme,
                         hasApiAccess: plan.hasApiAccess,
                         isPopular: plan.isPopular,
+                        features: plan.features as any,
                     },
                     create: {
                         ...plan,
+                        features: plan.features as any,
                         isActive: true,
                     },
                 });

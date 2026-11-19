@@ -73,6 +73,15 @@ export const sidebarItems: NavItem[] = [
   { title: "Interviews", href: "/recruitment/interviews", icon: CalendarClock, iconColor: "text-indigo-400", permission: PERMISSIONS.RECRUITMENT_VIEW },
   { title: "Offers", href: "/recruitment/offers", icon: FileSignature, iconColor: "text-emerald-400", permission: PERMISSIONS.RECRUITMENT_OFFER },
 
+  /* ── FINANCE & ADMIN ──────────────────────────────────── */
+  { title: "Finance Overview", href: "/finance", icon: Building2, iconColor: "text-emerald-400", permission: PERMISSIONS.FINANCE_VIEW },
+  { title: "Budget Management", href: "/finance/budget", icon: TrendingUp, iconColor: "text-indigo-400", permission: PERMISSIONS.BUDGET_VIEW },
+  { title: "Petty Cash", href: "/finance/petty-cash", icon: CreditCard, iconColor: "text-amber-400", permission: PERMISSIONS.PETTY_CASH_VIEW },
+  { title: "Expense Claims", href: "/finance/expenses", icon: FileText, iconColor: "text-rose-400", permission: PERMISSIONS.EXPENSE_VIEW },
+  { title: "Procurement & PO", href: "/finance/procurement", icon: Briefcase, iconColor: "text-sky-400", permission: PERMISSIONS.PROCUREMENT_VIEW },
+  { title: "Inventory & Supplies", href: "/finance/inventory", icon: Layers, iconColor: "text-teal-400", permission: PERMISSIONS.INVENTORY_VIEW },
+  { title: "Accounts Payable", href: "/finance/accounts-payable", icon: ArrowRightLeft, iconColor: "text-violet-400", permission: PERMISSIONS.ACCOUNTS_PAYABLE_VIEW },
+
   /* ── ADMINISTRATION ───────────────────────────────────── */
   { title: "Users", href: "/settings", icon: UserCircle, iconColor: "text-indigo-400", permission: PERMISSIONS.SETTINGS_VIEW },
   { title: "Roles & Permissions", href: "/dashboard/approvals/roles", icon: Shield, iconColor: "text-indigo-400", permission: PERMISSIONS.ACCESS_APPROVE },
@@ -138,6 +147,21 @@ export const navigationGroups: NavGroupDef[] = [
     color: "text-amber-400",
     collapsible: true,
     links: ["/recruitment", "/recruitment/interviews", "/recruitment/offers"],
+  },
+  {
+    title: "FINANCE",
+    icon: Building2,
+    color: "text-emerald-400",
+    collapsible: true,
+    links: [
+      "/finance",
+      "/finance/budget",
+      "/finance/petty-cash",
+      "/finance/expenses",
+      "/finance/procurement",
+      "/finance/inventory",
+      "/finance/accounts-payable",
+    ],
   },
   {
     title: "ADMINISTRATION",

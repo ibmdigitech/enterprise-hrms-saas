@@ -140,7 +140,8 @@ export default async function PayslipPage() {
                                 below is carried over; nothing is hidden. */}
                             <ul className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
                                 {salaryRecords.map((record) => {
-                                    const totalAllowances = (record.transportAllowance || 0) + (record.medicalAllowance || 0) + (record.otherAllowances || 0) + (record.bonus || 0);
+                                    const totalAllowances = (record.transportAllowance || 0) + (record.medicalAllowance || 0) + (record.foodAllowance || 0) + (record.travelAllowance || 0) + (record.commission || 0) + (record.otherAllowances || 0) + (record.bonus || 0);
+                                    const totalExtras = (record.overtimePay || 0) + (record.travelReimbursement || 0) + (record.reimbursementTotal || 0);
                                     const totalDeductions = (record.latePenalty || 0) + (record.leaveDeduction || 0) + (record.loanDeduction || 0) + (record.otherDeductions || 0);
 
                                     return (
@@ -171,6 +172,8 @@ export default async function PayslipPage() {
                                                 <dd className="text-right font-semibold text-slate-700 dark:text-slate-300">AED {record.housingAllowance?.toLocaleString() ?? "--"}</dd>
                                                 <dt className="text-slate-500">Allowances</dt>
                                                 <dd className="text-right font-semibold text-slate-700 dark:text-slate-300">AED {totalAllowances.toLocaleString()}</dd>
+                                                <dt className="text-slate-500">OT & Reimb.</dt>
+                                                <dd className="text-right font-semibold text-indigo-600">+ AED {totalExtras.toLocaleString()}</dd>
                                                 <dt className="text-slate-500">Deductions</dt>
                                                 <dd className="text-right font-semibold text-rose-600">- AED {totalDeductions.toLocaleString()}</dd>
                                             </dl>
@@ -206,6 +209,8 @@ export default async function PayslipPage() {
                                     <TableHead>Basic</TableHead>
                                     <TableHead>Housing</TableHead>
                                     <TableHead>Allowances</TableHead>
+                                    <TableHead className="text-indigo-600">OT Pay</TableHead>
+                                    <TableHead className="text-emerald-600">Reimbursements</TableHead>
                                     <TableHead>Deductions</TableHead>
                                     <TableHead className="font-bold text-slate-900 dark:text-white">Net Pay</TableHead>
                                     <TableHead>Status</TableHead>
@@ -214,7 +219,8 @@ export default async function PayslipPage() {
                             </TableHeader>
                             <TableBody>
                                 {salaryRecords.map((record) => {
-                                    const totalAllowances = (record.transportAllowance || 0) + (record.medicalAllowance || 0) + (record.otherAllowances || 0) + (record.bonus || 0);
+                                    const totalAllowances = (record.transportAllowance || 0) + (record.medicalAllowance || 0) + (record.foodAllowance || 0) + (record.travelAllowance || 0) + (record.commission || 0) + (record.otherAllowances || 0) + (record.bonus || 0);
+                                    const totalExtras = (record.overtimePay || 0) + (record.travelReimbursement || 0) + (record.reimbursementTotal || 0);
                                     const totalDeductions = (record.latePenalty || 0) + (record.leaveDeduction || 0) + (record.loanDeduction || 0) + (record.otherDeductions || 0);
                                     
                                     return (
@@ -233,6 +239,14 @@ export default async function PayslipPage() {
                                         <TableCell className="text-sm">AED {record.basic?.toLocaleString() ?? "--"}</TableCell>
                                         <TableCell className="text-sm">AED {record.housingAllowance?.toLocaleString() ?? "--"}</TableCell>
                                         <TableCell className="text-sm">AED {totalAllowances.toLocaleString() ?? "--"}</TableCell>
+                                        <TableCell className="text-sm font-medium text-indigo-600">
+                                            {(record.overtimePay || 0) > 0 ? `+ AED ${(record.overtimePay||0).toLocaleString()}` : '—'}
+                                        </TableCell>
+                                        <TableCell className="text-sm font-medium text-emerald-600">
+                                            {((record.travelReimbursement||0) + (record.reimbursementTotal||0)) > 0
+                                                ? `+ AED ${((record.travelReimbursement||0) + (record.reimbursementTotal||0)).toLocaleString()}`
+                                                : '—'}
+                                        </TableCell>
                                         <TableCell className="text-sm text-rose-600">
                                             - AED {totalDeductions.toLocaleString() ?? "--"}
                                         </TableCell>

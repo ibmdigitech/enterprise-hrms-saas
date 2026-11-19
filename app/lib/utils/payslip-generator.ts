@@ -11,12 +11,17 @@ export const generatePayslipPDF = (data: any) => {
         housingAllowance,
         transportAllowance,
         medicalAllowance,
+        foodAllowance,
+        travelAllowance,
+        commission,
         otherAllowances,
         latePenalty,
         leaveDeduction,
         loanDeduction,
         otherDeductions,
         overtimePay,
+        travelReimbursement,
+        reimbursementTotal,
         bonus,
         net, 
         status,
@@ -58,25 +63,30 @@ export const generatePayslipPDF = (data: any) => {
     });
 
     // Earnings & Deductions Tables
-    const totalEarnings = basic + housingAllowance + transportAllowance + medicalAllowance + otherAllowances + overtimePay + bonus;
-    const totalDeductions = latePenalty + leaveDeduction + loanDeduction + otherDeductions;
+    const totalEarnings = basic + (housingAllowance||0) + (transportAllowance||0) + (medicalAllowance||0) + (foodAllowance||0) + (travelAllowance||0) + (commission||0) + (otherAllowances||0) + (overtimePay||0) + (travelReimbursement||0) + (reimbursementTotal||0) + (bonus||0);
+    const totalDeductions = (latePenalty||0) + (leaveDeduction||0) + (loanDeduction||0) + (otherDeductions||0);
 
     autoTable(doc, {
         startY: (doc as { lastAutoTable?: { finalY: number } }).lastAutoTable!.finalY + 10,
         margin: { left: 20, right: 20 },
         head: [['Earnings Description', 'Amount (AED)', 'Deductions Description', 'Amount (AED)']],
         body: [
-            ['Basic Salary', basic.toFixed(2), 'Late Penalty', latePenalty.toFixed(2)],
-            ['Housing Allowance', housingAllowance.toFixed(2), 'Leave Deduction', leaveDeduction.toFixed(2)],
-            ['Transport Allowance', transportAllowance.toFixed(2), 'Loan Deduction', loanDeduction.toFixed(2)],
-            ['Medical Allowance', medicalAllowance.toFixed(2), 'Other Deductions', otherDeductions.toFixed(2)],
-            ['Other Allowances', otherAllowances.toFixed(2), '', ''],
-            ['Overtime Pay', overtimePay.toFixed(2), '', ''],
-            ['Bonus / Incentives', bonus.toFixed(2), '', ''],
+            ['Basic Salary',               (basic||0).toFixed(2),                     'Late Penalty',    (latePenalty||0).toFixed(2)],
+            ['Housing Allowance',           (housingAllowance||0).toFixed(2),          'Leave Deduction', (leaveDeduction||0).toFixed(2)],
+            ['Transport Allowance',         (transportAllowance||0).toFixed(2),        'Loan Deduction',  (loanDeduction||0).toFixed(2)],
+            ['Medical Allowance',           (medicalAllowance||0).toFixed(2),          'Other Deductions',(otherDeductions||0).toFixed(2)],
+            ['Food Allowance',              (foodAllowance||0).toFixed(2),             '', ''],
+            ['Travel Allowance (Monthly)',  (travelAllowance||0).toFixed(2),           '', ''],
+            ['Commission',                  (commission||0).toFixed(2),                '', ''],
+            ['Other Allowances',            (otherAllowances||0).toFixed(2),           '', ''],
+            ['Overtime Pay',                (overtimePay||0).toFixed(2),               '', ''],
+            ['Travel Reimbursement',        (travelReimbursement||0).toFixed(2),       '', ''],
+            ['Expense Reimbursement',       (reimbursementTotal||0).toFixed(2),        '', ''],
+            ['Bonus / Incentives',          (bonus||0).toFixed(2),                     '', ''],
             [
-                { content: 'Total Earnings', styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }, 
+                { content: 'Total Earnings',    styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }, 
                 { content: totalEarnings.toFixed(2), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
-                { content: 'Total Deductions', styles: { fontStyle: 'bold', fillColor: [254, 242, 242] } },
+                { content: 'Total Deductions',  styles: { fontStyle: 'bold', fillColor: [254, 242, 242] } },
                 { content: totalDeductions.toFixed(2), styles: { fontStyle: 'bold', fillColor: [254, 242, 242] } }
             ]
         ],

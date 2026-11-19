@@ -66,21 +66,6 @@ export interface SuperAdminNavItem {
 
 export const superAdminNavigation: SuperAdminNavItem[] = [
   {
-    title: "Normal Dashboard",
-    href: "/dashboard",
-    icon: Building2,
-    badge: "MultiSaaS",
-    children: [
-      { title: "Main Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { title: "Employees", href: "/employees", icon: Users },
-      { title: "Payroll Center", href: "/payroll", icon: CreditCard },
-      { title: "Attendance & Shifts", href: "/attendance", icon: Calendar },
-      { title: "Leaves Management", href: "/leaves", icon: Briefcase },
-      { title: "Approvals Queue", href: "/dashboard/approvals", icon: CheckCircle2 },
-      { title: "Workforce Settings", href: "/settings", icon: Settings2 },
-    ],
-  },
-  {
     title: "Super Admin Dashboard",
     href: "/super-admin/dashboard",
     icon: LayoutDashboard,
@@ -509,122 +494,15 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
             ))}
           </nav>
 
-          {/* Footer */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className={cn("border-t border-sidebar-border p-3 space-y-2", collapsed && "items-center")}
-          >
-            {/* Quick Switch to Normal Dashboard Pill */}
-            <Link
-              href="/dashboard"
-              className={cn(
-                "flex items-center gap-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/80 px-3 py-2 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/30 transition-all hover:ring-emerald-500/60 hover:text-emerald-900 dark:hover:text-foreground",
-                collapsed && "justify-center px-2"
-              )}
-              title="Go to Normal Dashboard"
-            >
-              <Building2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              {!collapsed && (
-                <span className="text-[11px] font-bold tracking-wide truncate">Go to Normal Dashboard</span>
-              )}
-            </Link>
-
-            {/* User Section */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className={cn("relative", collapsed && "flex justify-center")}
-            >
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="button"
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200 hover:bg-sidebar-accent",
-                      collapsed && "justify-center px-2"
-                    )}
-                    aria-expanded={false}
-                    aria-haspopup="true"
-                  >
-                    <motion.div whileHover={{ scale: 1.1 }} className="relative">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={user?.image || undefined} alt={user?.name || "Super Admin"} />
-                        <AvatarFallback className="bg-gradient-to-br from-primary to-teal-600 text-[11px] font-black text-primary-foreground">
-                          {initials}
-                        </AvatarFallback>
-                      </Avatar>
-                    </motion.div>
-                    <AnimatePresence mode="wait">
-                      {!collapsed && (
-                        <motion.div
-                          key="expanded"
-                          initial={{ opacity: 0, x: -20, width: 0 }}
-                          animate={{ opacity: 1, x: 0, width: "auto" }}
-                          exit={{ opacity: 0, x: -20, width: 0 }}
-                          className="min-w-0 flex-1 text-left overflow-hidden"
-                        >
-                          <p className="truncate text-sm font-semibold text-sidebar-foreground leading-tight">{user?.name ?? "Super Admin"}</p>
-                          <p className="truncate text-[11px] text-muted-foreground leading-tight">{user?.email ?? "admin@platform.com"}</p>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.button>
-                </DropdownMenuTrigger>
-                <AnimatePresence>
-                  {!collapsed && (
-                    <motion.div
-                      key="dropdown"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                    >
-                      <DropdownMenuContent className="w-56 bg-popover border-border shadow-2xl" sideOffset={5}>
-                        <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1">Account</DropdownMenuLabel>
-                        <DropdownMenuSeparator className="border-border" />
-                        <Link href="/dashboard">
-                          <DropdownMenuItem className="text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 cursor-pointer font-medium">
-                            <Building2 className="h-4 w-4 mr-2" /> Normal Dashboard
-                          </DropdownMenuItem>
-                        </Link>
-                        <DropdownMenuItem className="text-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground">
-                          <Settings2 className="h-4 w-4 mr-2" /> Profile
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground">
-                          <Shield className="h-4 w-4 mr-2" /> Security
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground">
-                          <Bell className="h-4 w-4 mr-2" /> Notifications
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator className="border-border" />
-                        <DropdownMenuItem
-                          onClick={() => signOut({ callbackUrl: "/login" })}
-                          className="text-destructive hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10"
-                        >
-                          <LogOut className="h-4 w-4 mr-2" /> Sign Out
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </DropdownMenu>
-            </motion.div>
-
-            {/* Collapse Toggle */}
+          {/* Footer with Collapse Toggle */}
+          <div className="border-t border-sidebar-border p-2 flex items-center justify-end">
             <Tooltip>
               <TooltipTrigger asChild>
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={() => setCollapsed(!collapsed)}
-                  className={cn(
-                    "h-8 w-8 rounded-lg text-muted-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-foreground",
-                    collapsed ? "ml-auto" : "mx-auto"
-                  )}
+                  className="h-8 w-8 rounded-lg text-muted-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-foreground flex items-center justify-center mx-auto"
                   aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
                   aria-expanded={!collapsed}
                 >
@@ -643,7 +521,7 @@ export function SuperAdminSidebar({ user, mobileOpen = false, onMobileClose }: S
                 </span>
               </TooltipContent>
             </Tooltip>
-          </motion.div>
+          </div>
         </motion.aside>
       </TooltipProvider>
     </>

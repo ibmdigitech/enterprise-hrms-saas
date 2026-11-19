@@ -25,8 +25,12 @@ async function assertTenantAdmin(targetTenantId?: string) {
 
     // Platform SUPER_ADMIN has global authority
     if (user.role === "SUPER_ADMIN") {
-        const resolvedTenantId = targetTenantId || user.employee?.tenantId || user.memberships[0]?.tenantId;
-        if (!resolvedTenantId) throw new Error("Tenant context could not be determined.");
+        let resolvedTenantId: string | undefined = targetTenantId || user.employee?.tenantId || user.memberships[0]?.tenantId;
+        if (!resolvedTenantId) {
+            const firstTenant = await prisma.tenant.findFirst({ orderBy: { createdAt: "asc" } });
+            resolvedTenantId = firstTenant?.id;
+        }
+        if (!resolvedTenantId) throw new Error("No tenant organization found.");
         return { userId: user.id, tenantId: resolvedTenantId, isSuperAdmin: true };
     }
 
@@ -39,7 +43,11 @@ async function assertTenantAdmin(targetTenantId?: string) {
         throw new Error("Unauthorized: requires Organization Admin or HR privileges.");
     }
 
-    const tenantId = targetTenantId || membership?.tenantId || user.employee?.tenantId;
+    let tenantId = targetTenantId || membership?.tenantId || user.employee?.tenantId;
+    if (!tenantId) {
+        const firstTenant = await prisma.tenant.findFirst({ orderBy: { createdAt: "asc" } });
+        tenantId = firstTenant?.id;
+    }
     if (!tenantId) throw new Error("No active tenant context found.");
 
     return { userId: user.id, tenantId, isSuperAdmin: false };

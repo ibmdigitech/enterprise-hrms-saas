@@ -28,7 +28,12 @@ export default async function TenantBillingPage() {
         },
     });
 
-    const activeTenantId = user?.memberships[0]?.tenantId || user?.employee?.tenantId;
+    let activeTenantId = user?.memberships[0]?.tenantId || user?.employee?.tenantId;
+    if (!activeTenantId) {
+        const firstTenant = await prisma.tenant.findFirst({ orderBy: { createdAt: "asc" } });
+        activeTenantId = firstTenant?.id;
+    }
+
     if (!activeTenantId) {
         redirect("/dashboard");
     }
@@ -37,6 +42,7 @@ export default async function TenantBillingPage() {
     try {
         billingData = await getTenantBillingData(activeTenantId);
     } catch (err) {
+        console.error("[TENANT_BILLING_PAGE_ERROR]", err);
         redirect("/dashboard");
     }
 

@@ -226,23 +226,24 @@ async function main() {
                 });
                 console.log('User created:', email, '(role:', role + ')');
             } else {
+                // NEVER reset password for existing user — only update non-credential fields
                 user = await prisma.user.update({
                     where: { email },
                     data: {
-                        password: passwordHash,
-                        role,
                         name,
+                        // role is intentionally NOT updated to preserve manually-set roles
                     }
                 });
-                console.log('User updated:', email, '(role:', role + ')');
+                // Remove from generatedPasswords since we did not set a new password
+                delete generatedPasswords[email];
+                console.log('User already exists (password preserved):', email, '(role:', role + ')');
             }
 
-            // Force password change on first login
+            // Only force password change for brand-new users, NEVER overwrite existing flags
             await prisma.userSecurityFlag.upsert({
                 where: { userId: user.id },
                 update: {
-                    mustChangePassword: true,
-                    mustChangeReason: 'Seeded account — forced password change on first login',
+                    // Intentionally empty: preserve user's existing password change status and flags
                     updatedAt: new Date(),
                 },
                 create: {
@@ -416,22 +417,17 @@ async function main() {
             });
             console.log('Super Admin user created:', superAdminUser.email);
         } else {
-            superAdminUser = await prisma.user.update({
-                where: { email: 'superadmin@hrms.local' },
-                data: {
-                    password: superAdminPasswordHash,
-                    role: 'SUPER_ADMIN',
-                    name: 'Super Admin',
-                }
-            });
-            console.log('Super Admin user updated:', superAdminUser.email);
+            // NEVER reset superadmin password — preserve existing credentials
+            superAdminUser = await prisma.user.findUnique({ where: { email: 'superadmin@hrms.local' } });
+            // Remove from generatedPasswords since we did not set a new password
+            delete generatedPasswords['superadmin@hrms.local'];
+            console.log('Super Admin user already exists (password preserved):', superAdminUser.email);
         }
 
         await prisma.userSecurityFlag.upsert({
             where: { userId: superAdminUser.id },
             update: {
-                mustChangePassword: true,
-                mustChangeReason: 'Seeded Super Admin account — forced password change on first login',
+                // Intentionally empty: preserve user's existing password change status and flags
                 updatedAt: new Date(),
             },
             create: {

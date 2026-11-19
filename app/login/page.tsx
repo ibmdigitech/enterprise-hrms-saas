@@ -14,6 +14,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Building2, Mail, Loader2, Eye, EyeOff } from 'lucide-react';
+import { checkLoginRequirementAction } from '@/lib/actions/change-password';
 
 // Google Icon SVG
 function GoogleIcon() {
@@ -103,6 +104,13 @@ function LoginForm() {
 
         startTransition(async () => {
             try {
+                // If user must change password (first-time login or admin-enforced), route to change-password
+                const requirement = await checkLoginRequirementAction(email, password);
+                if (requirement.status === "MUST_CHANGE_PASSWORD") {
+                    router.push(`/account/change-password?email=${encodeURIComponent(requirement.email)}`);
+                    return;
+                }
+
                 const result = await signIn('credentials', {
                     email,
                     password,
@@ -135,8 +143,8 @@ function LoginForm() {
     }
 
     return (
-        <div className="min-h-[calc(100vh-3rem)] -mx-6 -mt-6 -mb-6 flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-4">
-            {/* Background decorative blobs */}
+        <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-4 sm:p-6">
+            {/* Background decorative blobs - constrained by overflow-hidden container */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute -top-40 -right-40 w-80 h-80 bg-indigo-600 rounded-full opacity-10 blur-3xl" />
                 <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-violet-600 rounded-full opacity-10 blur-3xl" />
@@ -266,7 +274,7 @@ function LoginForm() {
 export default function LoginPage() {
     return (
         <Suspense fallback={
-            <div className="min-h-[calc(100vh-3rem)] -mx-6 -mt-6 -mb-6 flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
+            <div className="relative min-h-screen w-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
                 <Loader2 className="h-8 w-8 animate-spin text-white" />
             </div>
         }>

@@ -26,8 +26,8 @@ export async function getTenantBillingData(tenantId: string) {
 
     await ensureDefaultPlans();
 
-    // 2. Fetch tenant subscription details with currency-specific plans
-    const [tenantData, availablePlans, employeeCount, companyCount, locationCount] = await Promise.all([
+    // 2. Fetch tenant subscription details with currency-specific plans and available add-on modules
+    const [tenantData, availablePlans, employeeCount, companyCount, locationCount, allModules, activeCompanyModules] = await Promise.all([
         prisma.tenant.findUnique({
             where: { id: tenantId },
             include: {
@@ -51,6 +51,13 @@ export async function getTenantBillingData(tenantId: string) {
         prisma.employee.count({ where: { tenantId } }),
         prisma.company.count({ where: { tenantId } }),
         prisma.location.count({ where: { tenantId } }),
+        prisma.module.findMany({
+            where: { isActive: true },
+            orderBy: [{ isCore: "desc" }, { category: "asc" }, { sortOrder: "asc" }],
+        }),
+        prisma.companyModule.findMany({
+            where: { tenantId },
+        }),
     ]);
 
     if (!tenantData) {
@@ -68,6 +75,8 @@ export async function getTenantBillingData(tenantId: string) {
         subscription: tenantData.subscription,
         invoices: tenantData.invoices,
         availablePlans,
+        modules: allModules,
+        companyModules: activeCompanyModules,
         usage: {
             employees: { current: employeeCount, max: tenantData.subscription?.maxEmployees || 50 },
             companies: { current: companyCount, max: tenantData.subscription?.maxCompanies || 1 },
@@ -207,5 +216,116 @@ export async function upgradeTenantPlanAction(input: {
     revalidatePath("/settings/billing");
     revalidatePath("/platform-admin");
     revalidatePath("/platform-admin/billing");
+    revalidatePath("/super-admin/billing");
     return { success: true, planName: plan.name, invoiceNumber };
+}
+
+/**
+ * Tenant Self-Service: Purchase / Activate Add-on Marketplace Module.
+ * Automatically provisions entitlement and generates an official tax invoice with VAT.
+ */
+export async function purchaseCompanyModuleAction(input: {
+    tenantId: string;
+    moduleId: string;
+}) {
+    const session = await auth();
+    if (!session?.user) throw new Error("Authentication required.");
+
+    const user = await prisma.user.findUnique({
+        where: { id: session.user.id ?? undefined },
+        include: {
+            memberships: {
+                where: { tenantId: input.tenantId, status: "ACTIVE" },
+            },
+        },
+    });
+
+    const isPlatformAdmin = user?.role === "SUPER_ADMIN";
+    const isTenantAdmin = user?.memberships?.some((m) => m.role === "ADMIN");
+
+    if (!isPlatformAdmin && !isTenantAdmin) {
+        throw new Error("Only organization administrators can purchase platform add-on modules.");
+    }
+
+    const mod = await prisma.module.findUnique({
+        where: { id: input.moduleId },
+    });
+    if (!mod) throw new Error("Target module not found.");
+
+    const now = new Date();
+    const periodEnd = new Date(now);
+    periodEnd.setMonth(now.getMonth() + 1);
+
+    const price = mod.priceMonthly;
+    const taxAmount = Math.round(price * 0.05 * 100) / 100;
+    const totalAmount = Math.round(price * 1.05 * 100) / 100;
+    const invoiceNumber = `INV-MOD-${Date.now().toString().slice(-6)}`;
+
+    await prisma.$transaction(async (tx) => {
+        // Safe find & update/create for company module
+        const existing = await tx.companyModule.findFirst({
+            where: {
+                tenantId: input.tenantId,
+                moduleId: input.moduleId,
+            },
+        });
+
+        if (existing) {
+            await tx.companyModule.update({
+                where: { id: existing.id },
+                data: {
+                    status: "ENABLED",
+                    expiresAt: null,
+                },
+            });
+        } else {
+            await tx.companyModule.create({
+                data: {
+                    tenantId: input.tenantId,
+                    moduleId: input.moduleId,
+                    status: "ENABLED",
+                    expiresAt: null,
+                },
+            });
+        }
+
+        // Generate official Tax Invoice
+        const invoice = await tx.subscriptionInvoice.create({
+            data: {
+                tenantId: input.tenantId,
+                invoiceNumber,
+                amount: price,
+                taxAmount,
+                totalAmount,
+                currency: "AED",
+                status: "PAID",
+                billingPeriodStart: now,
+                billingPeriodEnd: periodEnd,
+                dueDate: now,
+                paidAt: now,
+                paymentMethod: "CARD",
+                notes: `Add-on Module Activation: ${mod.name} (Monthly)`,
+            },
+        });
+
+        // Record payment transaction
+        await tx.paymentTransaction.create({
+            data: {
+                tenantId: input.tenantId,
+                invoiceId: invoice.id,
+                amount: totalAmount,
+                currency: "AED",
+                status: "SUCCESS",
+                gateway: "STRIPE",
+                transactionRef: `tx_mod_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+                paymentMethodType: "CARD",
+                lastFour: "4242",
+            },
+        });
+    });
+
+    revalidatePath("/settings/billing");
+    revalidatePath("/super-admin/billing");
+    revalidatePath("/super-admin/modules");
+    return { success: true, moduleName: mod.name, invoiceNumber };
 }

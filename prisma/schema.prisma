@@ -570,8 +570,24 @@ model SecurityAuditLog {
   @@index([createdAt])
 }
 
-// ─── EMPLOYEE MASTER TABLE (Central Entity) ───────────────────────────────────
+
+model TravelAllowanceRequest {
+  id          String   @id @default(cuid())
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  amount      Decimal
+  description String
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  requestedAt DateTime @default(now())
+  approvedAt  DateTime?
+  approvedBy  String?
+}
+
 model Employee {
+  // existing fields ...
+  // New relationship for travel allowance requests (one‑off)
+  travelAllowanceRequests TravelAllowanceRequest[]
+
   id                     String    @id @default(cuid())
   /// P1 GAP-01: nullable so an employee can be created before their login is
   /// provisioned or their visa is processed. A CHECK constraint
@@ -1058,9 +1074,11 @@ model SalaryRecord {
   loanDeduction      Float     @default(0)
   advanceSalary      Float     @default(0)
   otherDeductions    Float     @default(0)
-  overtimePay        Float     @default(0)
-  bonus              Float     @default(0)
-  netSalary          Float
+  overtimePay           Float     @default(0)
+  travelReimbursement   Float     @default(0)   // approved TravelAllowanceRequest total for this period
+  reimbursementTotal    Float     @default(0)   // approved ReimbursementRequest total for this period
+  bonus                 Float     @default(0)
+  netSalary             Float
   status             String    @default("DRAFT") // DRAFT, LOCKED, PAID, CANCELLED
   paymentMethod      String    @default("BANK_TRANSFER")
   paidAt             DateTime?
@@ -3330,3 +3348,390 @@ model EmployeePromotion {
   @@index([employeeId, effectiveDate])
   @@index([tenantId, status])
 }
+
+
+// ─── FINANCE, BUDGET, PETTY CASH, PROCUREMENT & INVENTORY MODULE ──────────
+
+/// Cost Centre for multi-dimensional budgeting and expenditure allocation
+model CostCentre {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  companyId   String?
+  code        String
+  name        String
+  description String?
+  departmentId String?
+  managerId   String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  budgets      Budget[]
+  transactions PettyCashTransaction[]
+
+  @@unique([companyId, code])
+  @@index([tenantId])
+  @@index([companyId])
+}
+
+/// Annual and monthly budget allocation
+model Budget {
+  id              String   @id @default(cuid())
+  tenantId        String?
+  companyId       String?
+  departmentId    String?
+  costCentreId    String?
+  costCentre      CostCentre? @relation(fields: [costCentreId], references: [id], onDelete: SetNull)
+  name            String
+  fiscalYear      Int
+  totalAmount     Decimal  @default(0)
+  allocatedAmount Decimal  @default(0)
+  committedAmount Decimal  @default(0)
+  actualSpent     Decimal  @default(0)
+  status          String   @default("DRAFT") // DRAFT, APPROVED, ACTIVE, CLOSED
+  approvedBy      String?
+  approvedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  revisions       BudgetRevision[]
+  alerts          BudgetAlert[]
+  purchaseReqs    PurchaseRequisition[]
+
+  @@index([tenantId, fiscalYear])
+  @@index([companyId, fiscalYear])
+}
+
+model BudgetRevision {
+  id             String   @id @default(cuid())
+  budgetId       String
+  budget         Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  previousAmount Decimal
+  newAmount      Decimal
+  reason         String
+  requestedBy    String
+  approvedBy     String?
+  status         String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt      DateTime @default(now())
+
+  @@index([budgetId])
+}
+
+model BudgetAlert {
+  id        String   @id @default(cuid())
+  budgetId  String
+  budget    Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  alertType String   // THRESHOLD_80, THRESHOLD_90, THRESHOLD_100, OVERRUN
+  threshold Int      @default(80)
+  isActive  Boolean  @default(true)
+  sentAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([budgetId])
+}
+
+/// Petty Cash Management
+model PettyCashFund {
+  id             String   @id @default(cuid())
+  tenantId       String?
+  companyId      String?
+  name           String
+  custodianId    String?
+  openingBalance Decimal  @default(0)
+  currentBalance Decimal  @default(0)
+  currency       String   @default("AED")
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  transactions   PettyCashTransaction[]
+  replenishments PettyCashReplenishment[]
+
+  @@index([tenantId])
+  @@index([companyId])
+}
+
+model PettyCashTransaction {
+  id              String   @id @default(cuid())
+  fundId          String
+  fund            PettyCashFund @relation(fields: [fundId], references: [id], onDelete: Cascade)
+  employeeId      String?
+  description     String
+  category        String   // Office Supplies, Travel, Meals, Fuel, Misc
+  amount          Decimal
+  transactionType String   @default("PAYMENT") // PAYMENT, RECEIPT
+  receiptUrl      String?
+  supplierId      String?
+  costCentreId    String?
+  costCentre      CostCentre? @relation(fields: [costCentreId], references: [id], onDelete: SetNull)
+  status          String   @default("PENDING") // PENDING, APPROVED, REJECTED, POSTED
+  approvedBy      String?
+  approvedAt      DateTime?
+  postedAt        DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([fundId, status])
+}
+
+model PettyCashReplenishment {
+  id              String   @id @default(cuid())
+  fundId          String
+  fund            PettyCashFund @relation(fields: [fundId], references: [id], onDelete: Cascade)
+  requestedAmount Decimal
+  approvedAmount  Decimal?
+  requestedBy     String
+  approvedBy      String?
+  status          String   @default("PENDING") // PENDING, APPROVED, REJECTED, PAID
+  paidAt          DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([fundId])
+}
+
+/// Supplier Master & Procurement Management
+model Supplier {
+  id              String   @id @default(cuid())
+  tenantId        String?
+  companyId       String?
+  name            String
+  contactPerson   String?
+  email           String?
+  phone           String?
+  address         String?
+  taxRegistration String?  // TRN (Tax Registration Number)
+  bankName        String?
+  bankAccount     String?
+  iban            String?
+  currency        String   @default("AED")
+  paymentTerms    String?  // NET_30, NET_60, IMMEDIATE, etc.
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  purchaseOrders  PurchaseOrder[]
+  invoices        SupplierInvoice[]
+  inventoryItems  InventoryItem[]
+
+  @@index([tenantId])
+  @@index([companyId])
+}
+
+model PurchaseRequisition {
+  id              String   @id @default(cuid())
+  tenantId        String?
+  companyId       String?
+  departmentId    String?
+  requestedBy     String   // employeeId
+  title           String
+  description     String?
+  estimatedAmount Decimal  @default(0)
+  budgetId        String?
+  budget          Budget?  @relation(fields: [budgetId], references: [id], onDelete: SetNull)
+  priority        String   @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  status          String   @default("PENDING") // PENDING, APPROVED, REJECTED, ORDERED, CANCELLED
+  approvedBy      String?
+  approvedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  items           PurchaseRequisitionItem[]
+  purchaseOrders  PurchaseOrder[]
+
+  @@index([tenantId, status])
+  @@index([companyId, status])
+}
+
+model PurchaseRequisitionItem {
+  id               String   @id @default(cuid())
+  requisitionId    String
+  requisition      PurchaseRequisition @relation(fields: [requisitionId], references: [id], onDelete: Cascade)
+  description      String
+  quantity         Int      @default(1)
+  unit             String   @default("PCS")
+  estimatedUnitCost Decimal @default(0)
+  totalCost        Decimal  @default(0)
+  category         String   @default("GENERAL")
+  notes            String?
+
+  @@index([requisitionId])
+}
+
+model PurchaseOrder {
+  id              String   @id @default(cuid())
+  tenantId        String?
+  companyId       String?
+  requisitionId   String?
+  requisition     PurchaseRequisition? @relation(fields: [requisitionId], references: [id], onDelete: SetNull)
+  supplierId      String
+  supplier        Supplier @relation(fields: [supplierId], references: [id])
+  orderNumber     String   @unique
+  title           String
+  status          String   @default("DRAFT") // DRAFT, SENT, CONFIRMED, PARTIAL_RECEIVED, RECEIVED, CANCELLED
+  totalAmount     Decimal  @default(0)
+  currency        String   @default("AED")
+  orderDate       DateTime @default(now())
+  expectedDelivery DateTime?
+  notes           String?
+  approvedBy      String?
+  approvedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  items           PurchaseOrderItem[]
+  goodsReceipts   GoodsReceipt[]
+  invoices        SupplierInvoice[]
+
+  @@index([tenantId, status])
+  @@index([companyId, status])
+}
+
+model PurchaseOrderItem {
+  id              String   @id @default(cuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  description     String
+  quantity        Int      @default(1)
+  unit            String   @default("PCS")
+  unitCost        Decimal  @default(0)
+  totalCost       Decimal  @default(0)
+  receivedQty     Int      @default(0)
+
+  goodsReceiptItems GoodsReceiptItem[]
+
+  @@index([purchaseOrderId])
+}
+
+model GoodsReceipt {
+  id              String   @id @default(cuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  receivedBy      String   // employeeId
+  receivedDate    DateTime @default(now())
+  notes           String?
+  status          String   @default("COMPLETE") // PENDING, PARTIAL, COMPLETE
+  createdAt       DateTime @default(now())
+
+  items           GoodsReceiptItem[]
+
+  @@index([purchaseOrderId])
+}
+
+model GoodsReceiptItem {
+  id                  String   @id @default(cuid())
+  goodsReceiptId      String
+  goodsReceipt        GoodsReceipt @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  purchaseOrderItemId String
+  purchaseOrderItem   PurchaseOrderItem @relation(fields: [purchaseOrderItemId], references: [id], onDelete: Cascade)
+  receivedQty         Int      @default(1)
+  condition           String   @default("GOOD") // GOOD, DAMAGED, REJECTED
+  notes               String?
+
+  @@index([goodsReceiptId])
+}
+
+model SupplierInvoice {
+  id              String   @id @default(cuid())
+  tenantId        String?
+  companyId       String?
+  supplierId      String
+  supplier        Supplier @relation(fields: [supplierId], references: [id])
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
+  invoiceNumber   String
+  invoiceDate     DateTime
+  dueDate         DateTime
+  amount          Decimal  @default(0)
+  vatAmount       Decimal  @default(0)
+  totalAmount     Decimal  @default(0)
+  currency        String   @default("AED")
+  status          String   @default("RECEIVED") // RECEIVED, VERIFIED, APPROVED, PAID, DISPUTED
+  paidAmount      Decimal  @default(0)
+  paidAt          DateTime?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId, status])
+  @@index([supplierId, status])
+}
+
+/// Office Supplies & Consumable Inventory
+model InventoryItem {
+  id             String   @id @default(cuid())
+  tenantId       String?
+  companyId      String?
+  sku            String
+  name           String
+  description    String?
+  category       String   // Stationery, Pantry, Cleaning, IT Accessories
+  unitOfMeasure  String   @default("PCS")
+  supplierId     String?
+  supplier       Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  unitCost       Decimal  @default(0)
+  currentStock   Int      @default(0)
+  minimumStock   Int      @default(5)
+  reorderPoint   Int      @default(10)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  stockMovements StockMovement[]
+  supplyItems    DepartmentSupplyRequestItem[]
+
+  @@unique([tenantId, sku])
+  @@index([tenantId, category])
+  @@index([companyId])
+}
+
+model StockMovement {
+  id              String   @id @default(cuid())
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  movementType    String   // RECEIPT, ISSUE, RETURN, ADJUSTMENT
+  quantity        Int
+  unitCost        Decimal?
+  referenceType   String?  // PO, SUPPLY_REQUEST, MANUAL_ADJUSTMENT
+  referenceId     String?
+  departmentId    String?
+  employeeId      String?
+  notes           String?
+  createdBy       String?
+  createdAt       DateTime @default(now())
+
+  @@index([inventoryItemId])
+}
+
+model DepartmentSupplyRequest {
+  id           String   @id @default(cuid())
+  tenantId     String?
+  companyId    String?
+  departmentId String?
+  requestedBy  String   // employeeId
+  status       String   @default("PENDING") // PENDING, APPROVED, ISSUED, REJECTED
+  notes        String?
+  approvedBy   String?
+  approvedAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  items        DepartmentSupplyRequestItem[]
+
+  @@index([tenantId, status])
+  @@index([departmentId, status])
+}
+
+model DepartmentSupplyRequestItem {
+  id             String   @id @default(cuid())
+  requestId      String
+  request        DepartmentSupplyRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  inventoryItemId String
+  inventoryItem  InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  requestedQty   Int      @default(1)
+  issuedQty      Int      @default(0)
+  notes          String?
+
+  @@index([requestId])
+}
+

@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import prisma from "@/lib/prisma";
 import { WorkforceAnalyticsDashboard } from "@/components/dashboard/WorkforceAnalyticsDashboard";
 import { StaffSelfServiceDashboard } from "@/components/dashboard/StaffSelfServiceDashboard";
+import { CompanyHierarchy } from "@/components/dashboard/CompanyHierarchy";
 
 export default async function DashboardPage() {
     const session = await auth();
@@ -573,17 +574,11 @@ export default async function DashboardPage() {
                         <CardHeader className="bg-slate-50/50 dark:bg-slate-900/20 px-4 sm:px-6 py-4 sm:py-6 border-b border-slate-100 dark:border-slate-800/60">
                             <div>
                                 <CardTitle className="text-lg font-bold">Company hierarchy</CardTitle>
-                                <CardDescription className="text-xs text-slate-500 font-bold uppercase tracking-wider">Top to bottom reporting structure</CardDescription>
+                                <CardDescription className="text-xs text-slate-500 font-bold uppercase tracking-wider">Department-wise directory & reporting</CardDescription>
                             </div>
                         </CardHeader>
                         <CardContent className="p-4 sm:p-6">
-                            <div className="space-y-4">
-                                {companyTree.length > 0 ? companyTree.map((root) => (
-                                    <HierarchyNode key={root.id} employee={root} />
-                                )) : (
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">No hierarchy data available yet.</p>
-                                )}
-                            </div>
+                            <CompanyHierarchy employees={allEmployees} />
                         </CardContent>
                     </Card>
                 </div>

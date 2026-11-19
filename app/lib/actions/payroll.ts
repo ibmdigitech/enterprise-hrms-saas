@@ -125,6 +125,26 @@ export async function generatePayroll(month: number, year: number) {
             });
             const overtimePay = overtimes.reduce((acc, curr) => acc + curr.totalPay, 0);
 
+            // 5️⃣ Travel allowance one‑off reimbursements (approved requests in this month)
+            const travelReqs = await prisma.travelAllowanceRequest.findMany({
+              where: {
+                employeeId: emp.id,
+                status: 'APPROVED',
+                requestedAt: { gte: startOfMonth, lte: endOfMonth },
+              },
+            });
+            const travelReimbursement = travelReqs.reduce((s, r) => s + Number(r.amount), 0);
+
+            // 6️⃣ General expense reimbursements (Fuel/Mobile/Medical etc.)
+            const reimbursementRows = await prisma.reimbursementRequest.findMany({
+                where: {
+                    employeeId: emp.id,
+                    status: 'APPROVED',
+                    createdAt: { gte: startOfMonth, lte: endOfMonth },
+                },
+            });
+            const reimbursementTotal = reimbursementRows.reduce((s, r) => s + r.amount, 0);
+
             // 4. Loan deduction - check pending installments for this month
             const pendingInstallments = await prisma.loanInstallment.findMany({
                 where: {
@@ -149,7 +169,7 @@ export async function generatePayroll(month: number, year: number) {
             const bonus = 0;
             
             const totalDeductions = latePenalty + leaveDeduction + loanDeduction + advanceSalary + penalty + otherDeductions;
-            const netSalary = struct.basic + totalAllowances + overtimePay + bonus - totalDeductions;
+            const netSalary = struct.basic + totalAllowances + overtimePay + travelReimbursement + reimbursementTotal + bonus - totalDeductions;
 
             records.push({
                 employeeId: emp.id,
@@ -170,6 +190,8 @@ export async function generatePayroll(month: number, year: number) {
                 advanceSalary,
                 otherDeductions,
                 overtimePay,
+                travelReimbursement,
+                reimbursementTotal,
                 bonus,
                 netSalary,
                 status: "DRAFT",

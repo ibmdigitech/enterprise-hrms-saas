@@ -33,3 +33,41 @@ export async function togglePlanActiveAction(planId: string, isActive: boolean) 
   return { success: true };
 }
 
+export async function updatePlanAction(
+  planId: string,
+  data: Partial<{
+    displayName: string;
+    description: string;
+    priceMonthly: number;
+    priceAnnual: number;
+    maxEmployees: number;
+    maxCompanies: number;
+    maxLocations: number;
+    hasPayroll: boolean;
+    hasCompliance: boolean;
+    hasRecruitment: boolean;
+    hasCustomTheme: boolean;
+    hasApiAccess: boolean;
+    isPopular: boolean;
+    features: any;
+  }>
+) {
+  await requireSuperAdmin("platform.plans.manage");
+
+  const updated = await prisma.subscriptionPlan.update({
+    where: { id: planId },
+    data: {
+      ...data,
+      ...(data.priceMonthly !== undefined ? { priceMonthly: Number(data.priceMonthly) } : {}),
+      ...(data.priceAnnual !== undefined ? { priceAnnual: Number(data.priceAnnual) } : {}),
+      ...(data.maxEmployees !== undefined ? { maxEmployees: Number(data.maxEmployees) } : {}),
+      ...(data.maxCompanies !== undefined ? { maxCompanies: Number(data.maxCompanies) } : {}),
+      ...(data.maxLocations !== undefined ? { maxLocations: Number(data.maxLocations) } : {}),
+    },
+  });
+
+  revalidatePath("/super-admin/plans");
+  revalidatePath("/settings/billing");
+  return { success: true, plan: updated };
+}
+

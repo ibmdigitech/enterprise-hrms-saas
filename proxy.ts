@@ -24,7 +24,7 @@ export default auth((req) => {
     }
 
     if (isPublicPath(pathname)) {
-        if (session?.user) {
+        if (session?.user && pathname !== "/account/change-password") {
             const role = (session.user as { role?: string })?.role;
             const dest = role === "SUPER_ADMIN" ? "/super-admin/dashboard" : "/dashboard";
             return NextResponse.redirect(new URL(dest, req.nextUrl));

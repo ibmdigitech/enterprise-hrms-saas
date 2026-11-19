@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import { requireSuperAdmin } from "@/lib/auth/guards";
+import { revalidatePath } from "next/cache";
 
 export interface InvoiceFilterParams {
   page?: number;
@@ -29,7 +30,7 @@ export async function getBillingOverviewAction(params: InvoiceFilterParams = {})
     where.status = status;
   }
 
-  const [invoices, total, transactions, stats] = await Promise.all([
+  const [invoices, total, transactions, stats, tenants] = await Promise.all([
     prisma.subscriptionInvoice.findMany({
       where,
       skip,
@@ -60,6 +61,15 @@ export async function getBillingOverviewAction(params: InvoiceFilterParams = {})
       _sum: { totalAmount: true },
       _count: { _all: true },
     }),
+    prisma.tenant.findMany({
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        currency: true,
+      },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   let totalCollected = 0;
@@ -80,6 +90,7 @@ export async function getBillingOverviewAction(params: InvoiceFilterParams = {})
     limit,
     totalPages: Math.ceil(total / limit),
     transactions,
+    tenants,
     revenue: {
       totalCollected: Math.round(totalCollected),
       pendingAmount: Math.round(pendingAmount),
@@ -88,3 +99,63 @@ export async function getBillingOverviewAction(params: InvoiceFilterParams = {})
   };
 }
 
+export async function createBillingInvoiceAction(data: {
+  tenantId: string;
+  amount: number;
+  notes: string;
+  status?: string;
+  paymentMethod?: string;
+}) {
+  await requireSuperAdmin("platform.billing.manage");
+
+  const now = new Date();
+  const periodEnd = new Date(now);
+  periodEnd.setMonth(now.getMonth() + 1);
+
+  const price = Number(data.amount) || 0;
+  const taxAmount = Math.round(price * 0.05 * 100) / 100;
+  const totalAmount = Math.round(price * 1.05 * 100) / 100;
+  const invoiceNumber = `INV-${Date.now().toString().slice(-6)}-GEN`;
+  const status = data.status || "PAID";
+
+  const invoice = await prisma.subscriptionInvoice.create({
+    data: {
+      tenantId: data.tenantId,
+      invoiceNumber,
+      amount: price,
+      taxAmount,
+      totalAmount,
+      currency: "AED",
+      status,
+      billingPeriodStart: now,
+      billingPeriodEnd: periodEnd,
+      dueDate: now,
+      paidAt: status === "PAID" ? now : null,
+      paymentMethod: data.paymentMethod || "CARD",
+      notes: data.notes || "Enterprise Subscription & Modules Billing",
+    },
+    include: {
+      tenant: { select: { name: true, slug: true } },
+    },
+  });
+
+  if (status === "PAID") {
+    await prisma.paymentTransaction.create({
+      data: {
+        tenantId: data.tenantId,
+        invoiceId: invoice.id,
+        amount: totalAmount,
+        currency: "AED",
+        status: "SUCCESS",
+        gateway: "MANUAL",
+        transactionRef: `tx_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        paymentMethodType: "CARD",
+        lastFour: "4242",
+      },
+    });
+  }
+
+  revalidatePath("/super-admin/billing");
+  revalidatePath("/settings/billing");
+  return { success: true, invoice };
+}

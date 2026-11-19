@@ -1,24 +1,36 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+const { PrismaClient } = require('../prisma/generated/client');
+const prisma = new PrismaClient({
+    datasources: {
+        db: {
+            url: process.env.DATABASE_URL
+        }
+    }
+});
 
 async function main() {
+    const users = await prisma.user.findMany({
+        where: {
+            OR: [
+                { email: { contains: "admin" } },
+                { role: { in: ["ADMIN", "SUPER_ADMIN", "COMPANY_ADMIN"] } }
+            ]
+        },
+        select: { id: true, email: true, role: true, password: true }
+    });
+    console.log("Admin users found:");
+    for (const u of users) {
+        console.log(`Email: ${u.email}, Role: ${u.role}, PasswordHash: ${u.password ? u.password.substring(0, 15) + '...' : 'NULL'}`);
+    }
+
+    // Also check PlatformUser table if it exists
     try {
-        const users = await prisma.user.findMany({
-            select: {
-                id: true,
-                email: true,
-                password: true,
-                role: true,
-                name: true
-            }
-        });
-        console.log('--- USER ACCOUNTS ---');
-        console.log(JSON.stringify(users, null, 2));
-    } catch (error) {
-        console.error('Error fetching users:', error);
-    } finally {
-        await prisma.$disconnect();
+        const platformUsers = await prisma.platformUser.findMany();
+        console.log("Platform Users:", platformUsers.map(p => ({ email: p.email, role: p.role, hasHash: !!p.passwordHash })));
+    } catch (e) {
+        console.log("No PlatformUser or error:", e.message);
     }
 }
 
-main();
+main().catch(console.error).finally(() => prisma.$disconnect());
