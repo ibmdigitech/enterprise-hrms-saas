@@ -177,5 +177,179 @@ export function getAuthorizedAITools(ctx: AIContext) {
                 });
             },
         }),
+
+        // Tool 4: Salary & Payslip Inquiries
+        getMySalaryOverview: tool({
+            description: "Check the current employee's recent salary records, payslips, and compensation breakdown.",
+            inputSchema: z.object({
+                year: z.number().optional().describe("Year to query, defaults to current or previous year"),
+            }),
+            execute: async ({ year }) => {
+                if (!ctx.employeeId) {
+                    return JSON.stringify({ error: "No employee profile linked to current user." });
+                }
+
+                const queryYear = year || new Date().getFullYear();
+                const records = await prisma.salaryRecord.findMany({
+                    where: {
+                        employeeId: ctx.employeeId,
+                        year: queryYear,
+                    },
+                    orderBy: [{ year: "desc" }, { month: "desc" }],
+                    take: 6,
+                });
+
+                if (records.length === 0) {
+                    return JSON.stringify({
+                        message: `No salary records found for year ${queryYear}.`,
+                        records: [],
+                    });
+                }
+
+                return JSON.stringify({
+                    year: queryYear,
+                    recordsCount: records.length,
+                    latestRecord: {
+                        month: records[0].month,
+                        year: records[0].year,
+                        basic: records[0].basic,
+                        allowances: records[0].housingAllowance + records[0].transportAllowance + records[0].medicalAllowance + records[0].otherAllowances,
+                        deductions: records[0].penalty + records[0].leaveDeduction + records[0].loanDeduction + records[0].otherDeductions,
+                        netSalary: records[0].netSalary,
+                    },
+                    history: records.map((r) => ({
+                        month: r.month,
+                        year: r.year,
+                        netSalary: r.netSalary,
+                        basic: r.basic,
+                    })),
+                });
+            },
+        }),
+
+        // Tool 5: Active Loans & Advance Salary Status
+        getMyLoansSummary: tool({
+            description: "Check active employee loan applications, remaining installments, and salary advances.",
+            inputSchema: z.object({}),
+            execute: async () => {
+                if (!ctx.employeeId) {
+                    return JSON.stringify({ error: "No employee profile linked to current user." });
+                }
+
+                const loans = await prisma.loanApplication.findMany({
+                    where: { employeeId: ctx.employeeId },
+                    include: {
+                        loanType: { select: { name: true } },
+                        installments: {
+                            where: { status: "PENDING" },
+                            orderBy: [{ year: "asc" }, { month: "asc" }],
+                        },
+                    },
+                    orderBy: { createdAt: "desc" },
+                    take: 5,
+                });
+
+                return JSON.stringify({
+                    totalApplications: loans.length,
+                    applications: loans.map((l) => ({
+                        id: l.id,
+                        type: l.loanType?.name || "General Loan",
+                        amount: l.requestedAmount,
+                        status: l.status,
+                        repaymentMonths: l.repaymentMonths,
+                        pendingInstallments: l.installments.length,
+                        nextDue: l.installments[0]
+                            ? `${l.installments[0].year}-${String(l.installments[0].month).padStart(2, "0")} (${l.installments[0].amount} AED)`
+                            : null,
+                    })),
+                });
+            },
+        }),
+
+        // Tool 6: Training & Skill Development Catalog
+        getTrainingCatalog: tool({
+            description: "Explore available training courses, upcoming sessions, or enrolled training programs.",
+            inputSchema: z.object({
+                category: z.string().optional().describe("Filter by category (e.g., Compliance, Safety, Technical)"),
+            }),
+            execute: async ({ category }) => {
+                const where: Record<string, unknown> = { status: "PUBLISHED" };
+                if (ctx.tenantId) where.tenantId = ctx.tenantId;
+                if (category) where.category = category.toUpperCase();
+
+                const courses = await prisma.trainingCourse.findMany({
+                    where,
+                    select: {
+                        id: true,
+                        title: true,
+                        description: true,
+                        category: true,
+                        level: true,
+                        durationHours: true,
+                        sessions: {
+                            where: { status: "SCHEDULED" },
+                            select: { id: true, startDate: true, maxParticipants: true },
+                            take: 2,
+                        },
+                    },
+                    take: 10,
+                });
+
+                return JSON.stringify({
+                    totalCourses: courses.length,
+                    courses: courses.map((c) => ({
+                        id: c.id,
+                        title: c.title,
+                        category: c.category,
+                        level: c.level,
+                        durationHours: c.durationHours,
+                        upcomingSessions: c.sessions.map((s) => ({
+                            id: s.id,
+                            startDate: s.startDate.toISOString().split("T")[0],
+                            maxParticipants: s.maxParticipants,
+                        })),
+                    })),
+                });
+            },
+        }),
+
+        // Tool 7: Support & Helpdesk Tickets
+        getMySupportTickets: tool({
+            description: "Retrieve open or recent support and HR helpdesk tickets for this employee.",
+            inputSchema: z.object({
+                status: z.string().optional().describe("Filter by status: OPEN, IN_PROGRESS, RESOLVED, CLOSED"),
+            }),
+            execute: async ({ status }) => {
+                const where: Record<string, unknown> = {};
+                if (ctx.tenantId) where.tenantId = ctx.tenantId;
+                if (status) where.status = status;
+
+                const tickets = await prisma.supportTicket.findMany({
+                    where,
+                    orderBy: { createdAt: "desc" },
+                    take: 6,
+                    select: {
+                        id: true,
+                        subject: true,
+                        status: true,
+                        priority: true,
+                        category: true,
+                        createdAt: true,
+                    },
+                });
+
+                return JSON.stringify({
+                    ticketsCount: tickets.length,
+                    tickets: tickets.map((t) => ({
+                        id: t.id,
+                        subject: t.subject,
+                        status: t.status,
+                        priority: t.priority,
+                        category: t.category,
+                        created: t.createdAt.toISOString().split("T")[0],
+                    })),
+                });
+            },
+        }),
     };
 }

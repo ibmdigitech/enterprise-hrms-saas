@@ -41,6 +41,9 @@ export function AIChatDrawer({ userRole, userName }: Props) {
 
     const starterPrompts = [
         "What is my leave balance?",
+        "Show my latest salary breakdown",
+        "Check my active loan or advance requests",
+        "What training courses are available?",
         ...(isHR
             ? ["Show employees with visas expiring in 60 days", "Summarize today's attendance"]
             : ["How do I request a salary certificate?"]),

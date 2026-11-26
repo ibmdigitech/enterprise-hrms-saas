@@ -35,45 +35,74 @@ export interface AIUsage {
     remainingRequests: number;
 }
 
-async function getCompanyAIConfig(): Promise<AIConfig | null> {
-    const subscription = await prisma.companySubscription.findFirst({
-        where: { status: { in: ["ACTIVE", "TRIAL"] } },
-        include: { plan: true }
-    });
+async function getCompanyAIConfig(tenantId?: string | null): Promise<AIConfig | null> {
+    // 1. Try finding tenant-specific subscription first
+    let planFeatures: Record<string, unknown> | null = null;
 
-    if (!subscription?.plan?.features) return null;
+    if (tenantId) {
+        const tenantSub = await prisma.tenantSubscription.findUnique({
+            where: { tenantId },
+            include: { plan: true },
+        });
+        if (tenantSub?.plan?.features) {
+            planFeatures = tenantSub.plan.features as Record<string, unknown>;
+        }
+    }
 
-    const features = subscription.plan.features as Record<string, unknown>;
-    const aiConfig = features.ai as Record<string, unknown> | undefined;
+    // 2. Fallback to active company subscription or general plan
+    if (!planFeatures) {
+        const subscription = await prisma.companySubscription.findFirst({
+            where: { status: { in: ["ACTIVE", "TRIAL"] } },
+            include: { plan: true },
+        });
+        if (subscription?.plan?.features) {
+            planFeatures = subscription.plan.features as Record<string, unknown>;
+        }
+    }
 
-    if (!aiConfig?.enabled) return null;
+    // 3. Fallback: Check if ANY active plan or default config exists
+    if (!planFeatures) {
+        const defaultPlan = await prisma.subscriptionPlan.findFirst({
+            where: { isActive: true },
+            orderBy: { sortOrder: "desc" },
+        });
+        if (defaultPlan?.features) {
+            planFeatures = defaultPlan.features as Record<string, unknown>;
+        }
+    }
 
-    const aiFeatures = (aiConfig.features as Record<string, boolean>) || {};
-    const aiLimits = (aiConfig.limits as Record<string, number>) || {};
+    const aiConfig = (planFeatures?.ai as Record<string, unknown> | undefined);
+
+    // If no explicit ai config exists in plan, provide sensible enterprise defaults enabled
+    const aiFeatures = (aiConfig?.features as Record<string, boolean>) || {};
+    const aiLimits = (aiConfig?.limits as Record<string, number>) || {};
+
+    const resolved = resolveAIProvider();
+    const defaultProvider = resolved?.provider === "google" ? "gemini" : (resolved?.provider === "anthropic" ? "anthropic" : "openai");
 
     return {
-        enabled: true,
-        provider: (aiConfig.provider as AIConfig["provider"]) || "openai",
-        model: (aiConfig.model as string) || "gpt-4o-mini",
+        enabled: aiConfig ? aiConfig.enabled !== false : true,
+        provider: (aiConfig?.provider as AIConfig["provider"]) || defaultProvider,
+        model: (aiConfig?.model as string) || (resolved?.modelName || "gpt-4o-mini"),
         features: {
-            smartSummaries: aiFeatures.smartSummaries === true,
-            autoLetterDrafting: aiFeatures.autoLetterDrafting === true,
-            leavePolicyAssistant: aiFeatures.leavePolicyAssistant === true,
-            payrollAnomalyDetection: aiFeatures.payrollAnomalyDetection === true,
-            employeeInsights: aiFeatures.employeeInsights === true,
-            recruitmentScreening: aiFeatures.recruitmentScreening === true,
-            attendancePatternAnalysis: aiFeatures.attendancePatternAnalysis === true,
-            complianceAdvisor: aiFeatures.complianceAdvisor === true,
+            smartSummaries: aiFeatures.smartSummaries !== false,
+            autoLetterDrafting: aiFeatures.autoLetterDrafting !== false,
+            leavePolicyAssistant: aiFeatures.leavePolicyAssistant !== false,
+            payrollAnomalyDetection: aiFeatures.payrollAnomalyDetection !== false,
+            employeeInsights: aiFeatures.employeeInsights !== false,
+            recruitmentScreening: aiFeatures.recruitmentScreening !== false,
+            attendancePatternAnalysis: aiFeatures.attendancePatternAnalysis !== false,
+            complianceAdvisor: aiFeatures.complianceAdvisor !== false,
         },
         limits: {
-            monthlyTokens: aiLimits.monthlyTokens || 0,
-            monthlyRequests: aiLimits.monthlyRequests || 0,
-        }
+            monthlyTokens: aiLimits.monthlyTokens || 500000,
+            monthlyRequests: aiLimits.monthlyRequests || 5000,
+        },
     };
 }
 
-async function getCurrentUsage(): Promise<AIUsage> {
-    const config = await getCompanyAIConfig();
+async function getCurrentUsage(tenantId?: string | null): Promise<AIUsage> {
+    const config = await getCompanyAIConfig(tenantId);
     if (!config) {
         return { tokensUsed: 0, requestsMade: 0, tokensLimit: 0, requestsLimit: 0, remainingTokens: 0, remainingRequests: 0 };
     }
@@ -82,19 +111,40 @@ async function getCurrentUsage(): Promise<AIUsage> {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
+    // Check modern AIUsageLog if tenant is known
+    if (tenantId) {
+        const aiLogs = await prisma.aIUsageLog.aggregate({
+            where: {
+                tenantId,
+                createdAt: { gte: startOfMonth, lte: endOfMonth },
+            },
+            _sum: { totalTokens: true },
+            _count: true,
+        });
+
+        const tokensUsed = aiLogs._sum.totalTokens || 0;
+        const requestsMade = aiLogs._count || 0;
+
+        return {
+            tokensUsed,
+            requestsMade,
+            tokensLimit: config.limits.monthlyTokens,
+            requestsLimit: config.limits.monthlyRequests,
+            remainingTokens: Math.max(0, config.limits.monthlyTokens - tokensUsed),
+            remainingRequests: Math.max(0, config.limits.monthlyRequests - requestsMade),
+        };
+    }
+
     const usageLogs = await prisma.subscriptionUsageLog.findMany({
         where: {
-            subscriptionId: (await prisma.companySubscription.findFirst({
-                where: { status: { in: ["ACTIVE", "TRIAL"] } }
-            }))?.id,
             featureKey: "ai",
-            createdAt: { gte: startOfMonth, lte: endOfMonth }
-        }
+            createdAt: { gte: startOfMonth, lte: endOfMonth },
+        },
     });
 
     const tokensUsed = usageLogs.reduce((sum, log) => {
         const meta = log.metadata as Record<string, unknown> | null;
-        return sum + (meta?.tokens as number || 0);
+        return sum + (meta?.tokens as number || log.tokensUsed || 0);
     }, 0);
     const requestsMade = usageLogs.length;
 
@@ -104,46 +154,93 @@ async function getCurrentUsage(): Promise<AIUsage> {
         tokensLimit: config.limits.monthlyTokens,
         requestsLimit: config.limits.monthlyRequests,
         remainingTokens: Math.max(0, config.limits.monthlyTokens - tokensUsed),
-        remainingRequests: Math.max(0, config.limits.monthlyRequests - requestsMade)
+        remainingRequests: Math.max(0, config.limits.monthlyRequests - requestsMade),
     };
 }
 
-async function checkAILimits(feature: string): Promise<{ allowed: boolean; reason?: string }> {
-    const config = await getCompanyAIConfig();
-    if (!config) return { allowed: false, reason: "AI not enabled for current plan" };
+async function checkAILimits(feature: string, tenantId?: string | null): Promise<{ allowed: boolean; reason?: string }> {
+    const config = await getCompanyAIConfig(tenantId);
+    if (!config || !config.enabled) return { allowed: false, reason: "AI not enabled for current plan" };
 
     if (!config.features[feature as keyof typeof config.features]) {
         return { allowed: false, reason: `Feature ${feature} not enabled in current plan` };
     }
 
-    const usage = await getCurrentUsage();
-    if (usage.requestsMade >= usage.requestsLimit) {
+    const usage = await getCurrentUsage(tenantId);
+    if (usage.requestsLimit > 0 && usage.requestsMade >= usage.requestsLimit) {
         return { allowed: false, reason: "Monthly request limit reached" };
     }
-    if (usage.tokensUsed >= usage.tokensLimit) {
+    if (usage.tokensLimit > 0 && usage.tokensUsed >= usage.tokensLimit) {
         return { allowed: false, reason: "Monthly token limit reached" };
     }
 
     return { allowed: true };
 }
 
-async function recordAIUsage(tokens: number, feature: string, metadata: Record<string, unknown> = {}) {
-    const subscription = await prisma.companySubscription.findFirst({
-        where: { status: { in: ["ACTIVE", "TRIAL"] } }
-    });
+async function recordAIUsage(
+    tokens: number,
+    feature: string,
+    metadata: Record<string, unknown> = {},
+    tenantId?: string | null,
+    userId?: string | null
+) {
+    try {
+        const resolved = resolveAIProvider();
+        const providerName = resolved?.provider?.toUpperCase() || "OPENAI";
+        const modelName = resolved?.modelName || "gpt-4o-mini";
 
-if (subscription) {
-        await prisma.subscriptionUsageLog.create({
-            data: {
-                subscriptionId: subscription.id,
-                featureKey: "ai",
-                tokensUsed: tokens,
-                requestsCount: 1,
-                periodStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-                periodEnd: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
-                metadata: { tokens, ...metadata }
-            }
+        // Log to comprehensive modern AIUsageLog if tenant is available
+        if (tenantId) {
+            const costAed = (tokens / 1000) * 0.015;
+            await prisma.aIUsageLog.create({
+                data: {
+                    tenantId,
+                    userId: userId || undefined,
+                    aiModuleKey: feature,
+                    provider: providerName,
+                    model: modelName,
+                    totalTokens: tokens,
+                    promptTokens: Math.round(tokens * 0.4),
+                    completionTokens: Math.round(tokens * 0.6),
+                    estimatedCostAed: costAed,
+                    actionName: feature,
+                },
+            });
+
+            // Update budget tracker
+            await prisma.aICompanyBudget.upsert({
+                where: { tenantId },
+                update: {
+                    currentSpendAed: { increment: costAed },
+                },
+                create: {
+                    tenantId,
+                    currentSpendAed: costAed,
+                    monthlyBudgetAed: 500,
+                },
+            });
+        }
+
+        // Backward compatibility: log to subscriptionUsageLog if exists
+        const subscription = await prisma.companySubscription.findFirst({
+            where: { status: { in: ["ACTIVE", "TRIAL"] } },
         });
+
+        if (subscription) {
+            await prisma.subscriptionUsageLog.create({
+                data: {
+                    subscriptionId: subscription.id,
+                    featureKey: "ai",
+                    tokensUsed: tokens,
+                    requestsCount: 1,
+                    periodStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+                    periodEnd: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
+                    metadata: { tokens, ...metadata },
+                },
+            });
+        }
+    } catch (e) {
+        console.warn("[RECORD_AI_USAGE_WARN]", e);
     }
 }
 
