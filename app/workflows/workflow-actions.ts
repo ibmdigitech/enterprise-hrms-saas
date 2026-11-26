@@ -1,15 +1,23 @@
 "use server";
 
-import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requirePermission } from "@/lib/auth/guards";
+import { PERMISSIONS } from "@/lib/auth/permissions";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+export type WorkflowStepConfig = {
+  triggerEvent?: string;
+  fields?: Array<{
+    id: string;
+    type: string;
+    label: string;
+    required?: boolean;
+  }>;
+  conditionExpr?: string;
+};
 
 export type WorkflowStepInput = {
-  id?: string;
+  id: string;
   name: string;
   description?: string | null;
   stepType?: string;
@@ -20,17 +28,16 @@ export type WorkflowStepInput = {
   orderIndex?: number;
   isStart?: boolean;
   isEnd?: boolean;
-  config?: object | null;
-  permissions?: object | null;
+  config?: WorkflowStepConfig | null;
+  permissions?: { readOnly: boolean; editable: boolean; hidden: boolean } | null;
 };
 
 export type WorkflowEdgeInput = {
-  id?: string;
+  id: string;
   fromStepId: string;
   toStepId: string;
   label?: string | null;
   condition?: string | null;
-  templateId?: string;
 };
 
 export type CreateWorkflowTemplateData = {
@@ -38,7 +45,6 @@ export type CreateWorkflowTemplateData = {
   name: string;
   description?: string | null;
   category?: string;
-  createdBy: string;
 };
 
 export type UpdateWorkflowTemplateData = {
@@ -46,53 +52,44 @@ export type UpdateWorkflowTemplateData = {
   description?: string | null;
   category?: string;
   isActive?: boolean;
-  updatedBy?: string;
   steps?: WorkflowStepInput[];
   edges?: WorkflowEdgeInput[];
 };
 
-// ---------------------------------------------------------------------------
-// Get all workflow templates for a tenant
-// ---------------------------------------------------------------------------
-export async function getWorkflowTemplatesAction(tenantId: string) {
-  const session = await auth();
-  if (!session?.user) {
-    return { error: "Unauthorized" };
+function assertTenantMatch(actorRole: string, actorTenantId: string | null, targetTenantId: string) {
+  if (actorRole === "SUPER_ADMIN") return;
+  if (!actorTenantId || actorTenantId !== targetTenantId) {
+    throw new Error("Unauthorized access to this organization's workflow.");
   }
+}
 
+export async function getWorkflowTemplatesAction(tenantId: string) {
   try {
+    const actor = await requirePermission(PERMISSIONS.WORKFLOW_VIEW);
+    assertTenantMatch(actor.role, actor.tenantId, tenantId);
+
     const templates = await prisma.workflowTemplate.findMany({
       where: { tenantId },
       include: {
         _count: { select: { steps: true, runs: true } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { updatedAt: "desc" },
     });
     return { data: templates };
   } catch (error) {
     console.error("[getWorkflowTemplatesAction]", error);
-    return { error: "Failed to fetch workflow templates" };
+    return { error: error instanceof Error ? error.message : "Failed to fetch workflow templates" };
   }
 }
 
-// ---------------------------------------------------------------------------
-// Get a single workflow template with steps and edges
-// ---------------------------------------------------------------------------
 export async function getWorkflowTemplateAction(id: string) {
-  const session = await auth();
-  if (!session?.user) {
-    return { error: "Unauthorized" };
-  }
-
   try {
+    const actor = await requirePermission(PERMISSIONS.WORKFLOW_VIEW);
+
     const template = await prisma.workflowTemplate.findUnique({
       where: { id },
       include: {
         steps: {
-          include: {
-            fromEdges: true,
-            toEdges: true,
-          },
           orderBy: { orderIndex: "asc" },
         },
         runs: {
@@ -109,32 +106,31 @@ export async function getWorkflowTemplateAction(id: string) {
       return { error: "Workflow template not found" };
     }
 
-    return { data: template };
+    assertTenantMatch(actor.role, actor.tenantId, template.tenantId);
+
+    const edges = await prisma.workflowEdge.findMany({
+      where: { templateId: id },
+    });
+
+    return { data: { template, edges } };
   } catch (error) {
     console.error("[getWorkflowTemplateAction]", error);
-    return { error: "Failed to fetch workflow template" };
+    return { error: error instanceof Error ? error.message : "Failed to fetch workflow template" };
   }
 }
 
-// ---------------------------------------------------------------------------
-// Create a new workflow template
-// ---------------------------------------------------------------------------
-export async function createWorkflowTemplateAction(
-  data: CreateWorkflowTemplateData
-) {
-  const session = await auth();
-  if (!session?.user) {
-    return { error: "Unauthorized" };
-  }
-
+export async function createWorkflowTemplateAction(data: CreateWorkflowTemplateData) {
   try {
+    const actor = await requirePermission(PERMISSIONS.WORKFLOW_MANAGE);
+    assertTenantMatch(actor.role, actor.tenantId, data.tenantId);
+
     const template = await prisma.workflowTemplate.create({
       data: {
         tenantId: data.tenantId,
-        name: data.name,
+        name: data.name.trim() || "New Workflow",
         description: data.description ?? null,
         category: data.category ?? "ONBOARDING",
-        createdBy: data.createdBy,
+        createdBy: actor.id,
       },
     });
 
@@ -142,31 +138,42 @@ export async function createWorkflowTemplateAction(
     return { data: template };
   } catch (error) {
     console.error("[createWorkflowTemplateAction]", error);
-    return { error: "Failed to create workflow template" };
+    return { error: error instanceof Error ? error.message : "Failed to create workflow template" };
   }
 }
 
-// ---------------------------------------------------------------------------
-// Update workflow template — saves canvas state (steps + edges)
-// ---------------------------------------------------------------------------
 export async function updateWorkflowTemplateAction(
   id: string,
   data: UpdateWorkflowTemplateData
 ) {
-  const session = await auth();
-  if (!session?.user) {
-    return { error: "Unauthorized" };
-  }
-
   try {
+    const actor = await requirePermission(PERMISSIONS.WORKFLOW_MANAGE);
+
+    const existing = await prisma.workflowTemplate.findUnique({
+      where: { id },
+      select: { id: true, tenantId: true },
+    });
+    if (!existing) {
+      return { error: "Workflow template not found" };
+    }
+    assertTenantMatch(actor.role, actor.tenantId, existing.tenantId);
+
     const { steps, edges, ...templateFields } = data;
 
+    // Ensure globally unique step & edge IDs scoped to this template
+    const stepIdMap = new Map<string, string>();
+    const normalizeStepId = (rawId: string) => {
+      if (stepIdMap.has(rawId)) return stepIdMap.get(rawId)!;
+      const scoped = rawId.startsWith(`${id}_`) ? rawId : `${id}_${rawId}`;
+      stepIdMap.set(rawId, scoped);
+      return scoped;
+    };
+
     const updated = await prisma.$transaction(async (tx: any) => {
-      // Update template metadata
       const template = await tx.workflowTemplate.update({
         where: { id },
         data: {
-          ...(templateFields.name !== undefined && { name: templateFields.name }),
+          ...(templateFields.name !== undefined && { name: templateFields.name.trim() || "Untitled Workflow" }),
           ...(templateFields.description !== undefined && {
             description: templateFields.description,
           }),
@@ -176,16 +183,12 @@ export async function updateWorkflowTemplateAction(
           ...(templateFields.isActive !== undefined && {
             isActive: templateFields.isActive,
           }),
-          ...(templateFields.updatedBy !== undefined && {
-            updatedBy: templateFields.updatedBy,
-          }),
+          updatedBy: actor.id,
           version: { increment: 1 },
         },
       });
 
-      // If canvas data provided, replace steps and edges
       if (steps !== undefined) {
-        // Delete all existing edges and steps
         await tx.workflowEdge.deleteMany({
           where: { templateId: id },
         });
@@ -193,13 +196,12 @@ export async function updateWorkflowTemplateAction(
           where: { templateId: id },
         });
 
-        // Re-create steps
         if (steps.length > 0) {
           await tx.workflowStep.createMany({
             data: steps.map((s, idx) => ({
-              id: s.id,
+              id: normalizeStepId(s.id),
               templateId: id,
-              name: s.name,
+              name: s.name || "Untitled Step",
               description: s.description ?? null,
               stepType: s.stepType ?? "USER",
               assigneeType: s.assigneeType ?? "USER",
@@ -209,24 +211,29 @@ export async function updateWorkflowTemplateAction(
               orderIndex: s.orderIndex ?? idx,
               isStart: s.isStart ?? false,
               isEnd: s.isEnd ?? false,
-              config: (s.config as any) ?? undefined,
-              permissions: (s.permissions as any) ?? undefined,
+              config: (s.config as object) ?? undefined,
+              permissions: (s.permissions as object) ?? undefined,
             })),
           });
         }
 
-        // Re-create edges
         if (edges && edges.length > 0) {
-          await tx.workflowEdge.createMany({
-            data: edges.map((e) => ({
-              id: e.id,
+          const validEdgeRows = edges
+            .filter((e) => stepIdMap.has(e.fromStepId) && stepIdMap.has(e.toStepId))
+            .map((e, idx) => ({
+              id: e.id.startsWith(`${id}_`) ? e.id : `${id}_edge_${idx}_${Date.now()}`,
               templateId: id,
-              fromStepId: e.fromStepId,
-              toStepId: e.toStepId,
+              fromStepId: stepIdMap.get(e.fromStepId)!,
+              toStepId: stepIdMap.get(e.toStepId)!,
               label: e.label ?? null,
               condition: e.condition ?? null,
-            })),
-          });
+            }));
+
+          if (validEdgeRows.length > 0) {
+            await tx.workflowEdge.createMany({
+              data: validEdgeRows,
+            });
+          }
         }
       }
 
@@ -235,65 +242,112 @@ export async function updateWorkflowTemplateAction(
 
     revalidatePath("/workflows");
     revalidatePath(`/workflows/${id}`);
-    return { data: updated };
+    return { data: updated, success: true };
   } catch (error) {
     console.error("[updateWorkflowTemplateAction]", error);
-    return { error: "Failed to update workflow template" };
+    return { error: error instanceof Error ? error.message : "Failed to update workflow template" };
   }
 }
 
-// ---------------------------------------------------------------------------
-// Delete a workflow template (cascades to steps, edges, runs)
-// ---------------------------------------------------------------------------
 export async function deleteWorkflowTemplateAction(id: string) {
-  const session = await auth();
-  if (!session?.user) {
-    return { error: "Unauthorized" };
-  }
-
   try {
+    const actor = await requirePermission(PERMISSIONS.WORKFLOW_MANAGE);
+    const existing = await prisma.workflowTemplate.findUnique({
+      where: { id },
+      select: { tenantId: true },
+    });
+    if (!existing) {
+      return { error: "Workflow template not found" };
+    }
+    assertTenantMatch(actor.role, actor.tenantId, existing.tenantId);
+
     await prisma.workflowTemplate.delete({ where: { id } });
 
     revalidatePath("/workflows");
     return { success: true };
   } catch (error) {
     console.error("[deleteWorkflowTemplateAction]", error);
-    return { error: "Failed to delete workflow template" };
+    return { error: error instanceof Error ? error.message : "Failed to delete workflow template" };
   }
 }
 
-// ---------------------------------------------------------------------------
-// Toggle published state
-// ---------------------------------------------------------------------------
 export async function publishWorkflowTemplateAction(id: string) {
-  const session = await auth();
-  if (!session?.user) {
-    return { error: "Unauthorized" };
-  }
-
   try {
+    const actor = await requirePermission(PERMISSIONS.WORKFLOW_MANAGE);
     const template = await prisma.workflowTemplate.findUnique({
       where: { id },
-      select: { isPublished: true },
+      select: { isPublished: true, tenantId: true },
     });
 
     if (!template) {
       return { error: "Workflow template not found" };
     }
+    assertTenantMatch(actor.role, actor.tenantId, template.tenantId);
 
     const updated = await prisma.workflowTemplate.update({
       where: { id },
       data: {
         isPublished: !template.isPublished,
-        updatedBy: session.user.id ?? session.user.email ?? "system",
+        updatedBy: actor.id,
       },
     });
 
     revalidatePath("/workflows");
     revalidatePath(`/workflows/${id}`);
-    return { data: updated };
+    return { data: updated, success: true };
   } catch (error) {
     console.error("[publishWorkflowTemplateAction]", error);
-    return { error: "Failed to toggle publish state" };
+    return { error: error instanceof Error ? error.message : "Failed to toggle publish state" };
+  }
+}
+
+export async function runWorkflowTemplateAction(id: string, entityType = "MANUAL_TRIGGER") {
+  try {
+    const actor = await requirePermission(PERMISSIONS.WORKFLOW_RUN);
+    const template = await prisma.workflowTemplate.findUnique({
+      where: { id },
+      include: {
+        steps: { orderBy: { orderIndex: "asc" } },
+      },
+    });
+
+    if (!template) {
+      return { error: "Workflow template not found" };
+    }
+    assertTenantMatch(actor.role, actor.tenantId, template.tenantId);
+
+    const run = await prisma.$transaction(async (tx: any) => {
+      const createdRun = await tx.workflowRun.create({
+        data: {
+          templateId: template.id,
+          tenantId: template.tenantId,
+          triggeredBy: actor.id,
+          entityType,
+          status: "ACTIVE",
+        },
+      });
+
+      if (template.steps.length > 0) {
+        await tx.workflowRunStep.createMany({
+          data: template.steps.map((step, idx) => ({
+            runId: createdRun.id,
+            stepId: step.id,
+            status: idx === 0 ? "COMPLETED" : idx === 1 ? "IN_PROGRESS" : "PENDING",
+            startedAt: idx <= 1 ? new Date() : null,
+            completedAt: idx === 0 ? new Date() : null,
+            completedBy: idx === 0 ? actor.id : null,
+          })),
+        });
+      }
+
+      return createdRun;
+    });
+
+    revalidatePath("/workflows");
+    revalidatePath(`/workflows/${id}`);
+    return { data: run, success: true };
+  } catch (error) {
+    console.error("[runWorkflowTemplateAction]", error);
+    return { error: error instanceof Error ? error.message : "Failed to run workflow" };
   }
 }

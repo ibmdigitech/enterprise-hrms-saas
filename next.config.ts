@@ -126,6 +126,18 @@ const nextConfig: NextConfig = {
 
     // Merged from the previously-active next.config.js (P0-11).
     experimental: {
+        optimizePackageImports: [
+            "lucide-react",
+            "recharts",
+            "framer-motion",
+            "date-fns",
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-dropdown-menu",
+            "@radix-ui/react-select",
+            "@radix-ui/react-tabs",
+            "@radix-ui/react-popover",
+            "@radix-ui/react-tooltip",
+        ],
         serverActions: {
             // Room for the bounded 5 MB resignation letter, multipart overhead,
             // AND the 10 MB ceiling the employee and travel upload APIs enforce.

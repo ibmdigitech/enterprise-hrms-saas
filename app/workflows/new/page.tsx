@@ -1,32 +1,43 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
+import { requirePagePermission } from "@/lib/auth/page-guard";
+import { PERMISSIONS } from "@/lib/auth/permissions";
 
-export default async function NewWorkflowPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+const ALLOWED_CATEGORIES = new Set(["ONBOARDING", "OFFBOARDING", "LEAVE", "DYNAMIC_FORM", "CUSTOM"]);
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    include: {
-      memberships: { where: { status: "ACTIVE" }, take: 1 },
-      employee: { select: { tenantId: true } },
-    },
-  });
+export default async function NewWorkflowPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ category?: string }>;
+}) {
+  const { user } = await requirePagePermission(PERMISSIONS.WORKFLOW_MANAGE);
+  const resolvedParams = searchParams ? await searchParams : {};
+  const requestedCategory = resolvedParams.category?.toUpperCase() || "ONBOARDING";
+  const category = ALLOWED_CATEGORIES.has(requestedCategory) ? requestedCategory : "ONBOARDING";
 
-  const tenantId: string =
-    user?.memberships?.[0]?.tenantId ??
-    user?.employee?.tenantId ??
-    (await prisma.tenant.findFirst({ orderBy: { createdAt: "asc" } }))?.id ??
-    "";
+  let tenantId = user.tenantId;
+  if (!tenantId && user.role === "SUPER_ADMIN") {
+    tenantId =
+      (await prisma.tenant.findFirst({ orderBy: { createdAt: "asc" } }))?.id ?? null;
+  }
+  if (!tenantId) {
+    redirect("/workflows");
+  }
+
+  const defaultName =
+    category === "DYNAMIC_FORM"
+      ? "New Dynamic Form"
+      : category === "ONBOARDING"
+        ? "Employee Onboarding Workflow"
+        : "New Custom Workflow";
 
   const template = await prisma.workflowTemplate.create({
     data: {
       tenantId,
-      name: "New Workflow",
+      name: defaultName,
       description: "",
-      category: "ONBOARDING",
-      createdBy: session.user.id,
+      category,
+      createdBy: user.id,
     },
   });
 

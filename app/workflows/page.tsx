@@ -1,27 +1,16 @@
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
+import { requirePagePermission } from "@/lib/auth/page-guard";
+import { PERMISSIONS } from "@/lib/auth/permissions";
 import { WorkflowListClient } from "./workflow-list-client";
 
 export default async function WorkflowsPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const { user } = await requirePagePermission(PERMISSIONS.WORKFLOW_VIEW);
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    include: {
-      memberships: { where: { status: "ACTIVE" }, take: 1 },
-      employee: { select: { tenantId: true } },
-    },
-  });
-
-  const tenantId =
-    user?.memberships?.[0]?.tenantId ?? user?.employee?.tenantId;
-  if (!tenantId && user?.role !== "SUPER_ADMIN") redirect("/dashboard");
-
-  const resolvedTenantId =
-    tenantId ??
-    (await prisma.tenant.findFirst({ orderBy: { createdAt: "asc" } }))?.id;
+  let resolvedTenantId = user.tenantId;
+  if (!resolvedTenantId && user.role === "SUPER_ADMIN") {
+    resolvedTenantId =
+      (await prisma.tenant.findFirst({ orderBy: { createdAt: "asc" } }))?.id ?? null;
+  }
 
   const templates = resolvedTenantId
     ? await prisma.workflowTemplate.findMany({
