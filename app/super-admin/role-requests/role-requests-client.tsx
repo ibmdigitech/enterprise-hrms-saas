@@ -115,11 +115,11 @@ export function RoleRequestsClient({ initialData, initialParams }: RoleRequestsC
   };
 
   const handleStatusFilter = (status: string) => {
-    fetchData({ ...params, status, page: 1 });
+    fetchData({ ...params, status: status === "ALL" ? "" : status, page: 1 });
   };
 
   const handleRoleFilter = (role: string) => {
-    fetchData({ ...params, role, page: 1 });
+    fetchData({ ...params, role: role === "ALL" ? "" : role, page: 1 });
   };
 
   const handlePageChange = (page: number) => {
@@ -250,23 +250,23 @@ export function RoleRequestsClient({ initialData, initialParams }: RoleRequestsC
               className="pl-10 bg-card border-border/50"
             />
           </div>
-          <Select value={params.status} onValueChange={handleStatusFilter}>
+          <Select value={params.status || "ALL"} onValueChange={handleStatusFilter}>
             <SelectTrigger className="w-full sm:w-40 bg-card border-border/50">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Statuses</SelectItem>
+              <SelectItem value="ALL">All Statuses</SelectItem>
               <SelectItem value="PENDING">Pending</SelectItem>
               <SelectItem value="APPROVED">Approved</SelectItem>
               <SelectItem value="REJECTED">Rejected</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={params.role} onValueChange={handleRoleFilter}>
+          <Select value={params.role || "ALL"} onValueChange={handleRoleFilter}>
             <SelectTrigger className="w-full sm:w-40 bg-card border-border/50">
               <SelectValue placeholder="All Roles" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Roles</SelectItem>
+              <SelectItem value="ALL">All Roles</SelectItem>
               <SelectItem value="MANAGER">Manager</SelectItem>
               <SelectItem value="HR">HR Specialist</SelectItem>
             </SelectContent>

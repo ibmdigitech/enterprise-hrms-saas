@@ -22,15 +22,7 @@ import {
   Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormDescription,
-  FormMessage,
-} from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -157,9 +149,9 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
         planTier: String(firstRow.planTier ?? firstRow["Plan Tier"] ?? "STARTER").trim().toUpperCase() || "STARTER",
       };
 
-      const validPlans = new Set((plans || []).map((plan) => plan.id.toUpperCase()));
+      const validPlans = new Set((plans || []).map((plan) => plan.slug.toUpperCase()));
       if (nextValues.planTier && !validPlans.has(nextValues.planTier)) {
-        nextValues.planTier = "STARTER";
+        nextValues.planTier = plans[0]?.slug?.toUpperCase() || "STARTER";
       }
 
       setWizard((prev) => ({
@@ -307,7 +299,9 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
   };
 
   const currentStep = STEPS.find((s) => s.id === wizard.step)!;
-  const selectedPlan = plans.find((p) => p.id === wizard.formData.planTier);
+  const selectedPlan = plans.find(
+    (p) => p.slug.toUpperCase() === wizard.formData.planTier.toUpperCase() || p.id === wizard.formData.planTier
+  );
 
   const stepProgress = (wizard.step - 1) / (STEPS.length - 1);
 
@@ -342,7 +336,7 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
       </motion.div>
 
       {/* Steps Indicator */}
-      <div className="grid grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 mb-8">
         {STEPS.map((step) => (
           <motion.div
             key={step.id}
@@ -412,101 +406,65 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    name="companyName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Company Name</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Acme Corporation"
-                            value={wizard.formData.name}
-                            onChange={(e) => updateField("name", e.target.value)}
-                          />
-                        </FormControl>
-                        <FormDescription>Legal trading name of the company</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    name="companySlug"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Subdomain</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="acme-corp"
-                            value={wizard.formData.slug}
-                            onChange={(e) => updateField("slug", e.target.value)}
-                          />
-                        </FormControl>
-                        <FormDescription>.hrms-saas.com</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="wiz-company-name">Company Name</Label>
+                    <Input
+                      id="wiz-company-name"
+                      placeholder="Acme Corporation"
+                      value={wizard.formData.name}
+                      onChange={(e) => updateField("name", e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">Legal trading name of the company</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="wiz-company-slug">Subdomain</Label>
+                    <Input
+                      id="wiz-company-slug"
+                      placeholder="acme-corp"
+                      value={wizard.formData.slug}
+                      onChange={(e) => updateField("slug", e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">.hrms-saas.com</p>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    name="currency"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Currency</FormLabel>
-                        <FormControl>
-                          <Select onValueChange={(value) => updateField("currency", value)} defaultValue={wizard.formData.currency}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select currency" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="AED">AED - UAE Dirham</SelectItem>
-                              <SelectItem value="USD">USD - US Dollar</SelectItem>
-                              <SelectItem value="SAR">SAR - Saudi Riyal</SelectItem>
-                              <SelectItem value="EUR">EUR - Euro</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    name="tradeLicense"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Trade License Number</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="CN-1234567"
-                            value={wizard.formData.tradeLicenseNumber}
-                            onChange={(e) => updateField("tradeLicenseNumber", e.target.value)}
-                          />
-                        </FormControl>
-                        <FormDescription>Business registration or trade license number</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="space-y-2">
+                    <Label>Currency</Label>
+                    <Select onValueChange={(value) => updateField("currency", value)} value={wizard.formData.currency}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select currency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="AED">AED - UAE Dirham</SelectItem>
+                        <SelectItem value="USD">USD - US Dollar</SelectItem>
+                        <SelectItem value="SAR">SAR - Saudi Riyal</SelectItem>
+                        <SelectItem value="EUR">EUR - Euro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="wiz-trade-license">Trade License Number</Label>
+                    <Input
+                      id="wiz-trade-license"
+                      placeholder="CN-1234567"
+                      value={wizard.formData.tradeLicenseNumber}
+                      onChange={(e) => updateField("tradeLicenseNumber", e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">Business registration or trade license number</p>
+                  </div>
                 </div>
 
-                <FormField
-                  name="taxId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tax / VAT ID</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="100123456700003"
-                          value={wizard.formData.taxId}
-                          onChange={(e) => updateField("taxId", e.target.value)}
-                        />
-                      </FormControl>
-                      <FormDescription>Tax identification number</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="wiz-tax-id">Tax / VAT ID</Label>
+                  <Input
+                    id="wiz-tax-id"
+                    placeholder="100123456700003"
+                    value={wizard.formData.taxId}
+                    onChange={(e) => updateField("taxId", e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">Tax identification number</p>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -524,41 +482,27 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    name="adminName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Admin Full Name</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="John Doe"
-                            value={wizard.formData.adminName}
-                            onChange={(e) => updateField("adminName", e.target.value)}
-                          />
-                        </FormControl>
-                        <FormDescription>Full name of the company administrator</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    name="adminEmail"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Admin Email</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="admin@acme.com"
-                            value={wizard.formData.adminEmail}
-                            onChange={(e) => updateField("adminEmail", e.target.value)}
-                          />
-                        </FormControl>
-                        <FormDescription>Email address for the administrator account</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="wiz-admin-name">Admin Full Name</Label>
+                    <Input
+                      id="wiz-admin-name"
+                      placeholder="John Doe"
+                      value={wizard.formData.adminName}
+                      onChange={(e) => updateField("adminName", e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">Full name of the company administrator</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="wiz-admin-email">Admin Email</Label>
+                    <Input
+                      id="wiz-admin-email"
+                      type="email"
+                      placeholder="admin@acme.com"
+                      value={wizard.formData.adminEmail}
+                      onChange={(e) => updateField("adminEmail", e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">Email address for the administrator account</p>
+                  </div>
                 </div>
 
                 <div className="bg-muted/50 rounded-xl p-4 border border-border/50">
@@ -593,19 +537,20 @@ export function CompanyOnboardingWizard({ plans, modules }: { plans: WizardPlan[
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {plans.map((plan) => {
-                    const isSelected = wizard.formData.planTier === plan.id;
+                    const tierKey = plan.slug.toUpperCase();
+                    const isSelected = wizard.formData.planTier.toUpperCase() === tierKey || wizard.formData.planTier === plan.id;
                     return (
                       <motion.div
                         key={plan.id}
                         whileHover={{ y: -4 }}
                         whileTap={{ scale: 0.98 }}
                         className={cn(
-                          "flex flex-col items-center justify-between rounded-2xl p-6 border transition-all duration-200",
+                          "flex flex-col items-center justify-between rounded-2xl p-6 border transition-all duration-200 cursor-pointer",
                           isSelected
                             ? "bg-indigo-500/10 border-indigo-500/30 shadow-lg shadow-indigo-500/20 ring-2 ring-indigo-500"
                             : "bg-card border-border/50 hover:border-indigo-500/30"
                         )}
-                        onClick={() => updateField("planTier", plan.id)}
+                        onClick={() => updateField("planTier", tierKey)}
                       >
                         <div className="text-center">
                           <h3 className={cn("font-semibold text-foreground", isSelected ? "text-indigo-400" : "text-muted-foreground")}>

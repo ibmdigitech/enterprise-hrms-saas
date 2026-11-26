@@ -7,18 +7,31 @@ import { z } from "zod";
 
 const companySchema = z.object({
   name: z.string().min(1, "Company name is required").max(100),
-  slug: z.string().min(1, "Subdomain is required").regex(/^[a-z0-9-]+$/, "Only lowercase letters, numbers, and hyphens"),
+  slug: z
+    .string()
+    .min(1, "Subdomain is required")
+    .regex(/^[a-z0-9-]+$/, "Only lowercase letters, numbers, and hyphens"),
   adminEmail: z.string().email("Valid email required"),
-  contactEmail: z.string().email("Valid contact email required").optional(),
+  contactEmail: z.string().email("Valid contact email required").optional().or(z.literal("")),
   adminName: z.string().min(1, "Admin name required"),
-  planTier: z.enum(["STARTER", "GROWTH", "ENTERPRISE"]),
+  planTier: z.string().min(1).default("STARTER"),
   tradeLicenseNumber: z.string().optional(),
   taxId: z.string().optional(),
   currency: z.string().default("AED"),
   logoUrl: z.string().url().optional().or(z.literal("")),
+  moduleIds: z.array(z.string()).optional(),
 });
 
-const updateCompanySchema = companySchema.partial();
+const updateCompanySchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  contactEmail: z.string().email("Valid contact email required").optional().or(z.literal("")),
+  currency: z.string().optional(),
+  tradeLicenseNumber: z.string().optional(),
+  taxId: z.string().optional(),
+  timezone: z.string().optional(),
+});
+
+const ALLOWED_SORT_FIELDS = new Set(["createdAt", "updatedAt", "name", "slug", "status"]);
 
 export interface CompanyListParams {
   page?: number;
@@ -49,18 +62,33 @@ export async function getCompaniesAction(params: CompanyListParams = {}): Promis
     sortOrder = "desc",
   } = params;
 
+  const safePage = Math.max(1, page);
+  const safeLimit = Math.min(100, Math.max(1, limit));
+  const safeSortBy = ALLOWED_SORT_FIELDS.has(sortBy) ? sortBy : "createdAt";
+  const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
+
   const where: any = {};
 
-  if (search) {
+  if (search && search.trim()) {
+    const q = search.trim();
     where.OR = [
-      { name: { contains: search, mode: "insensitive" } },
-      { slug: { contains: search, mode: "insensitive" } },
-      { tradeLicenseNumber: { contains: search, mode: "insensitive" } },
-      { taxId: { contains: search, mode: "insensitive" } },
+      { name: { contains: q, mode: "insensitive" } },
+      { slug: { contains: q, mode: "insensitive" } },
+      { contactEmail: { contains: q, mode: "insensitive" } },
+      {
+        companies: {
+          some: {
+            OR: [
+              { tradeLicenseNumber: { contains: q, mode: "insensitive" } },
+              { taxId: { contains: q, mode: "insensitive" } },
+            ],
+          },
+        },
+      },
     ];
   }
 
-  if (status) {
+  if (status && status !== "ALL") {
     where.status = status;
   }
 
@@ -80,9 +108,9 @@ export async function getCompaniesAction(params: CompanyListParams = {}): Promis
           },
         },
       },
-      orderBy: { [sortBy]: sortOrder },
-      skip: (page - 1) * limit,
-      take: limit,
+      orderBy: { [safeSortBy]: safeSortOrder },
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
     }),
     prisma.tenant.count({ where }),
   ]);
@@ -90,9 +118,9 @@ export async function getCompaniesAction(params: CompanyListParams = {}): Promis
   return {
     companies,
     total,
-    page,
-    limit,
-    totalPages: Math.ceil(total / limit),
+    page: safePage,
+    limit: safeLimit,
+    totalPages: Math.max(1, Math.ceil(total / safeLimit)),
   };
 }
 
@@ -118,10 +146,17 @@ export async function getCompanyAction(tenantId: string) {
         },
         where: { status: "ACTIVE" },
       },
+      companyModules: {
+        include: { module: true },
+      },
       invoices: {
         take: 10,
         orderBy: { createdAt: "desc" },
         include: { transactions: true },
+      },
+      supportTickets: {
+        take: 5,
+        orderBy: { createdAt: "desc" },
       },
       _count: {
         select: {
@@ -134,7 +169,7 @@ export async function getCompanyAction(tenantId: string) {
     },
   });
 
-  if (!tenant) throw new Error("Company not found");
+  if (!tenant) return null;
 
   return tenant;
 }
@@ -143,8 +178,10 @@ export async function createCompanyAction(input: z.infer<typeof companySchema>) 
   await requireSuperAdmin("platform.tenants.create");
 
   const validated = companySchema.parse(input);
-
-  const sanitizedSlug = input.slug.toLowerCase().trim().replace(/[^a-z0-9-]/g, "");
+  const sanitizedSlug = validated.slug.toLowerCase().trim().replace(/[^a-z0-9-]/g, "");
+  if (!sanitizedSlug) {
+    throw new Error("Subdomain must contain lowercase letters, numbers, or hyphens.");
+  }
 
   const existing = await prisma.tenant.findUnique({
     where: { slug: sanitizedSlug },
@@ -153,54 +190,85 @@ export async function createCompanyAction(input: z.infer<typeof companySchema>) 
     throw new Error(`Subdomain '${sanitizedSlug}' is already taken.`);
   }
 
+  const normalizedAdminEmail = validated.adminEmail.toLowerCase().trim();
   const existingEmail = await prisma.user.findUnique({
-    where: { email: input.adminEmail.toLowerCase() },
+    where: { email: normalizedAdminEmail },
   });
   if (existingEmail) {
-    throw new Error(`User with email '${input.adminEmail}' already exists.`);
+    throw new Error(`User with email '${validated.adminEmail}' already exists.`);
   }
 
-  const planLimitsMap = {
+  const plan = await prisma.subscriptionPlan.findFirst({
+    where: {
+      OR: [
+        { id: validated.planTier },
+        { slug: { equals: validated.planTier, mode: "insensitive" } },
+        { name: { equals: validated.planTier, mode: "insensitive" } },
+      ],
+    },
+  });
+
+  const normalizedTier = (plan?.slug || validated.planTier || "STARTER").toUpperCase();
+
+  const planLimitsMap: Record<
+    string,
+    {
+      maxEmployees: number;
+      maxCompanies: number;
+      maxLocations: number;
+      hasRecruitment: boolean;
+      hasCustomTheme: boolean;
+      hasApiAccess: boolean;
+    }
+  > = {
     STARTER: { maxEmployees: 50, maxCompanies: 1, maxLocations: 2, hasRecruitment: false, hasCustomTheme: false, hasApiAccess: false },
     GROWTH: { maxEmployees: 250, maxCompanies: 3, maxLocations: 10, hasRecruitment: true, hasCustomTheme: false, hasApiAccess: false },
+    PROFESSIONAL: { maxEmployees: 250, maxCompanies: 3, maxLocations: 10, hasRecruitment: true, hasCustomTheme: true, hasApiAccess: true },
     ENTERPRISE: { maxEmployees: 1000, maxCompanies: 10, maxLocations: 25, hasRecruitment: true, hasCustomTheme: true, hasApiAccess: true },
-  } as const;
+  };
 
-  const planLimits = planLimitsMap[input.planTier as keyof typeof planLimitsMap] || planLimitsMap.STARTER;
-
-  const plan = await prisma.subscriptionPlan.findUnique({
-    where: { slug: input.planTier.toLowerCase() },
-  });
+  const fallbackLimits = planLimitsMap[normalizedTier] || planLimitsMap.STARTER;
+  const maxEmployees = plan?.maxEmployees ?? fallbackLimits.maxEmployees;
+  const maxCompanies = plan?.maxCompanies ?? fallbackLimits.maxCompanies;
+  const maxLocations = plan?.maxLocations ?? fallbackLimits.maxLocations;
+  const hasPayroll = plan?.hasPayroll ?? true;
+  const hasCompliance = plan?.hasCompliance ?? true;
+  const hasRecruitment = plan?.hasRecruitment ?? fallbackLimits.hasRecruitment;
+  const hasCustomTheme = plan?.hasCustomTheme ?? fallbackLimits.hasCustomTheme;
+  const hasApiAccess = plan?.hasApiAccess ?? fallbackLimits.hasApiAccess;
 
   const tenant = await prisma.$transaction(async (tx) => {
     const newTenant = await tx.tenant.create({
       data: {
-        name: validated.name,
+        name: validated.name.trim(),
         slug: sanitizedSlug,
-        legalName: validated.name,
-        contactEmail: input.adminEmail,
+        legalName: validated.name.trim(),
+        contactEmail: validated.contactEmail || normalizedAdminEmail,
         status: "ACTIVE",
-        currency: validated.currency,
+        currency: validated.currency || "AED",
+        logoUrl: validated.logoUrl || null,
         primaryColor: "#1e40af",
         accentColor: "#0284c7",
         subscription: {
           create: {
             planId: plan?.id,
-            planTier: input.planTier,
-            maxEmployees: planLimits.maxEmployees,
-            maxCompanies: planLimits.maxCompanies,
-            maxLocations: planLimits.maxLocations,
-            hasPayroll: true,
-            hasCompliance: true,
-            hasRecruitment: planLimits.hasRecruitment,
-            hasCustomTheme: planLimits.hasCustomTheme,
-            hasApiAccess: planLimits.hasApiAccess,
+            planTier: normalizedTier,
+            maxEmployees,
+            maxCompanies,
+            maxLocations,
+            hasPayroll,
+            hasCompliance,
+            hasRecruitment,
+            hasCustomTheme,
+            hasApiAccess,
           },
         },
         companies: {
           create: {
-            name: `${validated.name} Head Office`,
-            currency: validated.currency,
+            name: `${validated.name.trim()} Head Office`,
+            tradeLicenseNumber: validated.tradeLicenseNumber || null,
+            taxId: validated.taxId || null,
+            currency: validated.currency || "AED",
             isDefault: true,
           },
         },
@@ -208,21 +276,31 @@ export async function createCompanyAction(input: z.infer<typeof companySchema>) 
       include: { subscription: true, companies: true },
     });
 
-    const passwordHash = await import('bcryptjs').then(m => m.default.hash("TempPass123!", 12));
+    const passwordHash = await import("bcryptjs").then((m) => m.default.hash("TempPass123!", 12));
+    const nameParts = validated.adminName.trim().split(/\s+/);
+    const firstName = nameParts[0] || "Company";
+    const lastName = nameParts.slice(1).join(" ") || "Admin";
+    const uniqueSuffix = Date.now().toString().slice(-6);
 
     const adminUser = await tx.user.create({
       data: {
-        name: input.adminName,
-        email: input.adminEmail.toLowerCase(),
+        name: validated.adminName.trim(),
+        email: normalizedAdminEmail,
         password: passwordHash,
         role: "COMPANY_ADMIN",
+        securityFlag: {
+          create: {
+            mustChangePassword: true,
+            mustChangeReason: "First login forced password change",
+          },
+        },
         employee: {
           create: {
-            firstName: input.adminName.split(" ")[0],
-            lastName: input.adminName.split(" ").slice(1).join(" ") || "Admin",
-            email: input.adminEmail.toLowerCase(),
-            employeeCode: `EMP-${Date.now().toString().slice(-6)}`,
-            rollNumber: `ROLL-${Date.now().toString().slice(-6)}`,
+            firstName,
+            lastName,
+            email: normalizedAdminEmail,
+            employeeCode: `EMP-${uniqueSuffix}`,
+            rollNumber: `ROLL-${uniqueSuffix}`,
             tenantId: newTenant.id,
             companyId: newTenant.companies[0]?.id,
             currentStatus: "ACTIVE",
@@ -241,6 +319,17 @@ export async function createCompanyAction(input: z.infer<typeof companySchema>) 
       },
     });
 
+    if (validated.moduleIds && validated.moduleIds.length > 0) {
+      await tx.companyModule.createMany({
+        data: validated.moduleIds.map((moduleId) => ({
+          tenantId: newTenant.id,
+          moduleId,
+          isEnabled: true,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
     return newTenant;
   });
 
@@ -253,12 +342,35 @@ export async function updateCompanyAction(tenantId: string, input: z.infer<typeo
 
   const validated = updateCompanySchema.parse(input);
 
-  const updateData: any = { ...validated };
-  if (updateData.logoUrl === "") delete updateData.logoUrl;
+  await prisma.$transaction(async (tx) => {
+    const tenantUpdate: Record<string, any> = {};
+    if (validated.name !== undefined) tenantUpdate.name = validated.name.trim();
+    if (validated.contactEmail !== undefined) {
+      tenantUpdate.contactEmail = validated.contactEmail || null;
+    }
+    if (validated.currency !== undefined) tenantUpdate.currency = validated.currency;
+    if (validated.timezone !== undefined) tenantUpdate.timezone = validated.timezone;
 
-  await prisma.tenant.update({
-    where: { id: tenantId },
-    data: updateData,
+    if (Object.keys(tenantUpdate).length > 0) {
+      await tx.tenant.update({
+        where: { id: tenantId },
+        data: tenantUpdate,
+      });
+    }
+
+    if (validated.tradeLicenseNumber !== undefined || validated.taxId !== undefined) {
+      await tx.company.updateMany({
+        where: { tenantId, isDefault: true },
+        data: {
+          ...(validated.tradeLicenseNumber !== undefined && {
+            tradeLicenseNumber: validated.tradeLicenseNumber || null,
+          }),
+          ...(validated.taxId !== undefined && {
+            taxId: validated.taxId || null,
+          }),
+        },
+      });
+    }
   });
 
   revalidatePath("/super-admin/companies");
